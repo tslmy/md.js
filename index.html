@@ -7,11 +7,15 @@
     <script type="text/javascript">
         $(document).ready(function() {
             $('canvas#md').md( {
-                run_time: 10
+                num_particles: 20,
+                particle_size: 2,
+                run_time: 10,
+                G: 0.01,
             });
         });
     </script>
+    <style>#md{border:1px solid black;}</style>
 </head>
 <body>
-<canvas height="100" width="100" id="md"></canvas>
+<canvas height="300" width="300" id="md"></canvas>
 </body>
