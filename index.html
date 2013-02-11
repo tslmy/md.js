@@ -6,16 +6,26 @@
     <script type="text/javascript" src="md.js"></script>
     <script type="text/javascript">
         $(document).ready(function() {
+            $(window).resize(function() {
+                $('canvas#md')[0].width  = $(window).width() - 5;
+                $('canvas#md')[0].height = $(window).height() - 5;
+                console.log("RESIZING");
+            }).resize();
+
             $('canvas#md').md( {
-                num_particles: 20,
-                particle_size: 2,
-                run_time: 10,
-                G: 0.01,
             });
         });
     </script>
-    <style>#md{border:1px solid black;}</style>
+    <style>
+        html,body {
+            padding:0;margin:0;
+        }
+        #md {
+            border:0px solid black;
+            margin:auto;
+        }
+    </style>
 </head>
 <body>
-<canvas height="300" width="300" id="md"></canvas>
+<canvas id="md" height=100 width=100 ></canvas>
 </body>
