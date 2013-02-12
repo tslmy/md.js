@@ -35,7 +35,7 @@
 
     // Return the unit vector pointing in the direction of the given vector.
     Vector3D.unit = function(v) {
-        return Vector3D.divide(v, Vector3D.length(v));
+        return Vector3D.divide(v, Vector3D.norm(v));
     };
 
 
@@ -149,19 +149,22 @@
         // Use Lennard-Jones potential
         // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
         // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
-        for(i = 0; i < particles.length; ++i)
-        for(j = i+1; j < particles.length; ++j) {
+        for(var i = 0; i < particles.length; ++i)
+        for(var j = i+1; j < particles.length; ++j) {
             var p1 = particles[i];
             var p2 = particles[j];
 
             var r  = Vector3D.subtract(p1.position, p2.position);
             var d  = Vector3D.norm(r);
 
+            var r = Vector3D.unit(r);
+
             var d6 = (delta/d);
+            if (d6 < 0.5) d6 = 0.5;
                 d6 = d6*d6*d6;
                 d6 = d6*d6;
 
-            var f  = 4*epsilon*(6/d)*(-2*d6*d6 + d6)/d;
+            var f  = 4*epsilon*(6/d)*(-2*d6*d6 + d6);
             var fv = Vector3D.multiply(r, f);
 
             p1.force = Vector3D.subtract(p1.force, fv);
@@ -369,7 +372,7 @@
         options = options || {};
 
         // Define the number of particles in the simulation
-        var num_particles = options.num_particles || 10;
+        var num_particles = options.num_particles || 20;
 
         /**
          * Define some time parameters
@@ -378,8 +381,9 @@
          *     step_delay: the time to wait between ticks
          */
         var run_time      = options.run_time || -1;
-        var dt            = options.dt || 0.01;
+        var dt            = options.dt || 0.001;
         var step_delay    = options.step_delay || dt*1000;
+        var frameskip     = options.frameskip || 5;
 
         // Define some potential parameters
         /**
@@ -390,8 +394,8 @@
          *     delta: distance to bottom of well
          */
         var G             = options.G || 0.15;
-        var epsilon = options.epsilon || 0.5;
-        var delta   = options.delta   || 0.15;
+        var epsilon = options.epsilon || 1;
+        var delta   = options.delta   || 0.1;
 
         // Define how big particles will appear when drawn
         var particle_size = options.particle_size || 2;
@@ -413,24 +417,27 @@
              * the center of mass having a velocity, so view port moves
              * with it, making movements look a little odd.
              */
-            //p.velocity = Vector3D.multiply(Vector3D.random(), 1);
-            p.velocity = new Vector3D(0,0,1);
+            p.velocity = Vector3D.multiply(Vector3D.random(), 1);
+            //p.velocity = new Vector3D(0,0,1);
             p.mass = Math.random()*5+0.5;
             particles.push(p);
         }
 
         // Initialize our potentials if necessary
-        // generate_Lennard_Jones_forces(particles, epsilon, delta);
+        //generate_Lennard_Jones_forces(particles, epsilon, delta);
         generate_gravitational_forces(particles, G);
 
         // Pull out the canvas element to draw on
         var canvas = this[0];
 
+        var count = 0;
         (function run_tick(t, run_time, dt) {
-            // Draw current positions of particles
-            canvas_draw_particles(canvas, particles, {
-                particle_size:particle_size,
-            });
+            if ( count++ % frameskip == 0) {
+                // Draw current positions of particles
+                canvas_draw_particles(canvas, particles, {
+                    particle_size:particle_size,
+                });
+            }
 
 
             /**
@@ -460,7 +467,7 @@
                 particles[i].force = new Vector3D;
             }
             // Run our force generating routine
-            // generate_Lennard_Jones_forces(particles, epsilon, delta);
+            //generate_Lennard_Jones_forces(particles, epsilon, delta);
             generate_gravitational_forces(particles, G);
 
             // Run final timestep update using Velocity Verlet
