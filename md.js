@@ -179,29 +179,6 @@
         // Wrap canvas in jQuery selector to access data method
         var $canvas = $(canvas);
 
-        /**
-         * initial_z encodes the max and min z positions of all the
-         * particles, so their sizes can be easily calculated later.
-         *
-         * This is useful, because it fixes the size of particles. Getting
-         * the max and min per run was tested, but it was found that an
-         * abnormally close particle would make all the others look tiny,
-         * so it may be better to use an absolute value here.
-         *
-         * Here, we check if the object has already been attached to
-         * the canvas, and if not, we compute it and attach it.
-         */
-        var initial_z   = $canvas.data('initial_z') || (function() {
-            var initial_z = {min: 100000, max: -100000};
-            for(i = 0; i < particles.length; ++i) {
-                var z = particles[i].position.z;
-                if (z < initial_z.min) initial_z.min = z;
-                if (z > initial_z.max) initial_z.max = z;
-            }
-            $canvas.data('initial_z', initial_z);
-
-            return initial_z;
-        })();
 
         /**
          * The view offset is used to place the center of the view
@@ -212,22 +189,59 @@
          * deviations from this and adjust accordingly later.
          */
         var view_offset = (function() {
-            var view_offset = new Vector3D;
+            var center_of_mass = new Vector3D;
             var total_mass = 0;
             for(i = 0; i < particles.length; ++i) {
                 var p = particles[i];
-                view_offset = Vector3D.add(
-                    view_offset, Vector3D.multiply(p.position, p.mass)
+                center_of_mass = Vector3D.add(
+                    center_of_mass, Vector3D.multiply(p.position, p.mass)
                 );
                 total_mass += p.mass;
             }
-            view_offset = Vector3D.divide(view_offset, total_mass);
+            center_of_mass = Vector3D.divide(center_of_mass, total_mass);
+
+            /**
+             * Center of mass may not be where the most particles are
+             * We define a function that finds the center we should be
+             * looking at by weighting particles according to their
+             * distance from the center of mass
+             */
+            var view_offset = new Vector3D;
+            var total_weight = 0;
+            var d_minor_cutoff = 3;
+            var d_major_cutoff = 500;
+            for (i = 0; i < particles.length; ++i) {
+                var p = particles[i];
+
+                var d = Vector3D.norm(
+                    Vector3D.subtract(center_of_mass, p.position)
+                );
+
+                var weight
+                if (d > d_minor_cutoff) {
+                    var d_off = d-d_minor_cutoff;
+                    weight = 1/(d_off*d_off+1);
+                } else if ( d > d_major_cutoff ) {
+                    weight = 0;
+                } else {
+                    weight = 1;
+                }
+                weight = weight*p.mass;
+
+                view_offset = Vector3D.add(
+                    view_offset, Vector3D.multiply(p.position, weight)
+                );
+
+                total_weight += weight;
+            }
+
+            view_offset = Vector3D.divide(view_offset, total_weight);
             view_offset = Vector3D.subtract(
                 new Vector3D(0.5, 0.5, 0.5), view_offset
             );
-
             return view_offset;
         })();
+
 
         /**
          * Here we find the smallest side of the canvas to find the
@@ -252,11 +266,8 @@
          * approach to take here.
          */
         function gen_particle_size(p_z, particle_mass) {
-            var particle_size =
-                (p_z - initial_z.min)/(initial_z.max-initial_z.min);
-            
-            particle_size = options.particle_size*particle_mass*(
-                 particle_size*particle_size + 0.5
+            var particle_size = options.particle_size*particle_mass*(
+                 p_z*p_z + 0.5
             );
             if (particle_size < 0) particle_size = 0;
             if (particle_size > 50) particle_size = 0;
@@ -329,7 +340,7 @@
         for(i = 0; i < particles.length; ++i) {
             var p = particles[i];
 
-            /*
+            /**
              * If the particle is outside the bounds of the
              * box, and is travelling further towards the
              * outside, turn it around.
@@ -357,7 +368,7 @@
 
         options = options || {};
 
-        /// Define the number of particles in the simulation
+        // Define the number of particles in the simulation
         var num_particles = options.num_particles || 10;
 
         /**
@@ -370,7 +381,7 @@
         var dt            = options.dt || 0.01;
         var step_delay    = options.step_delay || dt*1000;
 
-        /// Define some potential parameters
+        // Define some potential parameters
         /**
          * Gravitational Potential
          *     G: the gravitational constant
@@ -382,7 +393,7 @@
         var epsilon = options.epsilon || 0.5;
         var delta   = options.delta   || 0.15;
 
-        /// Define how big particles will appear when drawn
+        // Define how big particles will appear when drawn
         var particle_size = options.particle_size || 2;
 
 
@@ -396,12 +407,14 @@
             // We want particles to be randomly distributed
             p.position = Vector3D.random();
 
-            /* We may want particles to have some initial velocity.
+            /**
+             * We may want particles to have some initial velocity.
              * Unless using large numbers of particles, this leads to
              * the center of mass having a velocity, so view port moves
              * with it, making movements look a little odd.
              */
             //p.velocity = Vector3D.multiply(Vector3D.random(), 1);
+            p.velocity = new Vector3D(0,0,1);
             p.mass = Math.random()*5+0.5;
             particles.push(p);
         }
@@ -420,11 +433,11 @@
             });
 
 
-            /*
+            /**
              * Begin position, velocity and force updates here
              */
 
-            //Run initial timestep update using Velocity Verlet
+            // Run initial timestep update using Velocity Verlet
             for(i = 0; i < particles.length; ++i) {
                 var p = particles[i];
 
@@ -439,7 +452,7 @@
                 );
             }
 
-            /*
+            /**
              * Generate updated forces
              */
             // Reset all forces to 0
@@ -450,7 +463,7 @@
             // generate_Lennard_Jones_forces(particles, epsilon, delta);
             generate_gravitational_forces(particles, G);
 
-            //Run final timestep update using Velocity Verlet
+            // Run final timestep update using Velocity Verlet
             for(i = 0; i < particles.length; ++i) {
                 var p = particles[i];
 
@@ -460,7 +473,7 @@
                 );
             }
 
-            /*
+            /**
              * There have been some problems with viewport tracking
              * where some particles may have achieved escape
              * velocity and energy hasn't been conserved. This could
@@ -469,10 +482,10 @@
              * We solve this by putting particles in a finite box and
              * having them bounce off the sides.
              */
-            apply_boundary_conditions(particles);
+            //apply_boundary_conditions(particles);
 
 
-            /*
+            /**
              * If the current time is less than the total runtime,
              * or if the simulation is to run indefinitely,
              * wait step_delay milliseconds and run the next tick.
