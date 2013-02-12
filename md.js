@@ -1,5 +1,5 @@
 (function($) {
-
+"use strict";
     /**
      * The Vector3D object is in heavy use in this code. It is used
      * in all places where vector data is to be encoded or where
@@ -109,8 +109,8 @@
     function generate_gravitational_forces(particles, G) {
         //Use gravitational potential
         //-> F = GMm/(d*d) r/|r|
-        for(i = 0; i < particles.length; ++i)
-        for(j = i+1; j < particles.length; ++j) {
+        for(var i = 0; i < particles.length; ++i)
+        for(var j = i+1; j < particles.length; ++j) {
             var p1 = particles[i];
             var p2 = particles[j];
 
@@ -191,7 +191,7 @@
         var view_offset = (function() {
             var center_of_mass = new Vector3D;
             var total_mass = 0;
-            for(i = 0; i < particles.length; ++i) {
+            for(var i = 0; i < particles.length; ++i) {
                 var p = particles[i];
                 center_of_mass = Vector3D.add(
                     center_of_mass, Vector3D.multiply(p.position, p.mass)
@@ -280,10 +280,10 @@
         ctx.clearRect(0,0,canvas.width,canvas.height);
 
         // Loop over the particles and draw them to the screen.
-        for(i = 0; i < particles.length; ++i) {
+        for(var i = 0; i < particles.length; ++i) {
             var p = particles[i];
 
-            particle_size = gen_particle_size(
+            var particle_size = gen_particle_size(
                 view_offset.z + p.position.z, p.mass
             );
 
@@ -304,7 +304,7 @@
              * When alpha==1, we're looking at the current position
              * of the particle.
              */
-            for(alpha = 0.2; alpha <= 1; alpha+=0.1) {
+            for(var alpha = 0.2; alpha <= 1; alpha+=0.1) {
                 // Find our fill style.
                 if(1 - alpha > 0.01) ctx.fillStyle = "rgba(0,0,0,0.3)";
                 else                 ctx.fillStyle = "rgba(0,0,0,1)";
@@ -401,7 +401,7 @@
 
         // Generate some particles
         var particles = [];
-        for(i = 0; i < num_particles; ++i) {
+        for(var i = 0; i < num_particles; ++i) {
             var p = new Particle;
 
             // We want particles to be randomly distributed
