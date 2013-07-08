@@ -268,14 +268,22 @@
          * our entire view. There are almost certainly a better
          * approach to take here.
          */
-        function gen_particle_size(p_z, particle_mass) {
-            var particle_size = options.particle_size*particle_mass*(
-                 p_z*p_z + 0.5
-            );
-            if (particle_size < 0) particle_size = 0;
-            if (particle_size > 50) particle_size = 0;
+        function gen_particle_size(focal_length, pos, particle_mass) {
+            var particle_size =
+                (options.particle_size*particle_mass)*(focal_length/pos.z); 
+
+            // Particle size must not be negative!
+            particle_size = Math.max(0, particle_size);;
 
             return particle_size;
+        }
+        function gen_particle_pos(focal_length, pos) {
+            var center = 0.5;
+            return new Vector3D(
+                (pos.x-center)*focal_length/pos.z +center,
+                (pos.y-center)*focal_length/pos.z +center,
+                pos.z
+            );
         }
 
 
@@ -285,10 +293,9 @@
         // Loop over the particles and draw them to the screen.
         for(var i = 0; i < particles.length; ++i) {
             var p = particles[i];
+            var init_pos = Vector3D.add(p.position, view_offset);
 
-            var particle_size = gen_particle_size(
-                view_offset.z + p.position.z, p.mass
-            );
+            var focal_length = 0.4;
 
             /**
              * Draw particles with motion blur
@@ -301,16 +308,29 @@
              * enough anyway.
              */
             // This is how far back in time our blur goes
-            var dt = 0.01;
+            var dt = 0.004;
             /**
              * These control roughly how granular our tail is
              * When alpha==1, we're looking at the current position
              * of the particle.
              */
-            for(var alpha = 0.2; alpha <= 1; alpha+=0.1) {
+            for(var alpha = 0.2; alpha <= 1; alpha+=0.2) {
                 // Find our fill style.
                 if(1 - alpha > 0.01) ctx.fillStyle = "rgba(0,0,0,0.3)";
                 else                 ctx.fillStyle = "rgba(0,0,0,1)";
+
+                var pos = gen_particle_pos(
+                    focal_length,
+                    Vector3D.subtract(
+                        init_pos,
+                        Vector3D.multiply(p.velocity, (1-alpha)*dt)
+                    )
+                );
+                var particle_size = gen_particle_size(
+                    focal_length, pos, p.mass
+                );
+
+
 
                 /**
                  * This draws a circle on the canvas using the previously
@@ -319,10 +339,10 @@
                 ctx.beginPath();
                 ctx.arc(
                     canvas_width_offset + canvas_scale* (
-                        view_offset.x + p.position.x - (1-alpha)*p.velocity.x*dt
+                        pos.x
                     ),
                     canvas_height_offset + canvas_scale*(
-                        view_offset.y + p.position.y - (1-alpha)*p.velocity.y*dt
+                        pos.y
                     ),
                     particle_size*(alpha*0.5 + 0.5),
 
@@ -417,15 +437,20 @@
              * the center of mass having a velocity, so view port moves
              * with it, making movements look a little odd.
              */
-            p.velocity = Vector3D.multiply(Vector3D.random(), 1);
+            //p.velocity = Vector3D.multiply(Vector3D.random(), 1);
             //p.velocity = new Vector3D(0,0,1);
             p.mass = Math.random()*5+0.5;
             particles.push(p);
         }
 
+        // Define force generation function
+        function generate_forces(particles) {
+            generate_Lennard_Jones_forces(particles, epsilon, delta);
+            //generate_gravitational_forces(particles, G);
+        }
+
         // Initialize our potentials if necessary
-        //generate_Lennard_Jones_forces(particles, epsilon, delta);
-        generate_gravitational_forces(particles, G);
+        generate_forces(particles);
 
         // Pull out the canvas element to draw on
         var canvas = this[0];
@@ -466,9 +491,9 @@
             for(i=0; i < particles.length; ++i) {
                 particles[i].force = new Vector3D;
             }
+
             // Run our force generating routine
-            //generate_Lennard_Jones_forces(particles, epsilon, delta);
-            generate_gravitational_forces(particles, G);
+            generate_forces(particles);
 
             // Run final timestep update using Velocity Verlet
             for(i = 0; i < particles.length; ++i) {
