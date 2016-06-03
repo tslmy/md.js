@@ -2,7 +2,40 @@
     function randomlyChooseFrom(array) {
         return array[Math.floor(Math.random() * array.length)];
     }
-    
+    // http://stackoverflow.com/questions/808826/draw-arrow-on-canvas-tag
+    function drawArrow(ctx, strokeStyle, fromx, fromy, tox, toy){
+        //variables to be used when creating the arrow
+        var headlen = 2;
+        var strokeStyle = strokeStyle || "rgba(0,0,0,.2)";
+        var angle = Math.atan2(toy-fromy,tox-fromx);
+
+        //starting path of the arrow from the start square to the end square and drawing the stroke
+        ctx.beginPath();
+        ctx.moveTo(fromx, fromy);
+        ctx.lineTo(tox, toy);
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        //starting a new path from the head of the arrow to one of the sides of the point
+        ctx.beginPath();
+        ctx.moveTo(tox, toy);
+        ctx.lineTo(tox-headlen*Math.cos(angle-Math.PI/7),toy-headlen*Math.sin(angle-Math.PI/7));
+
+        //path from the side point of the arrow, to the other side point
+        ctx.lineTo(tox-headlen*Math.cos(angle+Math.PI/7),toy-headlen*Math.sin(angle+Math.PI/7));
+
+        //path from the side point back to the tip of the arrow, and then again to the opposite side point
+        ctx.lineTo(tox, toy);
+        ctx.lineTo(tox-headlen*Math.cos(angle-Math.PI/7),toy-headlen*Math.sin(angle-Math.PI/7));
+
+        //draws the paths created above
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = strokeStyle;
+        ctx.fill();
+    }
 
     /**
      * The Vector3D object is in heavy use in this code. It is used
@@ -318,7 +351,7 @@
                 (options.particle_size*particle_mass)*(focal_length/pos.z); 
 
             // Particle size must not be negative!
-            particle_size = Math.max(0, particle_size);;
+            particle_size = Math.max(0, particle_size);
 
             return particle_size;
         }
@@ -359,11 +392,9 @@
              * When alpha==1, we're looking at the current position
              * of the particle.
              */
-            for(var alpha = 0.2; alpha <= 1; alpha+=0.2) {
+            for(var alpha = 0.2; alpha <= 1; alpha+=0.1) {
                 // Find our fill style.
-                if(1 - alpha > 0.01) ctx.fillStyle = p.color+",0.3)";
-                else                 ctx.fillStyle = p.color+",1)";
-
+                ctx.fillStyle = p.color + "," + alpha.toString() + ")";
                 var pos = gen_particle_pos(
                     focal_length,
                     Vector3D.subtract(
@@ -383,19 +414,28 @@
                  */
                 ctx.beginPath();
                 ctx.arc(
-                    canvas_width_offset + canvas_scale* (
-                        pos.x
-                    ),
-                    canvas_height_offset + canvas_scale*(
-                        pos.y
-                    ),
+                    canvas_width_offset + canvas_scale*pos.x,
+                    canvas_height_offset + canvas_scale*pos.y,
                     particle_size*(alpha*0.5 + 0.5),
 
-                    0, Math.PI*2*p.mass/5, true
+                    0, 2*Math.PI, true
                 );
                 ctx.closePath();
                 ctx.fill();
             }
+            ctx.fillText(chargeToString(p.charge), 
+                    canvas_width_offset + canvas_scale*pos.x,
+                    canvas_height_offset + canvas_scale*pos.y); 
+            drawArrow(ctx, 'rgba(0,0,0,.3)',
+                canvas_width_offset + canvas_scale*pos.x,
+                canvas_height_offset + canvas_scale*pos.y,
+                canvas_width_offset + canvas_scale*pos.x + p.force.x/3,
+                canvas_height_offset + canvas_scale*pos.y + p.force.y/3);
+            drawArrow(ctx, 'rgba(0,100,200,.5)',
+                canvas_width_offset + canvas_scale*pos.x,
+                canvas_height_offset + canvas_scale*pos.y,
+                canvas_width_offset + canvas_scale*pos.x + p.velocity.x*15,
+                canvas_height_offset + canvas_scale*pos.y + p.velocity.y*15);
         }
     }
 
@@ -431,6 +471,19 @@
 
         }
     }
+    function chargeToString(charge) {
+        if (charge == 0) {
+            return '';
+        }
+        if (charge>0) {
+            if (charge == 1) {return '+'}
+            else {return charge.toString()+'+'};
+        }
+        if (charge<0) {
+            if (charge == -1) {return '-'}
+            else {return (-charge).toString()+'-'};
+        }
+    }
     var particles = [];
     $.fn.md = function(options) {
 
@@ -461,7 +514,7 @@
         var G       = options.G       || 0.15;
         var epsilon = options.epsilon || 1;
         var delta   = options.delta   || 0.1;
-        var k       = options.k       || 1;
+        var k       = options.k       || .5;
 
         // Define how big particles will appear when drawn
         var particle_size = options.particle_size || 2;
@@ -500,7 +553,7 @@
 
         // Initialize our potentials if necessary
         generate_forces(particles);
-
+        console.log(particles);//for debugging
         // Pull out the canvas element to draw on
         var canvas = this[0];
 
