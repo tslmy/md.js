@@ -361,7 +361,7 @@
                     ),
                     particle_size*(alpha*0.5 + 0.5),
 
-                    0, Math.PI*2, true
+                    0, Math.PI*2*p.mass/5, true
                 );
                 ctx.closePath();
                 ctx.fill();
@@ -455,7 +455,7 @@
              */
             //p.velocity = Vector3D.multiply(Vector3D.random(), 1);
             //p.velocity = new Vector3D(0,0,1);
-            p.mass = Math.random()*5+0.5;
+            p.mass = Math.random()*4.5+0.5;
             particles.push(p);
         }
 
