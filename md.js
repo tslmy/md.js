@@ -1,5 +1,4 @@
-(function($) {
-"use strict";
+
     /**
      * The Vector3D object is in heavy use in this code. It is used
      * in all places where vector data is to be encoded or where
@@ -76,6 +75,21 @@
         );
     };
 
+    // http://stackoverflow.com/questions/1484506/random-color-generator-in-javascript
+    /* function getRandomColorHex() {
+        var letters = '0123456789ABCDEF'.split('');
+        var color = '#';
+        for (var i = 0; i < 6; i++ ) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    } */
+    function getRandomColor() {
+        return 'rgba('+Math.floor(Math.random()*255).toString()+','+
+                       Math.floor(Math.random()*255).toString()+','+
+                       Math.floor(Math.random()*255).toString();
+    }
+    
 
     /**
      * The particle object encodes some information about a particle
@@ -89,12 +103,13 @@
         _this.velocity = new Vector3D;
         _this.force    = new Vector3D;
 
+        _this.color    = 'rgba(100,100,100';
         _this.mass     = 1.0;
 
         _this.randomize = function() {
             _this.position = Vector3D.random();
             _this.velocity = Vector3D.random();
-
+            _this.color    = getRandomColor();
             return _this;
         };
     };
@@ -316,8 +331,8 @@
              */
             for(var alpha = 0.2; alpha <= 1; alpha+=0.2) {
                 // Find our fill style.
-                if(1 - alpha > 0.01) ctx.fillStyle = "rgba(0,0,0,0.3)";
-                else                 ctx.fillStyle = "rgba(0,0,0,1)";
+                if(1 - alpha > 0.01) ctx.fillStyle = p.color+",0.3)";
+                else                 ctx.fillStyle = p.color+",1)";
 
                 var pos = gen_particle_pos(
                     focal_length,
@@ -430,6 +445,7 @@
 
             // We want particles to be randomly distributed
             p.position = Vector3D.random();
+            p.color = getRandomColor();
 
             /**
              * We may want particles to have some initial velocity.
@@ -533,4 +549,4 @@
             }
         })(0, run_time, dt);
     };
-})(jQuery);
+
