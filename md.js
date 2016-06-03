@@ -136,13 +136,11 @@
                 // Use d_min to prevent high potential when particles are close
                 // to avoid super high accelerations in poor time resolution
                 var d_min = 0.2;
-                if(d > d_min) {
-                    var f  = G * p1.mass * p2.mass / (d*d*d);
-                    return Vector3D.multiply(r, f);
-                } else {
-                    var f  = G * p1.mass * p2.mass / (d_min*d_min*d_min);
-                    return Vector3D.multiply(r, f);
+                if (d < d_min) {
+                    d = d_min;
                 }
+                var f  = G * p1.mass * p2.mass / (d*d*d);
+                return Vector3D.multiply(r, f);
             })();
 
             p1.force = Vector3D.subtract(p1.force, fv);
