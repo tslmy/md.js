@@ -386,27 +386,36 @@
              * enough anyway.
              */
             // This is how far back in time our blur goes
-            var dt = 0.004;
+            var dt = 0.01;
             /**
              * These control roughly how granular our tail is
              * When alpha==1, we're looking at the current position
              * of the particle.
              */
-            for(var alpha = 0.2; alpha <= 1; alpha+=0.1) {
-                // Find our fill style.
-                ctx.fillStyle = p.color + "," + alpha.toString() + ")";
+            //for(var alpha = 0.2; alpha <= 1; alpha+=0.1) {
+                alpha = 1;
                 var pos = gen_particle_pos(
                     focal_length,
-                    Vector3D.subtract(
+                    init_pos
+                    /*Vector3D.subtract(
                         init_pos,
                         Vector3D.multiply(p.velocity, (1-alpha)*dt)
-                    )
+                    )*/
                 );
                 var particle_size = gen_particle_size(
                     focal_length, pos, p.mass
                 );
+                //find draw position
+                drawAt_x = canvas_width_offset + canvas_scale*pos.x;
+                drawAt_y = canvas_height_offset + canvas_scale*pos.y;
+                // Find our fill style.
+                var radgrad = ctx.createRadialGradient(drawAt_x,drawAt_y,0,drawAt_x,drawAt_y,particle_size);
+                radgrad.addColorStop(0    , p.color+','+alpha.toString()+')');
+                radgrad.addColorStop(Math.max(Math.min(pos.z,1),0), p.color+','+(alpha*0.5).toString()+')');
+                radgrad.addColorStop(1    , p.color+',0)');
 
-
+                // draw shape
+                ctx.fillStyle = radgrad;
 
                 /**
                  * This draws a circle on the canvas using the previously
@@ -414,28 +423,23 @@
                  */
                 ctx.beginPath();
                 ctx.arc(
-                    canvas_width_offset + canvas_scale*pos.x,
-                    canvas_height_offset + canvas_scale*pos.y,
+                    drawAt_x,drawAt_y,
                     particle_size*(alpha*0.5 + 0.5),
 
                     0, 2*Math.PI, true
                 );
                 ctx.closePath();
                 ctx.fill();
-            }
-            ctx.fillText(chargeToString(p.charge), 
-                    canvas_width_offset + canvas_scale*pos.x,
-                    canvas_height_offset + canvas_scale*pos.y); 
+            //}
+            ctx.fillText(chargeToString(p.charge), drawAt_x, drawAt_y); 
             drawArrow(ctx, 'rgba(0,0,0,.3)',
-                canvas_width_offset + canvas_scale*pos.x,
-                canvas_height_offset + canvas_scale*pos.y,
-                canvas_width_offset + canvas_scale*pos.x + p.force.x/3,
-                canvas_height_offset + canvas_scale*pos.y + p.force.y/3);
+                      drawAt_x, drawAt_y,
+                      drawAt_x + p.force.x/3,
+                      drawAt_y + p.force.y/3);
             drawArrow(ctx, 'rgba(0,100,200,.5)',
-                canvas_width_offset + canvas_scale*pos.x,
-                canvas_height_offset + canvas_scale*pos.y,
-                canvas_width_offset + canvas_scale*pos.x + p.velocity.x*15,
-                canvas_height_offset + canvas_scale*pos.y + p.velocity.y*15);
+                      drawAt_x, drawAt_y,
+                      drawAt_x + p.velocity.x*15,
+                      drawAt_y + p.velocity.y*15);
         }
     }
 
@@ -457,7 +461,7 @@
                 p.position.x > 2.5 && p.velocity.x > 0 ||
                 p.position.x < -1.5 && p.velocity.x < 0
             ) {
-                console.log("bouncing");
+                console.log("bouncing by x boundary");
                 p.velocity.x = -p.velocity.x;
             }
 
@@ -465,7 +469,7 @@
                 p.position.y > 2.5 && p.velocity.y > 0 ||
                 p.position.y < -1.5 && p.velocity.y < 0
             ) {
-                console.log("bouncing");
+                console.log("bouncing by y boundary");
                 p.velocity.y = -p.velocity.y;
             }
 
@@ -490,7 +494,7 @@
         options = options || {};
 
         // Define the number of particles in the simulation
-        var num_particles = options.num_particles || 20;
+        var num_particles = options.num_particles || 10;
 
         /**
          * Define some time parameters
@@ -616,7 +620,7 @@
              * We solve this by putting particles in a finite box and
              * having them bounce off the sides.
              */
-            //apply_boundary_conditions(particles);
+            apply_boundary_conditions(particles);
 
 
             /**
