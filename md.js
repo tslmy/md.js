@@ -1,3 +1,8 @@
+    /* js fixes */
+    function randomlyChooseFrom(array) {
+        return array[Math.floor(Math.random() * array.length)];
+    }
+    
 
     /**
      * The Vector3D object is in heavy use in this code. It is used
@@ -105,6 +110,7 @@
 
         _this.color    = 'rgba(100,100,100';
         _this.mass     = 1.0;
+        _this.charge   = 0;
 
         _this.randomize = function() {
             _this.position = Vector3D.random();
@@ -114,6 +120,32 @@
         };
     };
 
+    function generate_coulomb_forces(particles, k) {
+        //Use coulomb potential
+        //-> F = - kQq/(d*d) r/|r|
+        for(var i = 0; i < particles.length; ++i)
+        for(var j = i+1; j < particles.length; ++j) {
+            var p1 = particles[i];
+            var p2 = particles[j];
+
+            var r  = Vector3D.subtract(p1.position, p2.position);
+            var d  = Vector3D.norm(r);
+
+            var fv = (function() {
+                // Use d_min to prevent high potential when particles are close
+                // to avoid super high accelerations in poor time resolution
+                var d_min = 0.2;
+                if (d < d_min) {
+                    d = d_min;
+                }
+                var f  = - k * p1.charge * p2.charge / (d*d*d);
+                return Vector3D.multiply(r, f);
+            })();
+
+            p1.force = Vector3D.subtract(p1.force, fv);
+            p2.force = Vector3D.add(p2.force, fv);
+        }
+    }
 
     /**
      * This applies forces to input particles as though they were
@@ -399,7 +431,7 @@
 
         }
     }
-
+    var particles = [];
     $.fn.md = function(options) {
 
         options = options || {};
@@ -426,9 +458,10 @@
          *     epsilon: depth of potential well
          *     delta: distance to bottom of well
          */
-        var G             = options.G || 0.15;
+        var G       = options.G       || 0.15;
         var epsilon = options.epsilon || 1;
         var delta   = options.delta   || 0.1;
+        var k       = options.k       || 1;
 
         // Define how big particles will appear when drawn
         var particle_size = options.particle_size || 2;
@@ -437,7 +470,7 @@
         console.log('RUNNING SIMULATION');
 
         // Generate some particles
-        var particles = [];
+        //var particles = [];
         for(var i = 0; i < num_particles; ++i) {
             var p = new Particle;
 
@@ -454,13 +487,15 @@
             //p.velocity = Vector3D.multiply(Vector3D.random(), 1);
             //p.velocity = new Vector3D(0,0,1);
             p.mass = Math.random()*4.5+0.5;
+            p.charge = randomlyChooseFrom([-2,-1,0,1,2]);
             particles.push(p);
         }
 
         // Define force generation function
         function generate_forces(particles) {
             generate_Lennard_Jones_forces(particles, epsilon, delta);
-            //generate_gravitational_forces(particles, G);
+            generate_gravitational_forces(particles, G);
+            generate_coulomb_forces(particles, k);
         }
 
         // Initialize our potentials if necessary
