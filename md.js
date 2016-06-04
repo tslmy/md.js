@@ -409,14 +409,17 @@
                 drawAt_x = canvas_width_offset + canvas_scale*pos.x;
                 drawAt_y = canvas_height_offset + canvas_scale*pos.y;
                 // Find our fill style.
-                var radgrad = ctx.createRadialGradient(drawAt_x,drawAt_y,0,drawAt_x,drawAt_y,particle_size);
-                radgrad.addColorStop(0    , p.color+','+alpha.toString()+')');
-                radgrad.addColorStop(Math.max(Math.min(pos.z,1),0), p.color+','+(alpha*0.5).toString()+')');
-                radgrad.addColorStop(1    , p.color+',0)');
+                if (if_paintWithGradient) {
+                    var radgrad = ctx.createRadialGradient(drawAt_x,drawAt_y,0,drawAt_x,drawAt_y,particle_size);
+                    radgrad.addColorStop(0    , p.color+','+alpha.toString()+')');
+                    radgrad.addColorStop(Math.max(Math.min(pos.z,1),0), p.color+','+(alpha*0.5).toString()+')');
+                    radgrad.addColorStop(1    , p.color+',0)');
 
-                // draw shape
-                ctx.fillStyle = radgrad;
-
+                    // draw shape
+                    ctx.fillStyle = radgrad;
+                } else {
+                    ctx.fillStyle = p.color+',1)';
+                }
                 /**
                  * This draws a circle on the canvas using the previously
                  * defined fillStyle.
@@ -489,12 +492,14 @@
         }
     }
     var particles = [];
+    var if_paintWithGradient = false;
+    var if_makeSun = false;
     $.fn.md = function(options) {
 
         options = options || {};
 
         // Define the number of particles in the simulation
-        var num_particles = options.num_particles || 10;
+        var num_particles = options.num_particles || 20;
 
         /**
          * Define some time parameters
@@ -527,6 +532,15 @@
         console.log('RUNNING SIMULATION');
 
         // Generate some particles
+        //to generate a particle manually:
+        if (if_makeSun) {
+            var sun = new Particle;
+            sun.position = new Vector3D(0,0,0);
+            sun.color = 'rgba(0,0,0';
+            sun.mass = 100;
+            sun.charge = 0;
+            particles.push(sun);
+        };
         //var particles = [];
         for(var i = 0; i < num_particles; ++i) {
             var p = new Particle;
