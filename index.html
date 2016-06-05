@@ -19,7 +19,7 @@
         //===============options and settings:
         var particleCount = 40;
         var spaceBoundary = 5;
-        var dt = 0.02;
+        var dt = 0.01;
         var availableCharges = [-3,-2,-1,0,1,2,3];
         var d_min = 0.2;
         //toggles for functions:
@@ -30,7 +30,7 @@
         //physical constants -- be the god!
         var EPSILON = .5;
         var DELTA = 0.01;
-        var G = 0.05;
+        var G = 0.08;
         var K = 0.1;
         var max_arrow_length = 2;
         //====================================
@@ -69,14 +69,32 @@
             arrow.setLength(vector_length);
             arrow.setDirection(vector_direction);
         }
-        /*function drawCircle( context ) {//http://creativejs.com/tutorials/three-js-part-1-make-a-star-field/
-            // we get passed a reference to the canvas context
+        function generateTexture( ) {
+            //credit: http://jsfiddle.net/7yDGy/1/
+            // draw a circle in the center of the canvas
+            var size = 30;
+            
+            // create canvas
+            var canvas = document.createElement( 'canvas' );
+            canvas.width = size;
+            canvas.height = size;
+            
+            // get context
+            var context = canvas.getContext( '2d' );
+            
+            // draw circle
+            var centerX = size / 2;
+            var centerY = size / 2;
+            var radius = size / 2;
+
             context.beginPath();
-            // and we just have to draw our shape at 0,0 - in this
-            // case an arc from 0 to 2Pi radians or 360º - a full circle!
-            context.arc( 0, 0, 1, 0,  Math.PI * 2, true );
+            context.arc( centerX, centerY, radius, 0, 2 * Math.PI, false );
+            context.fillStyle = "#fff";
             context.fill();
-        };      */
+
+            return canvas;
+
+        }
         /* function drawBox() {
             geometry = new THREE.BoxGeometry(200, 200, 200);
             material = new THREE.MeshBasicMaterial({
@@ -94,6 +112,8 @@
             // Particles are just individual vertices in a geometry
             // Create the geometry that will hold all of the vertices
             var particles = new THREE.Geometry();
+            var texture = new THREE.Texture( generateTexture( ) );
+            texture.needsUpdate = true; // important
             // Create the vertices and add them to the particles geometry
             for (var i = 0; i < particleCount; i++) {
                 //make colors (http://jsfiddle.net/J7zp4/200/)
@@ -119,10 +139,13 @@
          
                 particles.colors = particleColors;
             // Create the material that will be used to render each vertex of the geometry
-            var particleMaterial = new THREE.PointsMaterial({
-                size: .1,
-                transparent: false,//true,
-                //opacity: 0.8,
+            var particleMaterial = new THREE.PointsMaterial({//http://jsfiddle.net/7yDGy/1/
+                map: texture,
+                blending: THREE.NormalBlending, // required
+                depthTest: false, // required
+                transparent: true,
+                opacity: 0.9,
+                size: .3,
                 vertexColors: THREE.VertexColors
             });
             // Create the particle system
