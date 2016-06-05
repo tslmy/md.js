@@ -2,30 +2,274 @@
 <html>
 <head>
     <title>MD</title>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
-    <script type="text/javascript" src="md.js"></script>
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $(window).resize(function() {
-                $('canvas#md')[0].width  = $(window).width() - 5;
-                $('canvas#md')[0].height = $(window).height() - 5;
-                console.log("RESIZING");
-            }).resize();
-
-            $('canvas#md').md( {
-            });
-        });
-    </script>
     <style>
         html,body {
             padding:0;margin:0;
         }
-        #md {
-            border:0px solid black;
-            margin:auto;
-        }
     </style>
 </head>
 <body>
-<canvas id="md" height=100 width=100 ></canvas>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+    <script src="http://cdn.rawgit.com/mrdoob/three.js/master/build/three.min.js"></script>
+    <script src="http://cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/lodash/4.13.1/lodash.min.js"></script>
+    <!--script src="//cdn.rawgit.com/mrdoob/three.js/master/examples/js/Detector.js"></script>
+    <script src="//cdn.rawgit.com/mrdoob/three.js/master/examples/js/libs/stats.min.js"></script-->
+    <script>
+        //===============options and settings:
+        var particleCount = 40;
+        var spaceBoundary = 1;
+        var dt = 0.05;
+        var availableCharges = [-2,-1,0,1,2];
+        var d_min = 0.2;
+        //toggles for functions:
+        var if_apply_LJpotential  = true;
+        var if_apply_gravitation  = true;
+        var if_apply_coulombForce = true;
+        var if_ReferenceFrame_movesWithCenter = true;
+        //physical constants -- be the god!
+        var EPSILON = .5;
+        var DELTA = 0.01;
+        var G = 0.01;
+        var K = 0.1;
+        var max_arrow_length = 2;
+        //====================================
+        //global variables
+        var camera, scene, renderer;
+        var geometry, material, mesh;
+        var particleColors     = [];
+        var particlePositions  = [];
+        var particleForces     = [];
+        var particleVelocities = [];
+        var particleMasses     = [];
+        var particleCharges    = [];
+        var arrowVelocities    = [];
+        var arrowForces        = [];
+        var time               = 0;
+        //js fixes and helper functions:
+        function drawArrow(i, arrowStack, propertyStack){
+            //var vector_from = new THREE.Vector3().copy(from_particle);
+            //var vector_direction = new THREE.Vector3().copy(vector);
+            if (propertyStack == particleForces) {
+                rescalingFactor = 0.001;
+            } else if (propertyStack == particleVelocities) {
+                rescalingFactor = 0.1;
+            } else {
+                console.log('unrecognized propertyStack',propertyStack);
+                rescalingFactor = 1;
+            }
+            var vector = propertyStack[i];
+            var vector_from = particlePositions[i];
+            //var vector_to = new THREE.Vector3().addVectors(vector_from, vector_direction);
+            var vector_length = vector.length()*rescalingFactor;
+            if (vector_length > max_arrow_length) {vector_length = max_arrow_length};
+            var vector_direction = new THREE.Vector3().copy(vector).normalize();
+            var arrow = arrowStack[i];
+            arrow.position.copy(vector_from);            
+            arrow.setLength(vector_length);
+            arrow.setDirection(vector_direction);
+        }
+        /*function drawCircle( context ) {//http://creativejs.com/tutorials/three-js-part-1-make-a-star-field/
+            // we get passed a reference to the canvas context
+            context.beginPath();
+            // and we just have to draw our shape at 0,0 - in this
+            // case an arc from 0 to 2Pi radians or 360º - a full circle!
+            context.arc( 0, 0, 1, 0,  Math.PI * 2, true );
+            context.fill();
+        };      */
+        /* function drawBox() {
+            geometry = new THREE.BoxGeometry(200, 200, 200);
+            material = new THREE.MeshBasicMaterial({
+                color: 0xdd0000,
+                wireframe: false
+            });
+                //add this object to the scene
+            mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+                //add a light to the scene
+            light = new THREE.AmbientLight( 0x222222 );
+            scene.add( light );
+        }*/
+        function createParticleSystem() {
+            // Particles are just individual vertices in a geometry
+            // Create the geometry that will hold all of the vertices
+            var particles = new THREE.Geometry();
+            // Create the vertices and add them to the particles geometry
+            for (var i = 0; i < particleCount; i++) {
+                //make colors (http://jsfiddle.net/J7zp4/200/)
+                particleColors[i] = new THREE.Color();
+                particleColors[i].setHSL( Math.random(), 1.0, 0.5 );
+                // Create the vertex
+                particlePositions[i]  = new THREE.Vector3( _.random(-spaceBoundary,spaceBoundary,true), 
+                    _.random(-spaceBoundary,spaceBoundary, true), _.random(-spaceBoundary,spaceBoundary,true) );
+                particleVelocities[i] = new THREE.Vector3();//_.random(-10, 10 ), _.random(-10, 10 ), _.random(-10, 10 ) );
+                particleForces[i]     = new THREE.Vector3();//_.random(-10, 10 ), _.random(-10, 10 ), _.random(-10, 10 ) );
+                particleMasses[i]     = _.random(8,10,true);//Math.random()*4.5+0.5;
+                particleCharges[i]    = _.sample(availableCharges);
+                // Add the vertex to the geometry
+                particles.vertices.push(particlePositions[i]);
+                //add two arrows
+                var arrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa);
+                scene.add(arrow);
+                arrowVelocities.push(arrow);
+                var arrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x555555);
+                scene.add(arrow);
+                arrowForces.push(arrow);
+            }
+         
+                particles.colors = particleColors;
+            // Create the material that will be used to render each vertex of the geometry
+            var particleMaterial = new THREE.PointsMaterial({
+                size: .1,
+                transparent: false,//true,
+                //opacity: 0.8,
+                vertexColors: THREE.VertexColors
+            });
+            // Create the particle system
+            particleSystem = new THREE.Points(particles, particleMaterial);
+         
+            return particleSystem;  
+        }
+        function init() {
+                //initialize the camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000000);
+            camera.position.z = 5;
+            scene = new THREE.Scene();
+                //define an object
+            // create the particle variables
+            particleSystem = createParticleSystem();
+            scene.add(particleSystem);
+            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(2); //enhance resolution
+            document.body.appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls( camera, renderer.domElement );
+            //drawBox();
+            //add stat
+                //stats = new Stats();
+                //container.appendChild( stats.dom )
+                //add event listeners
+            window.addEventListener( 'resize', onWindowResize, false );
+
+        }
+        function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+            renderer.setSize( window.innerWidth, window.innerHeight );
+        }
+        function animate() {
+            time += dt;
+            //for (var i in arrows) {scene.remove(arrows[i])}; //remove all existing arrows
+            for (var i in particleForces) {particleForces[i] = new THREE.Vector3()}; //remove all forces
+            for (var i in particlePositions) {
+                //generate all forces:
+                if (if_apply_LJpotential) {
+                    // Use Lennard-Jones potential
+                    // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
+                    // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
+                    for(var ii = 0; ii < particleCount; ii++)
+                    for(var j = ii+1; j < particleCount; j++) {
+                        var r = new THREE.Vector3().subVectors(particlePositions[ii], particlePositions[j]); //relative displacement
+                        var d = r.length(); //length
+
+                        var d6 = (DELTA/d);
+                        if (d6 < 0.5) d6 = 0.5; //what kind of socery is this??
+                            d6 = d6*d6*d6;
+                            d6 = d6*d6;
+
+                        r.setLength(4*EPSILON*(6/d)*(-2*d6*d6 + d6));
+
+                        particleForces[ii].sub(r);
+                        particleForces[j].add(r);
+                    }
+                };
+                if (if_apply_gravitation) {
+                    //Use gravitational potential
+                    //-> F = GMm/(d*d) r/|r|
+                    for(var ii = 0; ii < particleCount; ii++)
+                    for(var j = ii+1; j < particleCount; j++) {
+                        var r = new THREE.Vector3().subVectors(particlePositions[ii], particlePositions[j]); //relative displacement
+                        var d = r.length(); //length
+
+                        // Use d_min to prevent high potential when particles are close
+                        // to avoid super high accelerations in poor time resolution
+                        if (d < d_min) {
+                            d = d_min;
+                        };
+
+                        r.setLength(G * particleMasses[ii] * particleMasses[j] / (d^2));
+
+                        particleForces[ii].sub(r);
+                        particleForces[j].add(r);
+                    }
+                };
+                if (if_apply_coulombForce) {
+                    //Use gravitational potential
+                    //-> F = GMm/(d*d) r/|r|
+                    for(var ii = 0; ii < particleCount; ii++)
+                    for(var j = ii+1; j < particleCount; j++) {
+                        var r = new THREE.Vector3().subVectors(particlePositions[ii], particlePositions[j]); //relative displacement
+                        var d = r.length(); //length
+
+                        // Use d_min to prevent high potential when particles are close
+                        // to avoid super high accelerations in poor time resolution
+                        if (d < d_min) {
+                            d = d_min;
+                        };
+
+                        r.setLength(- K * particleCharges[ii] * particleCharges[j] / (d^2));
+
+                        particleForces[ii].sub(r);
+                        particleForces[j].add(r);
+                    }
+                };
+
+                particleVelocities[i].addScaledVector(particleForces[i], 0.5*dt/particleMasses[i]); //v = v + ½f/m·dt
+                //find average velocity
+                //now arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
+                drawArrow(i, arrowVelocities, particleVelocities);
+                drawArrow(i, arrowForces, particleForces);
+            };
+            if (if_ReferenceFrame_movesWithCenter) {
+                var averageVelocity = new THREE.Vector3();
+                for (var i in particleVelocities) {
+                    averageVelocity.add(particleVelocities[i]);
+                }
+                averageVelocity.divideScalar(particleCount);
+                for (var i in particleVelocities) {
+                    //console.log(particleVelocities[i].toArray()[1])
+                    //console.log(averageVelocity.toArray()[1])
+                    particleVelocities[i].sub(averageVelocity);
+                    //console.log(particleVelocities[i].toArray()[1])
+                    //console.log('==============================')
+                }
+            }
+            for (var i in particleVelocities) {
+                particlePositions[i].addScaledVector(particleVelocities[i], dt); //x = x + v·dt
+            }
+            if (if_ReferenceFrame_movesWithCenter) {
+                //also the positions
+                var averagePosition = new THREE.Vector3();
+                for (var i in particlePositions) {
+                    averagePosition.addScaledVector(particlePositions[i],particleMasses[i]);
+                }
+                averagePosition.divideScalar(particleCount*9);//9 is the average mass!
+                for (var i in particlePositions) {
+                    particlePositions[i].sub(averagePosition);
+                }
+            }
+            // flag to the particle system that we've changed its vertices.
+            particleSystem.geometry.verticesNeedUpdate = true;
+            //draw this frame
+            renderer.render(scene, camera);
+                //set up the next call
+            requestAnimationFrame(animate);
+            //other stuff:
+            //controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
+            //stats.update();
+        }
+
+        init();
+        animate();
+    </script>
 </body>
