@@ -18,9 +18,9 @@
     <script>
         //===============options and settings:
         var particleCount = 40;
-        var spaceBoundary = 1;
-        var dt = 0.05;
-        var availableCharges = [-2,-1,0,1,2];
+        var spaceBoundary = 5;
+        var dt = 0.02;
+        var availableCharges = [-3,-2,-1,0,1,2,3];
         var d_min = 0.2;
         //toggles for functions:
         var if_apply_LJpotential  = true;
@@ -30,7 +30,7 @@
         //physical constants -- be the god!
         var EPSILON = .5;
         var DELTA = 0.01;
-        var G = 0.01;
+        var G = 0.05;
         var K = 0.1;
         var max_arrow_length = 2;
         //====================================
@@ -51,9 +51,9 @@
             //var vector_from = new THREE.Vector3().copy(from_particle);
             //var vector_direction = new THREE.Vector3().copy(vector);
             if (propertyStack == particleForces) {
-                rescalingFactor = 0.001;
+                rescalingFactor = 0.0001;
             } else if (propertyStack == particleVelocities) {
-                rescalingFactor = 0.1;
+                rescalingFactor = 0.02;
             } else {
                 console.log('unrecognized propertyStack',propertyStack);
                 rescalingFactor = 1;
@@ -104,7 +104,7 @@
                     _.random(-spaceBoundary,spaceBoundary, true), _.random(-spaceBoundary,spaceBoundary,true) );
                 particleVelocities[i] = new THREE.Vector3();//_.random(-10, 10 ), _.random(-10, 10 ), _.random(-10, 10 ) );
                 particleForces[i]     = new THREE.Vector3();//_.random(-10, 10 ), _.random(-10, 10 ), _.random(-10, 10 ) );
-                particleMasses[i]     = _.random(8,10,true);//Math.random()*4.5+0.5;
+                particleMasses[i]     = _.random(16,20,true);//Math.random()*4.5+0.5;
                 particleCharges[i]    = _.sample(availableCharges);
                 // Add the vertex to the geometry
                 particles.vertices.push(particlePositions[i]);
@@ -133,7 +133,7 @@
         function init() {
                 //initialize the camera
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000000);
-            camera.position.z = 5;
+            camera.position.z = 10;
             scene = new THREE.Scene();
                 //define an object
             // create the particle variables
@@ -226,9 +226,6 @@
 
                 particleVelocities[i].addScaledVector(particleForces[i], 0.5*dt/particleMasses[i]); //v = v + ½f/m·dt
                 //find average velocity
-                //now arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-                drawArrow(i, arrowVelocities, particleVelocities);
-                drawArrow(i, arrowForces, particleForces);
             };
             if (if_ReferenceFrame_movesWithCenter) {
                 var averageVelocity = new THREE.Vector3();
@@ -246,6 +243,9 @@
             }
             for (var i in particleVelocities) {
                 particlePositions[i].addScaledVector(particleVelocities[i], dt); //x = x + v·dt
+                //now arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
+                drawArrow(i, arrowVelocities, particleVelocities);
+                drawArrow(i, arrowForces, particleForces);
             }
             if (if_ReferenceFrame_movesWithCenter) {
                 //also the positions
@@ -253,7 +253,7 @@
                 for (var i in particlePositions) {
                     averagePosition.addScaledVector(particlePositions[i],particleMasses[i]);
                 }
-                averagePosition.divideScalar(particleCount*9);//9 is the average mass!
+                averagePosition.divideScalar(particleCount*18);//9 is the average mass!
                 for (var i in particlePositions) {
                     particlePositions[i].sub(averagePosition);
                 }
