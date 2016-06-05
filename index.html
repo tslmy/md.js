@@ -28,7 +28,7 @@
         var if_apply_coulombForce = true;
         var if_ReferenceFrame_movesWithCenter = true;
         //physical constants -- be the god!
-        var EPSILON = .5;
+        var EPSILON = 1;
         var DELTA = 0.01;
         var G = 0.08;
         var K = 0.1;
@@ -95,19 +95,20 @@
             return canvas;
 
         }
-        /* function drawBox() {
-            geometry = new THREE.BoxGeometry(200, 200, 200);
+         function drawBox() {
+            geometry = new THREE.BoxGeometry(2*spaceBoundary, 2*spaceBoundary, 2*spaceBoundary);
             material = new THREE.MeshBasicMaterial({
-                color: 0xdd0000,
-                wireframe: false
+                color: 0xaaaaaa,
+                wireframe: true,
+                opacity: .8
             });
                 //add this object to the scene
             mesh = new THREE.Mesh(geometry, material);
             scene.add(mesh);
                 //add a light to the scene
-            light = new THREE.AmbientLight( 0x222222 );
-            scene.add( light );
-        }*/
+            /*light = new THREE.AmbientLight( 0x222222 );
+            scene.add( light );*/
+        }
         function createParticleSystem() {
             // Particles are just individual vertices in a geometry
             // Create the geometry that will hold all of the vertices
@@ -168,7 +169,7 @@
             renderer.setPixelRatio(2); //enhance resolution
             document.body.appendChild(renderer.domElement);
             controls = new THREE.OrbitControls( camera, renderer.domElement );
-            //drawBox();
+            drawBox();
             //add stat
                 //stats = new Stats();
                 //container.appendChild( stats.dom )
