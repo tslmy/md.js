@@ -18,7 +18,9 @@
     <script>
         //===============options and settings:
         var particleCount = 40;
-        var spaceBoundary = 5;
+        var spaceBoundaryX = 5;
+        var spaceBoundaryY = 5;
+        var spaceBoundaryZ = 1;
         var dt = 0.01;
         var availableCharges = [-3,-2,-1,0,1,2,3];
         var d_min = 0.2;
@@ -96,7 +98,7 @@
 
         }
          function drawBox() {
-            geometry = new THREE.BoxGeometry(2*spaceBoundary, 2*spaceBoundary, 2*spaceBoundary);
+            geometry = new THREE.BoxGeometry(2*spaceBoundaryX, 2*spaceBoundaryY, 2*spaceBoundaryZ);
             material = new THREE.MeshBasicMaterial({
                 color: 0xaaaaaa,
                 wireframe: true,
@@ -121,8 +123,8 @@
                 particleColors[i] = new THREE.Color();
                 particleColors[i].setHSL( Math.random(), 1.0, 0.5 );
                 // Create the vertex
-                particlePositions[i]  = new THREE.Vector3( _.random(-spaceBoundary,spaceBoundary,true), 
-                    _.random(-spaceBoundary,spaceBoundary, true), _.random(-spaceBoundary,spaceBoundary,true) );
+                particlePositions[i]  = new THREE.Vector3( _.random(-spaceBoundaryX,spaceBoundaryX,true), 
+                    _.random(-spaceBoundaryY,spaceBoundaryY, true), _.random(-spaceBoundaryZ,spaceBoundaryZ,true) );
                 particleVelocities[i] = new THREE.Vector3();//_.random(-10, 10 ), _.random(-10, 10 ), _.random(-10, 10 ) );
                 particleForces[i]     = new THREE.Vector3();//_.random(-10, 10 ), _.random(-10, 10 ), _.random(-10, 10 ) );
                 particleMasses[i]     = _.random(16,20,true);//Math.random()*4.5+0.5;
