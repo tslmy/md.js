@@ -20,7 +20,7 @@
         var particleCount = 40;
         var spaceBoundaryX = 5;
         var spaceBoundaryY = 5;
-        var spaceBoundaryZ = 1;
+        var spaceBoundaryZ = 5;
         var dt = 0.01;
         var availableCharges = [-3,-2,-1,0,1,2,3];
         var d_min = 0.2;
@@ -28,7 +28,7 @@
         var if_apply_LJpotential  = true;
         var if_apply_gravitation  = true;
         var if_apply_coulombForce = true;
-        var if_ReferenceFrame_movesWithCenter = true;
+        var if_ReferenceFrame_movesWithCenter = false;
         //physical constants -- be the god!
         var EPSILON = 1;
         var DELTA = 0.02;
@@ -112,25 +112,30 @@
             scene.add( light );*/
         }
         function createParticleSystem() {
-            // Particles are just individual vertices in a geometry
-            // Create the geometry that will hold all of the vertices
-            var particles = new THREE.Geometry();
-            var texture = new THREE.Texture( generateTexture( ) );
-            texture.needsUpdate = true; // important
-            // Create the vertices and add them to the particles geometry
-            for (var i = 0; i < particleCount; i++) {
-                //make colors (http://jsfiddle.net/J7zp4/200/)
-                particleColors[i] = new THREE.Color();
-                particleColors[i].setHSL( Math.random(), 1.0, 0.5 );
+            function addParticle(colorH,    colorS,    colorL,
+                                 positionX, positionY, positionZ, 
+                                 velocityX, velocityY, velocityZ,
+                                 forceX,    forceY,    forceZ,  
+                                 thisMass, thisCharge) {
+                // make colors (http://jsfiddle.net/J7zp4/200/)
+                var thisColor = new THREE.Color();
+                thisColor.setHSL(colorH, colorS, colorL );
+                particleColors.push(thisColor);
                 // Create the vertex
-                particlePositions[i]  = new THREE.Vector3( _.random(-spaceBoundaryX,spaceBoundaryX,true), 
-                    _.random(-spaceBoundaryY,spaceBoundaryY, true), _.random(-spaceBoundaryZ,spaceBoundaryZ,true) );
-                particleVelocities[i] = new THREE.Vector3();//_.random(-10, 10 ), _.random(-10, 10 ), _.random(-10, 10 ) );
-                particleForces[i]     = new THREE.Vector3();//_.random(-10, 10 ), _.random(-10, 10 ), _.random(-10, 10 ) );
-                particleMasses[i]     = _.random(16,20,true);//Math.random()*4.5+0.5;
-                particleCharges[i]    = _.sample(availableCharges);
+                var thisPosition = new THREE.Vector3(positionX, positionY, positionZ);
+                particlePositions.push(thisPosition);
                 // Add the vertex to the geometry
-                particles.vertices.push(particlePositions[i]);
+                particles.vertices.push(thisPosition);
+                // make velocity
+                var thisVelocity = new THREE.Vector3(velocityX, velocityY, velocityZ);
+                particleVelocities.push(thisVelocity);
+                // make force
+                var thisForce = new THREE.Vector3(forceX, forceY, forceZ);
+                particleForces.push(thisForce);
+                // mass
+                particleMasses.push(thisMass);
+                // charge
+                particleCharges.push(thisCharge);
                 //add two arrows
                 var arrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa);
                 scene.add(arrow);
@@ -139,8 +144,25 @@
                 scene.add(arrow);
                 arrowForces.push(arrow);
             }
-         
-                particles.colors = particleColors;
+            // Particles are just individual vertices in a geometry
+            // Create the geometry that will hold all of the vertices
+            var particles = new THREE.Geometry();
+            var texture = new THREE.Texture( generateTexture( ) );
+            texture.needsUpdate = true; // important
+            // Create the vertices and add them to the particles geometry
+            for (var i = 0; i < particleCount; i++) {
+                addParticle(Math.random(), 1.0, 0.5,
+                            _.random(-spaceBoundaryX, spaceBoundaryX, true), 
+                            _.random(-spaceBoundaryY, spaceBoundaryY, true), 
+                            _.random(-spaceBoundaryZ, spaceBoundaryZ, true),
+                            0,0,0,
+                            0,0,0,
+                            _.random(16,20,true),
+                            _.sample(availableCharges));
+            }
+            //create a sun:
+            addParticle(0,0,0, 0,0,0, 0,0,0, 0,0,0, 100, 0);
+            particles.colors = particleColors;
             // Create the material that will be used to render each vertex of the geometry
             var particleMaterial = new THREE.PointsMaterial({//http://jsfiddle.net/7yDGy/1/
                 map: texture,
@@ -153,7 +175,6 @@
             });
             // Create the particle system
             particleSystem = new THREE.Points(particles, particleMaterial);
-         
             return particleSystem;  
         }
         function init() {
