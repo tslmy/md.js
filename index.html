@@ -261,11 +261,7 @@
       container = document.body; 
       container.appendChild(element);
       //activate plugins:
-      controls = new THREE.OrbitControls(camera, element);
-      //add stat
-      stats = new Stats();
-      container.appendChild(stats.domElement);
-      //add event listeners
+      controls = new THREE.OrbitControls(camera, element);//this is for non-VR devices
       function setOrientationControls(e) {
         if (!e.alpha) {
           return;
@@ -280,10 +276,15 @@
         window.removeEventListener('deviceorientation', setOrientationControls, true);
       }
       window.addEventListener('deviceorientation', setOrientationControls, true);
-      window.addEventListener('resize', resize, false);
-      setTimeout(resize, 1);
+      controls.target = new THREE.Vector3(0, 0, 0);
+      //add stat
+      stats = new Stats();
+      container.appendChild(stats.domElement);
+      //add event listeners
 
-      camera.lookAt(new THREE.Vector3(0,0,0));
+      window.addEventListener('resize', resize, false);
+
+
     }
     
     function animate() {
