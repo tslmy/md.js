@@ -1,27 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <title>Cardboard Example</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+<head>
+    <title>Molecular Dynamics</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta content=
+    "width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    name="viewport">
     <style>
         html,body {
             padding:0;margin:0;
         }
         #stats { position: absolute; top:0; left: 0 }  
     </style>
-  </head>
-  <body>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/build/three.min.js"></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/lodash/4.13.1/lodash.min.js"></script>
+</head>
+<body>
+    <script src=
+    "https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js">
+    </script> 
+    <script src=
+    "https://cdn.rawgit.com/mrdoob/three.js/master/build/three.min.js">
+    </script> 
+    <script src=
+    "https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js">
+    </script> 
+    <script src="https://cdn.jsdelivr.net/lodash/4.13.1/lodash.min.js">
+    </script> 
     <!--script src="//cdn.rawgit.com/mrdoob/three.js/master/examples/js/Detector.js"></script-->
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/libs/stats.min.js"></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/effects/StereoEffect.js "></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/DeviceOrientationControls.js"></script>
-
-  <script>
+     
+    <script src=
+    "https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/libs/stats.min.js">
+    </script> 
+    <script src=
+    "https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/effects/StereoEffect.js">
+    </script> 
+    <script src=
+    "https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/DeviceOrientationControls.js">
+    </script> 
+    <script>
     //===============options and settings:
     var particleCount = 20;
     var maxTrajectoryLength = 500;
@@ -92,33 +107,33 @@
       arrow.setLength(vector_length);
       arrow.setDirection(vector_direction);
     }
-    
+
     function generateTexture() {
       //credit: http://jsfiddle.net/7yDGy/1/
       // draw a circle in the center of the canvas
       var size = 32;
-    
+
       // create canvas
       var canvas = document.createElement('canvas');
       canvas.width = size;
       canvas.height = size;
-    
+
       // get context
       var context = canvas.getContext('2d');
-    
+
       // draw circle
       var centerX = size / 2;
       var centerY = size / 2;
       var radius = size / 2;
-    
+
       context.beginPath();
       context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
       context.fillStyle = "#fff";
       context.fill();
-    
+
       return canvas;
     }
-    
+
     function drawBox() {
       geometry = new THREE.BoxGeometry(2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ);
       material = new THREE.MeshBasicMaterial({
@@ -133,7 +148,7 @@
       /*light = new THREE.AmbientLight( 0x222222 );
                 scene.add( light );*/
     }
-    
+
     function createParticleSystem() {
       function addParticle(colorH, colorS, colorL,
         positionX, positionY, positionZ,
@@ -229,15 +244,15 @@
           _.random(16, 20, true),
           _.sample(availableCharges));
       }
-    
+
       particles.colors = particleColors;
       // Create the material that will be used to render each vertex of the geometry
-    
+
       // Create the particle system
       particleSystem = new THREE.Points(particles, particleMaterial);
       return particleSystem;
     }
-    
+
     function init() {
       //initialize the scene
       scene = new THREE.Scene();
@@ -285,7 +300,7 @@
       setTimeout(resize,1);
 
     }
-    
+
     function animate() {
       time += dt;
       //for (var i in arrows) {scene.remove(arrows[i])}; //remove all existing arrows
@@ -297,17 +312,17 @@
             // Use Lennard-Jones potential
             // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
             // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
-    
+
             var r = new THREE.Vector3().subVectors(particlePositions[i], particlePositions[j]); //relative displacement
             var d = r.length(); //length
-    
+
             var d6 = (DELTA / d);
             if (d6 < 0.5) d6 = 0.5; //what kind of socery is this??
             d6 = d6 * d6 * d6;
             d6 = d6 * d6;
-    
+
             r.setLength(4 * EPSILON * (6 / d) * (-2 * d6 * d6 + d6));
-    
+
             particleForces[i].sub(r);
             particleForces[j].add(r);
           };
@@ -315,16 +330,16 @@
             //Use gravitational potential
             //-> F = GMm/(d*d) r/|r|
             var r = new THREE.Vector3().subVectors(particlePositions[i], particlePositions[j]); //relative displacement
-    
+
             var d = r.length(); //length
-    
+
             // Use d_min to prevent high potential when particles are close
             // to avoid super high accelerations in poor time resolution
             if (d < d_min) {
               console.log('particle', i, ',', j, 'too near.');
               d = d_min;
             };
-    
+
             r.setLength(G * particleMasses[i] * particleMasses[j] / (d * d));
             particleForces[i].sub(r);
             particleForces[j].add(r);
@@ -334,20 +349,20 @@
             //-> F = GMm/(d*d) r/|r|
             var r = new THREE.Vector3().subVectors(particlePositions[i], particlePositions[j]); //relative displacement
             var d = r.length(); //length
-    
+
             // Use d_min to prevent high potential when particles are close
             // to avoid super high accelerations in poor time resolution
             if (d < d_min) {
               console.log('particle', i, ',', j, 'too near.');
               d = d_min;
             };
-    
+
             r.setLength(-K * particleCharges[i] * particleCharges[j] / (d * d));
-    
+
             particleForces[i].sub(r);
             particleForces[j].add(r);
           };
-    
+
         };
       for (var i = 0; i < particleCount; i++) {
         //======================== now update eveything user could see ========================
@@ -356,7 +371,7 @@
         //update positions according to velocity:
         particlePositions[i].addScaledVector(particleVelocities[i], dt); //x = x + v·dt
         // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user 
-    
+
         //update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
         drawArrow(i, arrowVelocities, particleVelocities);
         drawArrow(i, arrowForces, particleForces);
@@ -389,7 +404,7 @@
       requestAnimationFrame(animate);
       stats.update();
     }
-    
+
 
     init();
     animate();
@@ -432,6 +447,6 @@
         container.webkitRequestFullscreen();
       }
     }
-  </script>
-  </body>
+    </script>
+</body>
 </html>
