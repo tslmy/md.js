@@ -26,8 +26,8 @@
     var particleCount = 20;
     var maxTrajectoryLength = 500;
     var spaceBoundaryX = 5;
-    var spaceBoundaryY = 5;
-    var spaceBoundaryZ = 0.1;
+    var spaceBoundaryY = 0.1;
+    var spaceBoundaryZ = 5;
     var dt = 0.01;
     var availableCharges = [-3, -2, -1, 0, 1, 2, 3];
     var d_min = 0.02;
@@ -207,12 +207,12 @@
       for (var i = particlePositions.length; i < particleCount; i++) {
         if (if_makeSun) {
           var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
-          var this_y = _.random(-spaceBoundaryY, spaceBoundaryY, true);
-          var this_z = 0;
+          var this_y = 0;
+          var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
           var this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z);
           var this_vx = 0;
-          var this_vy = 0;
-          var this_vz = Math.sqrt(G * particleMasses[0] / this_r);
+          var this_vy = Math.sqrt(G * particleMasses[0] / this_r);
+          var this_vz = 0;
           if (i % 2 == 0) this_vz *= -1;
         } else {
           var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
@@ -249,7 +249,7 @@
       scene.add(createParticleSystem());
       //initialize the camera
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000000);
-      camera.position.set(0, 0, 10);
+      camera.position.set(0, 2, 10);
       scene.add(camera);
       //initialize renderer
       renderer = new THREE.WebGLRenderer({
