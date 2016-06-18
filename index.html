@@ -276,14 +276,13 @@
         window.removeEventListener('deviceorientation', setOrientationControls, true);
       }
       window.addEventListener('deviceorientation', setOrientationControls, true);
-      controls.target = new THREE.Vector3(0, 0, 0);
       //add stat
       stats = new Stats();
       container.appendChild(stats.domElement);
       //add event listeners
 
       window.addEventListener('resize', resize, false);
-
+      setTimeout(resize,1);
 
     }
     
