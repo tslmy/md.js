@@ -23,7 +23,7 @@
 
   <script>
     //===============options and settings:
-    var particleCount = 2;
+    var particleCount = 20;
     var maxTrajectoryLength = 500;
     var spaceBoundaryX = 5;
     var spaceBoundaryY = 5;
@@ -256,7 +256,7 @@
         alpha: true
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
-      //renderer.setPixelRatio(2); //enhance resolution
+      renderer.setPixelRatio(4); //enhance resolution
       effect = new THREE.StereoEffect(renderer);
       element = renderer.domElement;
       container = document.body; 
@@ -268,8 +268,8 @@
         camera.position.y,
         camera.position.z
       );
-      controls.enableZoom = false;
-      controls.enablePan = false;
+      //controls.enableZoom = false;
+      //controls.enablePan = false;
       //add stat
       stats = new Stats();
       container.appendChild(stats.domElement);
