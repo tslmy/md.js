@@ -262,7 +262,6 @@
       container.appendChild(element);
       //activate plugins:
       controls = new THREE.OrbitControls(camera, element);
-      controls.target = new THREE.Vector3(0, 0, 0);
       //add stat
       stats = new Stats();
       container.appendChild(stats.domElement);
@@ -273,7 +272,7 @@
         }
 
         controls = new THREE.DeviceOrientationControls(camera, true);
-        controls.target = new THREE.Vector3(0, 0, 0);
+        controls.target.set(0, 0, 0);
         controls.connect();
         controls.update();
 
