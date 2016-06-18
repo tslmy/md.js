@@ -256,22 +256,20 @@
         alpha: true
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
-
       //renderer.setPixelRatio(2); //enhance resolution
       effect = new THREE.StereoEffect(renderer);
       element = renderer.domElement;
       container = document.body; 
       container.appendChild(element);
-
       //activate plugins:
       controls = new THREE.OrbitControls(camera, element);
-      /*controls.target.set(
+      controls.target.set(
         camera.position.x + 0.1,
         camera.position.y,
         camera.position.z
       );
-      controls.noZoom = true;
-      controls.noPan = true;*/
+      controls.enableZoom = false;
+      controls.enablePan = false;
       //add stat
       stats = new Stats();
       container.appendChild(stats.domElement);
