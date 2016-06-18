@@ -275,8 +275,6 @@
         controls.connect();
         controls.update();
 
-        camera.lookAt(new THREE.Vector3(0,0,0));
-
         element.addEventListener('click', fullscreen, false);
 
         window.removeEventListener('deviceorientation', setOrientationControls, true);
@@ -284,6 +282,8 @@
       window.addEventListener('deviceorientation', setOrientationControls, true);
       window.addEventListener('resize', resize, false);
       setTimeout(resize, 1);
+
+      camera.lookAt(new THREE.Vector3(0,0,0));
     }
     
     function animate() {
