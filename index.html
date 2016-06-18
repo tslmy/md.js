@@ -247,7 +247,7 @@
       if (if_showUniverseBoundary) drawBox();
       scene.add(createParticleSystem());
       //initialize the camera
-      camera = new THREE.PerspectiveCamera(10.2, window.innerWidth / window.innerHeight, 1, 1000000);
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000000);
       camera.position.set(0, 2, 10);
       scene.add(camera);
       //initialize renderer
