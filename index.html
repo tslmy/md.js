@@ -227,7 +227,7 @@
           var this_vx = 0;
           var this_vy = Math.sqrt(G * particleMasses[0] / this_r);
           var this_vz = 0;
-          if (i % 2 == 0) this_vz *= -1;
+          if (i % 2 == 0) this_vy *= -1;
         } else {
           var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
           var this_y = _.random(-spaceBoundaryY, spaceBoundaryY, true);
