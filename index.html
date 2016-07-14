@@ -47,6 +47,7 @@
     var dt = 0.01;
     var availableCharges = [-3, -2, -1, 0, 1, 2, 3];
     var d_min = 0.02;
+    var sunMass = 500;
     //toggles for functions:
     var if_apply_LJpotential = true;
     var if_apply_gravitation = true;
@@ -218,7 +219,7 @@
       });
       // Create the vertices and add them to the particles geometry
       //create a sun:
-      if (if_makeSun) addParticle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 500, 0); //always make the sun the first particle, please.
+      if (if_makeSun) addParticle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sunMass, 0); //always make the sun the first particle, please.
       for (var i = particlePositions.length; i < particleCount; i++) {
         if (if_makeSun) {
           var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
