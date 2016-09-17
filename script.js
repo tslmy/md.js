@@ -60,14 +60,14 @@ function saveState() {
   save('particleCharges', particleCharges);
   save('time', time);
   save('lastSnapshotTime', lastSnapshotTime);
-  console.log('particleColors', particleColors);
+  /*console.log('particleColors', particleColors);
   console.log('particlePositions', particlePositions);
   console.log('particleForces', particleForces);
   console.log('particleVelocities', particleVelocities);
   console.log('particleMasses', particleMasses);
   console.log('particleCharges', particleCharges);
   console.log('time', time);
-  console.log('lastSnapshotTime', lastSnapshotTime);
+  console.log('lastSnapshotTime', lastSnapshotTime);*/
 };
 
 function clearState() {
@@ -79,6 +79,8 @@ function clearState() {
   localStorage.removeItem('particleCharges');
   localStorage.removeItem('time');
   localStorage.removeItem('lastSnapshotTime');
+  window.onbeforeunload = null;
+  location.reload();
 };
 //js fixes and helper functions:
 function drawArrow(i, arrowStack, propertyStack) {
@@ -213,58 +215,50 @@ function createParticleSystem() {
   // Create the vertices and add them to the particles geometry
   function loadState() {
     console.log('Loading particleColors...');
-    particleColors = localStorage.getItem('particleColors');
-    if (particleColors == null) {
-      particleColors = [];
+    previous_particleColors = JSON.parse(localStorage.getItem('particleColors'));
+    if (previous_particleColors == null) {
       console.log('Failed.');
       return false;
     };
     console.log('Loading particlePositions...');
-    particlePositions = localStorage.getItem('particlePositions');
-    if (particlePositions == null) {
-      particlePositions = [];
+    previous_particlePositions = JSON.parse(localStorage.getItem('particlePositions'));
+    if (previous_particlePositions == null) {
       console.log('Failed.');
       return false;
     };
     console.log('Loading particleForces...');
-    particleForces = localStorage.getItem('particleForces');
-    if (particleForces == null) {
-      particleForces = [];
+    previous_particleForces = JSON.parse(localStorage.getItem('particleForces'));
+    if (previous_particleForces == null) {
       console.log('Failed.');
       return false;
     };
     console.log('Loading particleVelocities...');
-    particleVelocities = localStorage.getItem('particleVelocities');
-    if (particleVelocities == null) {
-      particleVelocities = [];
+    previous_particleVelocities = JSON.parse(localStorage.getItem('particleVelocities'));
+    if (previous_particleVelocities == null) {
       console.log('Failed.');
       return false;
     };
     console.log('Loading particleMasses...');
-    particleMasses = localStorage.getItem('particleMasses');
-    if (particleMasses == null) {
-      particleMasses = [];
+    previous_particleMasses = JSON.parse(localStorage.getItem('particleMasses'));
+    if (previous_particleMasses == null) {
       console.log('Failed.');
       return false;
     };
     console.log('Loading particleCharges...');
-    particleCharges = localStorage.getItem('particleCharges');
-    if (particleCharges == null) {
-      particleCharges = [];
+    previous_particleCharges = JSON.parse(localStorage.getItem('particleCharges'));
+    if (previous_particleCharges == null) {
       console.log('Failed.');
       return false;
     };
     console.log('Loading time...');
-    time = localStorage.getItem('time');
-    if (time == null) {
-      time = 0;
+    previous_time = JSON.parse(localStorage.getItem('time'));
+    if (previous_time == null) {
       console.log('Failed.');
       return false;
     };
     console.log('Loading lastSnapshotTime...');
-    lastSnapshotTime = localStorage.getItem('lastSnapshotTime');
-    if (lastSnapshotTime == null) {
-      lastSnapshotTime = 0;
+    previous_lastSnapshotTime = JSON.parse(localStorage.getItem('lastSnapshotTime'));
+    if (previous_lastSnapshotTime == null) {
       console.log('Failed.');
       return false;
     };
@@ -274,7 +268,45 @@ function createParticleSystem() {
   // Create the vertices and add them to the particles geometry
   if (loadState()) {
     console.log('State from previous session loaded.');
-    //TODO: initialize the particleSystem with the info stored from localStorage.
+    // Initialize the particleSystem with the info stored from localStorage.
+    for (var i = 0; i<previous_particlePositions.length; i++) {
+      var thisHue = 0;
+      //get color values in RGB:
+      var thisColorR = previous_particleColors[i].r;
+      var thisColorG = previous_particleColors[i].g;
+      var thisColorB = previous_particleColors[i].b;
+      //get Hue from RGB:
+      if (thisColorR>thisColorG && thisColorR>thisColorB) {
+        var max = thisColorR;
+        var min = Math.min(thisColorG, thisColorB);
+        thisHue = (thisColorG-thisColorB)/(max-min);
+      } else if (thisColorG>thisColorR && thisColorG>thisColorB) {
+        var max = thisColorG;
+        var min = Math.min(thisColorR, thisColorB);
+        thisHue = 2.0 + (thisColorB-thisColorR)/(max-min);
+      } else if (thisColorB>thisColorG && thisColorB>thisColorR) {
+        var max = thisColorB;
+        var min = Math.min(thisColorG, thisColorR);
+        thisHue = 4.0 + (thisColorR-thisColorG)/(max-min);
+      };
+      addParticle(
+        colorH = thisHue/6.0, 
+        colorS = 1.0, 
+        colorL = 0.5, 
+        positionX = previous_particlePositions[i].x, 
+        positionY = previous_particlePositions[i].y, 
+        positionZ = previous_particlePositions[i].z,
+        velocityX = previous_particleVelocities[i].x, 
+        velocityY = previous_particleVelocities[i].y, 
+        velocityZ = previous_particleVelocities[i].z, 
+        forceX = previous_particleForces[i].x, 
+        forceY = previous_particleForces[i].y, 
+        forceZ = previous_particleForces[i].z, 
+        thisMass = previous_particleMasses[i],
+        thisCharge = previous_particleCharges[i])
+    };
+    time = previous_time;
+    lastSnapshotTime = previous_lastSnapshotTime;
   } else {
     console.log('Creating new universe.');
     //create a sun:
@@ -353,6 +385,7 @@ function init() {
   //add event listeners
   window.addEventListener('resize', resize, false);
   setTimeout(resize, 1);
+  window.onbeforeunload = saveState;
 }
 
 function animate() {
