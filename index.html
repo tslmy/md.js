@@ -84,6 +84,39 @@
     var time = 0;
     var lastSnapshotTime = 0;
     var snapshotDuration = 2*dt;
+  //local storage functions:
+  function save(name, obj) {
+  	localStorage.setItem(name, JSON.stringify(obj));
+  };
+  function saveState() {
+		save('particleColors', 		particleColors);
+		save('particlePositions', 	particlePositions);
+		save('particleForces', 		particleForces);
+		save('particleVelocities', 	particleVelocities);
+		save('particleMasses', 		particleMasses);
+		save('particleCharges', 	particleCharges);
+		save('time', 				time);
+		save('lastSnapshotTime', 	lastSnapshotTime);
+
+		console.log('particleColors', 		particleColors);
+		console.log('particlePositions', 	particlePositions);
+		console.log('particleForces', 		particleForces);
+		console.log('particleVelocities', 	particleVelocities);
+		console.log('particleMasses', 		particleMasses);
+		console.log('particleCharges', 	particleCharges);
+		console.log('time', 				time);
+		console.log('lastSnapshotTime', 	lastSnapshotTime);
+  };
+  function clearState() {
+		localStorage.removeItem('particleColors');
+		localStorage.removeItem('particlePositions');
+		localStorage.removeItem('particleForces');
+		localStorage.removeItem('particleVelocities');
+		localStorage.removeItem('particleMasses');
+		localStorage.removeItem('particleCharges');
+		localStorage.removeItem('time');
+		localStorage.removeItem('lastSnapshotTime');
+  };
     //js fixes and helper functions:
     function drawArrow(i, arrowStack, propertyStack) {
       //var vector_from = new THREE.Vector3().copy(from_particle);
@@ -218,6 +251,80 @@
         vertexColors: THREE.VertexColors
       });
       // Create the vertices and add them to the particles geometry
+	 function loadState() {
+	 	console.log('Loading particleColors...');
+			particleColors = localStorage.getItem('particleColors');
+			if (particleColors == null) {
+				particleColors = [];
+				console.log('Failed.');
+				return false;
+			};
+
+	 	console.log('Loading particlePositions...');
+			particlePositions = localStorage.getItem('particlePositions');
+			if (particlePositions == null) {
+				particlePositions = [];
+				console.log('Failed.');
+				return false;
+			};
+
+	 	console.log('Loading particleForces...');
+			particleForces = localStorage.getItem('particleForces');
+			if (particleForces == null) {
+				particleForces = [];
+				console.log('Failed.');
+				return false;
+			};
+
+	 	console.log('Loading particleVelocities...');
+			particleVelocities = localStorage.getItem('particleVelocities');
+			if (particleVelocities == null) {
+				particleVelocities = [];
+				console.log('Failed.');
+				return false;
+			};
+
+	 	console.log('Loading particleMasses...');
+			particleMasses = localStorage.getItem('particleMasses');
+			if (particleMasses == null) {
+				particleMasses = [];
+				console.log('Failed.');
+				return false;
+			};
+
+	 	console.log('Loading particleCharges...');
+			particleCharges = localStorage.getItem('particleCharges');
+			if (particleCharges == null) {
+				particleCharges = [];
+				console.log('Failed.');
+				return false;
+			};
+
+	 	console.log('Loading time...');
+			time = localStorage.getItem('time');
+			if (time == null) {
+				time = 0;
+				console.log('Failed.');
+				return false;
+			};
+
+	 	console.log('Loading lastSnapshotTime...');
+			lastSnapshotTime = localStorage.getItem('lastSnapshotTime');
+			if (lastSnapshotTime == null) {
+				lastSnapshotTime = 0;
+				console.log('Failed.');
+				return false;
+			};
+			
+			console.log('Successfully loaded all variables.');
+			return true;
+	 };
+    // Create the vertices and add them to the particles geometry
+    if (loadState()) {
+    	console.log('State from previous session loaded.');
+    	//TODO: initialize the particleSystem with the info stored from localStorage.
+    } else {
+    	  console.log('Creating new universe.');
       //create a sun:
       if (if_makeSun) addParticle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sunMass, 0); //always make the sun the first particle, please.
       for (var i = particlePositions.length; i < particleCount; i++) {
@@ -245,8 +352,8 @@
           0, 0, 0,
           _.random(16, 20, true),
           _.sample(availableCharges));
-      }
-
+      };
+  	  };
       particles.colors = particleColors;
       // Create the material that will be used to render each vertex of the geometry
 
