@@ -59,15 +59,15 @@
         glviewer2.render();
     };
     $(document).ready(function() {
-
+    	eyeDistance = 5;
         moldata = data = $("#moldata_pdb_large").val();
         glviewer = $3Dmol.createViewer("gldiv1", {
             defaultcolors: $3Dmol.rasmolElementColors,
-            camerax: -3
+            camerax: -eyeDistance
         });
         glviewer2 = $3Dmol.createViewer("gldiv2", {
             defaultcolors: $3Dmol.rasmolElementColors,
-            camerax: 3
+            camerax: eyeDistance
         });
 
         glviewer.setBackgroundColor(0xffffff);
