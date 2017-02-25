@@ -16,7 +16,7 @@
         top: 0;
         left: 0;
         width:100%;
-        background: rgba(0,0,0,.05);
+        background: rgba(0,0,0,.03);
     }
     #stats {
         position: fixed;
@@ -28,7 +28,7 @@
         bottom: 0;
         left: 0;
         width:100%;
-        background: rgba(0,0,0,.3);
+        background: rgba(0,0,0,.1);
         height: 20%;
     }
     #stats_placeholder {
@@ -40,13 +40,48 @@
 <body>
     <div class="pure-menu pure-menu-open pure-menu-horizontal" id="navbar">
         <a href="#" class="pure-menu-heading" id="stats_placeholder"></a>
-
-        <ul>
+        <ul id="std-menu-items">
             <li><a href="javascript:clearState()">New World</a></li>
-            <!--li><a href="javascript:addParticleOnTheFly()">Add Particle</a></li>
-            <li><a href="javascript:particleCount-=1;window.location.reload();">Remove Particle</a></li-->
+            <li>
+                <a href="#">Toggles</a>
+                <ul>
+                    <li class="pure-menu-heading">General Toggles</li>
+                    <li class="pure-menu-separator"></li>
+                    <li><a><input type="checkbox" id="if_use_periodic_boundary_condition">Periodic Boundary Condition enabled</a></li>
+                    <li><a><input type="checkbox" id="if_override_particleCount_setting_with_lastState">Use particleCount from last session if conflicted</a></li>
+                    <li><a><input type="checkbox" id="if_ReferenceFrame_movesWithSun">If the Reference Frame moves with the Sun</a></li>
+                    <li><a><input type="checkbox" id="if_makeSun">If there is a Sun</a></li>
+                    <li class="pure-menu-heading">Force Toggles</li>
+                    <li class="pure-menu-separator"></li>
+                    <li><a><input type="checkbox" id="if_apply_LJpotential">LJ Potential</a></li>
+                    <li><a><input type="checkbox" id="if_apply_gravitation">Gravitation</a></li>
+                    <li><a><input type="checkbox" id="if_apply_coulombForce">Coulomb Force</a></li>
+                    <li class="pure-menu-heading">Plot Toggles</li>
+                    <li class="pure-menu-separator"></li>
+                    <li><a><input type="checkbox" id="if_showUniverseBoundary">Show universe boundary</a></li>
+                    <li><a><input type="checkbox" id="if_showTrajectory">Show trajectory</a></li>
+                    <li><a><input type="checkbox" id="if_useFog">Show fog</a></li>
+                </ul>
+            </li>
+            <li class="pure-menu-disabled">
+                <a href="#">Statistics</a>
+                <ul>
+                    <li class="pure-menu-heading">Thermodynamics</li>
+                    <li class="pure-menu-separator"></li>
+                    <li><a>...</a></li>
+                </ul>
+            </li>
+            <li class="pure-menu-disabled">
+                <a href="#">Commands</a>
+                <ul>
+                    <li><a href="javascript:addParticleOnTheFly()">Add Particle</a></li>
+                    <li><a href="javascript:removeParticleOnTheFly()">Remove Particle</a></li>
+                </ul>
+            </li>
+            <li><a href="https://github.com/tslmy/md.js">GitHub</a></li>
         </ul>
     </div>
+    <script src="yui-min.js"></script>
     <!--div class="pure-g" id="settings">
         <div class="pure-u-1-1"><p>Settings</p></div>
     </div-->

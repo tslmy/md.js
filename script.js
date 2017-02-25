@@ -418,6 +418,35 @@ function init() {
     window.addEventListener('resize', resize, false);
     setTimeout(resize, 1);
     window.onbeforeunload = saveState;
+    setTimeout(function(){
+        //enable dropdown menus:
+        YUI({
+            classNamePrefix: 'pure'
+        }).use('gallery-sm-menu', function (Y) {
+
+            var horizontalMenu = new Y.Menu({
+                container         : '#navbar',
+                sourceNode        : '#std-menu-items',
+                orientation       : 'horizontal',
+                hideOnOutsideClick: false,
+                hideOnClick       : false
+            });
+
+            horizontalMenu.render();
+            horizontalMenu.show();
+
+        });//now update the GUI of settings list:
+        $('#if_use_periodic_boundary_condition').prop('checked', if_use_periodic_boundary_condition); 
+        $('#if_override_particleCount_setting_with_lastState').prop('checked', if_override_particleCount_setting_with_lastState); 
+        $('#if_apply_LJpotential').prop('checked', if_apply_LJpotential); 
+        $('#if_apply_gravitation').prop('checked', if_apply_gravitation); 
+        $('#if_apply_coulombForce').prop('checked', if_apply_coulombForce); 
+        $('#if_ReferenceFrame_movesWithSun').prop('checked', if_ReferenceFrame_movesWithSun); 
+        $('#if_makeSun').prop('checked', if_makeSun); 
+        $('#if_showUniverseBoundary').prop('checked', if_showUniverseBoundary); 
+        $('#if_showTrajectory').prop('checked', if_showTrajectory); 
+        $('#if_useFog').prop('checked', if_useFog);
+    }, 2000);
 }
 
 function animate() {
@@ -537,8 +566,6 @@ function animate() {
     requestAnimationFrame(animate);
     stats.update();
 }
-init();
-animate();
 
 function resize() {
     var width = container.offsetWidth;
@@ -574,3 +601,7 @@ function fullscreen() {
         container.webkitRequestFullscreen();
     }
 }
+
+//now execute this script:
+init();
+animate();
