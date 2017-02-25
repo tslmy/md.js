@@ -1,5 +1,5 @@
 //===============options and settings:
-var particleCount = 2;
+var particleCount = 5;
 var maxTrajectoryLength = 500;
 var spaceBoundaryX = 5;
 var spaceBoundaryY = 5;
@@ -53,6 +53,7 @@ function save(name, obj) {
 };
 
 function saveState() {
+    save('particleCount', particleCount);
     save('particleColors', particleColors);
     save('particlePositions', particlePositions);
     save('particleForces', particleForces);
@@ -215,6 +216,12 @@ function createParticleSystem() {
     });
     // Create the vertices and add them to the particles geometry
     function loadState() {
+        console.log('Loading particleCount...');
+        previous_particleCount = JSON.parse(localStorage.getItem('particleCount'));
+        if (previous_particleCount == null) {
+            console.log('Failed.');
+            return false;
+        };
         console.log('Loading particleColors...');
         previous_particleColors = JSON.parse(localStorage.getItem('particleColors'));
         if (previous_particleColors == null) {
@@ -270,7 +277,13 @@ function createParticleSystem() {
     if (loadState()) {
         console.log('State from previous session loaded.');
         // Initialize the particleSystem with the info stored from localStorage.
-        for (var i = 0; i < previous_particlePositions.length; i++) {
+
+        if (previous_particleCount > particleCount) {
+            particleCountToRead = particleCount;
+        } else {
+            particleCountToRead = previous_particleCount;
+        };
+        for (var i = 0; i < particleCountToRead; i++) {
             var tempColor = new THREE.Color();
             tempColor.set(previous_particleColors[i]);
             tempColorInHSL = tempColor.getHSL();
@@ -290,42 +303,51 @@ function createParticleSystem() {
                 thisMass = previous_particleMasses[i],
                 thisCharge = previous_particleCharges[i])
         };
+        var particleCountToAdd = particleCount - previous_particleCount;
+        if (particleCountToAdd<0) {
+            console.log("Dropping",-particleCountToAdd,"particles stored, since we only need",particleCount,"particles this time.");
+        } else if (particleCountToAdd>0) {
+            console.log("md.js will be creating only",particleCountToAdd,"particles from scratch, since",previous_particleCount,"has been loaded from previous browser session.");
+        };
         time = previous_time;
         lastSnapshotTime = previous_lastSnapshotTime;
     } else {
         console.log('Creating new universe.');
+        var particleCountToAdd = particleCount;
+        console.log("md.js will be creating all",particleCount,"particles from scratch.");
         //create a sun:
         if (if_makeSun) addParticle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sunMass, 0); //always make the sun the first particle, please.
-        for (var i = particlePositions.length; i < particleCount; i++) {
-            if (if_makeSun) {
-                var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
-                var this_y = 0;
-                var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
-                var this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z);
-                var this_vx = 0;
-                var this_vy = Math.sqrt(G * particleMasses[0] / this_r);
-                var this_vz = 0;
-                if (i % 2 == 0) this_vy *= -1;
-            } else {
-                var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
-                var this_y = _.random(-spaceBoundaryY, spaceBoundaryY, true);
-                var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
-                var this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z);
-                var this_vx = 0;
-                var this_vy = 0;
-                var this_vz = 0;
-            };
-            addParticle(Math.random(), 1.0, 0.5, this_x, this_y, this_z, this_vx,
-                this_vy, this_vz, 0, 0, 0, _.random(16, 20, true), _.sample(
-                    availableCharges));
+    };
+    //now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
+    for (var i = particlePositions.length; i < particleCount; i++) {
+        if (if_makeSun) {
+            var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
+            var this_y = 0;
+            var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
+            var this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z);
+            var this_vx = 0;
+            var this_vy = Math.sqrt(G * particleMasses[0] / this_r);
+            var this_vz = 0;
+            if (i % 2 == 0) this_vy *= -1;
+        } else {
+            var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
+            var this_y = _.random(-spaceBoundaryY, spaceBoundaryY, true);
+            var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
+            var this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z);
+            var this_vx = 0;
+            var this_vy = 0;
+            var this_vz = 0;
         };
+        addParticle(Math.random(), 1.0, 0.5, this_x, this_y, this_z, this_vx,
+            this_vy, this_vz, 0, 0, 0, _.random(16, 20, true), _.sample(
+                availableCharges));
     };
     particles.colors = particleColors;
     // Create the material that will be used to render each vertex of the geometry
     // Create the particle system
     particleSystem = new THREE.Points(particles, particleMaterial);
     return particleSystem;
-}
+};
 
 function init() {
     //initialize the scene
