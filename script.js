@@ -270,29 +270,13 @@ function createParticleSystem() {
         console.log('State from previous session loaded.');
         // Initialize the particleSystem with the info stored from localStorage.
         for (var i = 0; i < previous_particlePositions.length; i++) {
-            var thisHue = 0;
-            //get color values in RGB:
-            var thisColorR = previous_particleColors[i].r;
-            var thisColorG = previous_particleColors[i].g;
-            var thisColorB = previous_particleColors[i].b;
-            //get Hue from RGB:
-            if (thisColorR > thisColorG && thisColorR > thisColorB) {
-                var max = thisColorR;
-                var min = Math.min(thisColorG, thisColorB);
-                thisHue = (thisColorG - thisColorB) / (max - min);
-            } else if (thisColorG > thisColorR && thisColorG > thisColorB) {
-                var max = thisColorG;
-                var min = Math.min(thisColorR, thisColorB);
-                thisHue = 2.0 + (thisColorB - thisColorR) / (max - min);
-            } else if (thisColorB > thisColorG && thisColorB > thisColorR) {
-                var max = thisColorB;
-                var min = Math.min(thisColorG, thisColorR);
-                thisHue = 4.0 + (thisColorR - thisColorG) / (max - min);
-            };
+            var tempColor = new THREE.Color();
+            tempColor.set(previous_particleColors[i]);
+            tempColorInHSL = tempColor.getHSL();
             addParticle(
-                colorH = thisHue / 6.0,
-                colorS = 1.0,
-                colorL = 0.5,
+                colorH = tempColorInHSL.h,
+                colorS = tempColorInHSL.s,
+                colorL = tempColorInHSL.l,
                 positionX = previous_particlePositions[i].x,
                 positionY = previous_particlePositions[i].y,
                 positionZ = previous_particlePositions[i].z,
