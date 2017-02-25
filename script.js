@@ -1,14 +1,15 @@
 //===============options and settings:
-var particleCount = 20;
+var particleCount = 2;
 var maxTrajectoryLength = 500;
 var spaceBoundaryX = 5;
-var spaceBoundaryY = 0.1;
+var spaceBoundaryY = 5;
 var spaceBoundaryZ = 5;
 var dt = 0.01;
 var availableCharges = [-3, -2, -1, 0, 1, 2, 3];
 var d_min = 0.02;
 var sunMass = 500;
 //toggles for functions:
+var if_use_periodic_boundary_condition = true;
 var if_apply_LJpotential = true;
 var if_apply_gravitation = true;
 var if_apply_coulombForce = true;
@@ -434,6 +435,27 @@ function animate() {
             i]); //v = v + f/m·dt
         //update positions according to velocity:
         particlePositions[i].addScaledVector(particleVelocities[i], dt); //x = x + v·dt
+        //Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
+        if (if_use_periodic_boundary_condition) {
+            while (particlePositions[i].x < -spaceBoundaryX) {
+                particlePositions[i].x += 2*spaceBoundaryX;
+            };
+            while (particlePositions[i].x > spaceBoundaryX) {
+                particlePositions[i].x -= 2*spaceBoundaryX;
+            };
+            while (particlePositions[i].y < -spaceBoundaryY) {
+                particlePositions[i].y += 2*spaceBoundaryY;
+            };
+            while (particlePositions[i].y > spaceBoundaryY) {
+                particlePositions[i].y -= 2*spaceBoundaryY;
+            };
+            while (particlePositions[i].z < -spaceBoundaryZ) {
+                particlePositions[i].z += 2*spaceBoundaryZ;
+            };
+            while (particlePositions[i].z > spaceBoundaryZ) {
+                particlePositions[i].z -= 2*spaceBoundaryZ;
+            };
+        }
         // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user 
         //update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
         drawArrow(i, arrowVelocities, particleVelocities);
