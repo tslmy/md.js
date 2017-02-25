@@ -5,22 +5,51 @@
     <title>Molecular Dynamics</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
     <meta content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="pure-min.css">
     <style>
     html,
     body {
         padding: 0;
         margin: 0;
     }
-    
-    #stats {
-        position: absolute;
+    #navbar {
         top: 0;
-        left: 0
+        left: 0;
+        width:100%;
+        background: rgba(0,0,0,.05);
+    }
+    #stats {
+        position: fixed;
+        top: 0;
+        right: 0;
+    }
+    #settings {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width:100%;
+        background: rgba(0,0,0,.3);
+        height: 20%;
+    }
+    #stats_placeholder {
+        width: 34px;
     }
     </style>
 </head>
 
 <body>
+    <div class="pure-menu pure-menu-open pure-menu-horizontal" id="navbar">
+        <a href="#" class="pure-menu-heading" id="stats_placeholder"></a>
+
+        <ul>
+            <li><a href="javascript:clearState()">New World</a></li>
+            <!--li><a href="javascript:addParticleOnTheFly()">Add Particle</a></li>
+            <li><a href="javascript:particleCount-=1;window.location.reload();">Remove Particle</a></li-->
+        </ul>
+    </div>
+    <!--div class="pure-g" id="settings">
+        <div class="pure-u-1-1"><p>Settings</p></div>
+    </div-->
     <script src="//fast.eager.io/YEbsDk5Uy-.js"></script>
     <!--for loading indicator-->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>

@@ -10,6 +10,7 @@ var d_min = 0.02;
 var sunMass = 500;
 //toggles for functions:
 var if_use_periodic_boundary_condition = true;
+var if_override_particleCount_setting_with_lastState = true;
 var if_apply_LJpotential = true;
 var if_apply_gravitation = true;
 var if_apply_coulombForce = true;
@@ -146,64 +147,64 @@ function drawBox() {
     /*light = new THREE.AmbientLight( 0x222222 );
                   scene.add( light );*/
 }
+function addParticle(colorH, colorS, colorL, positionX, positionY, positionZ,
+velocityX, velocityY, velocityZ, forceX, forceY, forceZ, thisMass,
+thisCharge) {
+    // make colors (http://jsfiddle.net/J7zp4/200/)
+    var thisColor = new THREE.Color();
+    thisColor.setHSL(colorH, colorS, colorL);
+    particleColors.push(thisColor);
+    // Create the vertex
+    var thisPosition = new THREE.Vector3(positionX, positionY, positionZ);
+    particlePositions.push(thisPosition);
+    // Add the vertex to the geometry
+    particles.vertices.push(thisPosition);
+    // make velocity
+    var thisVelocity = new THREE.Vector3(velocityX, velocityY, velocityZ);
+    particleVelocities.push(thisVelocity);
+    // make force
+    var thisForce = new THREE.Vector3(forceX, forceY, forceZ);
+    particleForces.push(thisForce);
+    // mass
+    particleMasses.push(thisMass);
+    totalMass += thisMass;
+    // charge
+    particleCharges.push(thisCharge);
+    //add two arrows
+    var arrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(),
+        1, 0x0055aa);
+    scene.add(arrow);
+    arrowVelocities.push(arrow);
+    var arrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(),
+        1, 0x555555);
+    scene.add(arrow);
+    arrowForces.push(arrow);
+    //add trajectories. See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>
+    if (if_showTrajectory) {
+        var thisGeometry = new THREE.BufferGeometry();
+        trajectoryGeometries.push(thisGeometry);
+        // attributes
+        var point = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
+        thisGeometry.addAttribute('position', new THREE.BufferAttribute(point, 3));
+        for (var i = 0; i < maxTrajectoryLength; i++) thisGeometry.attributes.position
+            .setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z);
+        var thisTrajectoryColor = thisColor.clone();
+        thisTrajectoryColor.offsetHSL(0, -0.5, 0.2);
+        thisTrajectoryMaterial = new THREE.LineBasicMaterial({
+            color: thisTrajectoryColor,
+            linewidth: .5
+        });
+        var thisTrajectory = new THREE.Line(thisGeometry, thisTrajectoryMaterial);
+        trajectoryLines.push(thisTrajectory);
+        scene.add(thisTrajectory);
+    }
+}
 
 function createParticleSystem() {
-    function addParticle(colorH, colorS, colorL, positionX, positionY, positionZ,
-        velocityX, velocityY, velocityZ, forceX, forceY, forceZ, thisMass,
-        thisCharge) {
-        // make colors (http://jsfiddle.net/J7zp4/200/)
-        var thisColor = new THREE.Color();
-        thisColor.setHSL(colorH, colorS, colorL);
-        particleColors.push(thisColor);
-        // Create the vertex
-        var thisPosition = new THREE.Vector3(positionX, positionY, positionZ);
-        particlePositions.push(thisPosition);
-        // Add the vertex to the geometry
-        particles.vertices.push(thisPosition);
-        // make velocity
-        var thisVelocity = new THREE.Vector3(velocityX, velocityY, velocityZ);
-        particleVelocities.push(thisVelocity);
-        // make force
-        var thisForce = new THREE.Vector3(forceX, forceY, forceZ);
-        particleForces.push(thisForce);
-        // mass
-        particleMasses.push(thisMass);
-        totalMass += thisMass;
-        // charge
-        particleCharges.push(thisCharge);
-        //add two arrows
-        var arrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(),
-            1, 0x0055aa);
-        scene.add(arrow);
-        arrowVelocities.push(arrow);
-        var arrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(),
-            1, 0x555555);
-        scene.add(arrow);
-        arrowForces.push(arrow);
-        //add trajectories. See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>
-        if (if_showTrajectory) {
-            var thisGeometry = new THREE.BufferGeometry();
-            trajectoryGeometries.push(thisGeometry);
-            // attributes
-            var point = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
-            thisGeometry.addAttribute('position', new THREE.BufferAttribute(point, 3));
-            for (var i = 0; i < maxTrajectoryLength; i++) thisGeometry.attributes.position
-                .setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z);
-            var thisTrajectoryColor = thisColor.clone();
-            thisTrajectoryColor.offsetHSL(0, -0.5, 0.2);
-            thisTrajectoryMaterial = new THREE.LineBasicMaterial({
-                color: thisTrajectoryColor,
-                linewidth: .5
-            });
-            var thisTrajectory = new THREE.Line(thisGeometry, thisTrajectoryMaterial);
-            trajectoryLines.push(thisTrajectory);
-            scene.add(thisTrajectory);
-        }
-    }
     // Particles are just individual vertices in a geometry
     // Create the geometry that will hold all of the vertices
-    var particles = new THREE.Geometry();
-    var texture = new THREE.Texture(generateTexture());
+    particles = new THREE.Geometry();
+    texture = new THREE.Texture(generateTexture());
     texture.needsUpdate = true; // important
     particleMaterial = new THREE.PointsMaterial({ //http://jsfiddle.net/7yDGy/1/
         map: texture,
@@ -278,10 +279,10 @@ function createParticleSystem() {
         console.log('State from previous session loaded.');
         // Initialize the particleSystem with the info stored from localStorage.
 
-        if (previous_particleCount > particleCount) {
-            particleCountToRead = particleCount;
-        } else {
+        if (previous_particleCount < particleCount || if_override_particleCount_setting_with_lastState) {
             particleCountToRead = previous_particleCount;
+        } else {
+            particleCountToRead = particleCount;
         };
         for (var i = 0; i < particleCountToRead; i++) {
             var tempColor = new THREE.Color();
@@ -349,7 +350,31 @@ function createParticleSystem() {
     return particleSystem;
 };
 
+/*function addParticleOnTheFly() {
+    particleCount += 1;
+    var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
+    var this_y = _.random(-spaceBoundaryY, spaceBoundaryY, true);
+    var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
+    var this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z);
+    var this_vx = 0;
+    var this_vy = 0;
+    var this_vz = 0;
+    addParticle(Math.random(), 1.0, 0.5, this_x, this_y, this_z, this_vx,
+        this_vy, this_vz, 0, 0, 0, _.random(16, 20, true), _.sample(
+            availableCharges));
+}
+function removeParticleOnTheFly() {
+    particleCount -= 1;
+    //TODO
+}*/
+
 function init() {
+    if (if_mobileDevice) {
+        $('#settings').hide();
+    } else {
+        //enable settings
+        $('#settings > #clearState').click(clearState);
+    };
     //initialize the scene
     scene = new THREE.Scene();
     //    configure the scene:
