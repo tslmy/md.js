@@ -19,6 +19,7 @@ var if_makeSun = true;
 var if_showUniverseBoundary = true;
 var if_showTrajectory = true;
 var if_useFog = false;
+var if_proportionate_arrows_with_vectors = false;
 //physical constants -- be the god!
 var EPSILON = 1;
 var DELTA = 0.02;
@@ -49,6 +50,7 @@ function initializeGuiControls() {
             //guiFolderFunctions.add(this, "if_showUniverseBoundary");
             guiFolderFunctions.add(this, "if_showTrajectory").name("Trajectories");
             //guiFolderFunctions.add(this, "if_useFog");
+            guiFolderFunctions.add(this, "if_proportionate_arrows_with_vectors").name("Proportionate arrows with vectors");
             guiFolderFunctions.open();
         var guiFolderConstants = gui.addFolder("Physical Constants");//physical constants -- be the god!
             guiFolderConstants.add(this, "EPSILON");
@@ -124,25 +126,29 @@ function clearState() {
 function drawArrow(i, arrowStack, propertyStack) {
     //var vector_from = new THREE.Vector3().copy(from_particle);
     //var vector_direction = new THREE.Vector3().copy(vector);
-    if (propertyStack == particleForces) {
-        rescalingFactor = 0.0001;
-    } else if (propertyStack == particleVelocities) {
-        rescalingFactor = 0.02;
-    } else {
-        console.log('unrecognized propertyStack', propertyStack);
-        rescalingFactor = 1;
-    }
     var vector = propertyStack[i];
     var vector_from = particlePositions[i];
-    //var vector_to = new THREE.Vector3().addVectors(vector_from, vector_direction);
-    var vector_length = vector.length() * rescalingFactor;
-    if (vector_length > max_arrow_length) {
-        vector_length = max_arrow_length
-    };
     var vector_direction = new THREE.Vector3().copy(vector).normalize();
     var arrow = arrowStack[i];
     arrow.position.copy(vector_from);
-    arrow.setLength(vector_length);
+    if (if_proportionate_arrows_with_vectors) {
+        if (propertyStack == particleForces) {
+            rescalingFactor = 0.0001;
+        } else if (propertyStack == particleVelocities) {
+            rescalingFactor = 0.02;
+        } else {
+            console.log('unrecognized propertyStack', propertyStack);
+            rescalingFactor = 1;
+        }
+        //var vector_to = new THREE.Vector3().addVectors(vector_from, vector_direction);
+        var vector_length = vector.length() * rescalingFactor;
+        if (vector_length > max_arrow_length) {
+            vector_length = max_arrow_length
+        };
+        arrow.setLength(vector_length);
+    } else {
+        arrow.setLength(max_arrow_length);
+    };
     arrow.setDirection(vector_direction);
 }
 
