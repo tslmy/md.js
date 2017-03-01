@@ -23,23 +23,27 @@ var lastSnapshotTime = 0;
 var snapshotDuration = 2 * dt;
 
 //js fixes and helper functions:
-function drawArrow(i, arrowStack, propertyStack) {
-    //var vector_from = new THREE.Vector3().copy(from_particle);
-    //var vector_direction = new THREE.Vector3().copy(vector);
+function drawArrow(purpose, i) {
+    //determine rescaling factor based on type of property:
+    if (purpose == 0) { //for velocities
+        arrowStack = arrowVelocities;
+        propertyStack = particleVelocities;
+        rescalingFactor = 0.02;
+    } else if (purpose == 1) { //for forces
+        arrowStack = arrowForces;
+        propertyStack = particleForces;
+        rescalingFactor = 0.0001;
+    } else {
+        console.log('unrecognized purpose:', purpose);
+        return 1;
+    };
+
     var vector = propertyStack[i];
     var vector_from = particlePositions[i];
     var vector_direction = new THREE.Vector3().copy(vector).normalize();
     var arrow = arrowStack[i];
     arrow.position.copy(vector_from);
     if (if_proportionate_arrows_with_vectors) {
-        if (propertyStack == particleForces) {
-            rescalingFactor = 0.0001;
-        } else if (propertyStack == particleVelocities) {
-            rescalingFactor = 0.02;
-        } else {
-            console.log('unrecognized propertyStack', propertyStack);
-            rescalingFactor = 1;
-        }
         //var vector_to = new THREE.Vector3().addVectors(vector_from, vector_direction);
         var vector_length = vector.length() * rescalingFactor;
         if (vector_length > max_arrow_length) {
@@ -294,7 +298,7 @@ function init() {
     window.addEventListener('deviceorientation', setOrientationControls, true);
     //add stat
     stats = new Stats();
-    container.appendChild(stats.domElement);
+    container.append(stats.domElement);
     //add event listeners
     window.addEventListener('resize', resize, false);
     setTimeout(resize, 1);
@@ -386,8 +390,8 @@ function animate() {
         }
         // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user 
         //update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-        drawArrow(i, arrowVelocities, particleVelocities);
-        drawArrow(i, arrowForces, particleForces);
+        drawArrow(0, i); // 0 -> for particleVelocities; i -> ID of the target particle. 
+        drawArrow(1, i);  // 1 -> for particleForces; i -> ID of the target particle.
         //update trajectories:
         if (if_showTrajectory) {
             if (time - lastSnapshotTime > snapshotDuration) {
