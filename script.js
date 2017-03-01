@@ -1,9 +1,12 @@
 //===============options and settings:
 var particleCount = 5;
 var maxTrajectoryLength = 500;
-var spaceBoundaryX = 5;
-var spaceBoundaryY = 5;
-var spaceBoundaryZ = 5;
+var originalSpaceBoundaryX = 5;
+var originalSpaceBoundaryY = 5;
+var originalSpaceBoundaryZ = 5;
+var spaceBoundaryX = originalSpaceBoundaryX;
+var spaceBoundaryY = originalSpaceBoundaryY;
+var spaceBoundaryZ = originalSpaceBoundaryZ;
 var dt = 0.01;
 var availableCharges = [-3, -2, -1, 0, 1, 2, 3];
 var d_min = 0.02;
@@ -34,9 +37,9 @@ function initializeGuiControls() {
             guiFolderParameters.add(this, "maxTrajectoryLength").onChange(function(value) {
                 
             });
-            guiFolderParameters.add(this, "spaceBoundaryX");
-            guiFolderParameters.add(this, "spaceBoundaryY");
-            guiFolderParameters.add(this, "spaceBoundaryZ");
+            guiFolderParameters.add(this, "spaceBoundaryX").onChange(function(value) { if (boxMesh) boxMesh.scale.x = spaceBoundaryX / originalSpaceBoundaryX; });
+            guiFolderParameters.add(this, "spaceBoundaryY").onChange(function(value) { if (boxMesh) boxMesh.scale.y = spaceBoundaryY / originalSpaceBoundaryY; });
+            guiFolderParameters.add(this, "spaceBoundaryZ").onChange(function(value) { if (boxMesh) boxMesh.scale.z = spaceBoundaryZ / originalSpaceBoundaryZ; });
             guiFolderParameters.add(this, "dt");
             guiFolderParameters.open();
         var guiFolderFunctions = gui.addFolder("Functions");    //toggles for functions:
@@ -61,6 +64,7 @@ function initializeGuiControls() {
         var guiFolderCommands = gui.addFolder("Commands");//controls, buttons
             guiFolderCommands.add(this, "clearState");
             guiFolderCommands.open();
+    gui.remember(this);
 }
 //====================================
 //global variables
@@ -174,16 +178,16 @@ function generateTexture() {
 }
 
 function drawBox() {
-    geometry = new THREE.BoxGeometry(2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 *
+    boxGeometry = new THREE.BoxGeometry(2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 *
         spaceBoundaryZ);
-    material = new THREE.MeshBasicMaterial({
+    boxMaterial = new THREE.MeshBasicMaterial({
         color: 0xaaaaaa,
         wireframe: true,
         opacity: .8
     });
     //add this object to the scene
-    mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
+    boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
+    scene.add(boxMesh);
     //add a light to the scene
     /*light = new THREE.AmbientLight( 0x222222 );
                   scene.add( light );*/
