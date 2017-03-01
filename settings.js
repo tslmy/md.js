@@ -76,7 +76,10 @@ function initializeGuiControls() {
 	        	guiFolderTrajectories.add(this, "maxTrajectoryLength").name("Steps to remember").onChange(function(value) {}); //TODO
 
             var guiFolderArrows = guiFolderPlotting.addFolder("Arrows for forces and velocities");
-                guiFolderArrows.add(this, "if_showArrows").name("Show arrows");
+                guiFolderArrows.add(this, "if_showArrows").name("Show arrows").onChange(function (value) {
+                	_.each(arrowForces,function(a){a.visible=value});
+                	_.each(arrowVelocities,function(a){a.visible=value});
+                });
                 guiFolderArrows.add(this, "if_limitArrowsMaxLength").name("Limit length");
                 guiFolderArrows.add(this, "maxArrowLength").name("Max length");
                 guiFolderArrows.add(this, "unitArrowLength").name("Unit length");
