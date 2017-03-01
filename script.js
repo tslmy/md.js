@@ -390,8 +390,10 @@ function animate() {
         }
         // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user 
         //update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-        drawArrow(0, i); // 0 -> for particleVelocities; i -> ID of the target particle. 
-        drawArrow(1, i);  // 1 -> for particleForces; i -> ID of the target particle.
+        if (if_drawArrows) {
+            drawArrow(0, i); // 0 -> for particleVelocities; i -> ID of the target particle. 
+            drawArrow(1, i);  // 1 -> for particleForces; i -> ID of the target particle.
+        };
         //update trajectories:
         if (if_showTrajectory) {
             if (time - lastSnapshotTime > snapshotDuration) {
