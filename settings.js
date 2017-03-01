@@ -89,5 +89,5 @@ function initializeGuiControls() {
             guiFolderCommands.add(this, "clearState").name("New world");
             guiFolderCommands.open();
     gui.remember(this);
+    gui.close();
 }
-//====================================
