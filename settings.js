@@ -21,7 +21,7 @@ var if_ReferenceFrame_movesWithSun = true;
 var if_makeSun = true;
 var if_showUniverseBoundary = true;
 var if_showTrajectory = true;
-var if_drawArrows = false;
+var if_showArrows = false;
 var if_useFog = false;
 var if_proportionate_arrows_with_vectors = false;
 //physical constants -- be the god!
@@ -53,7 +53,7 @@ function initializeGuiControls() {
             //guiFolderFunctions.add(this, "if_makeSun");
             //guiFolderFunctions.add(this, "if_showUniverseBoundary");
             guiFolderFunctions.add(this, "if_showTrajectory").name("Trajectories");
-            guiFolderFunctions.add(this, "if_drawArrows").name("Arrows");
+            guiFolderFunctions.add(this, "if_showArrows").name("Arrows");
             //guiFolderFunctions.add(this, "if_useFog");
             guiFolderFunctions.add(this, "if_proportionate_arrows_with_vectors").name("Proportionate arrows with vectors");
             guiFolderFunctions.open();
