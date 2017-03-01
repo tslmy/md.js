@@ -21,41 +21,9 @@ var totalMass = 0;
 var time = 0;
 var lastSnapshotTime = 0;
 var snapshotDuration = 2 * dt;
-
+var strongestForcePresent = 1;
+var fastestVelocityPresent = 1;
 //js fixes and helper functions:
-function drawArrow(purpose, i) {
-    //determine rescaling factor based on type of property:
-    if (purpose == 0) { //for velocities
-        arrowStack = arrowVelocities;
-        propertyStack = particleVelocities;
-        rescalingFactor = 0.02;
-    } else if (purpose == 1) { //for forces
-        arrowStack = arrowForces;
-        propertyStack = particleForces;
-        rescalingFactor = 0.0001;
-    } else {
-        console.log('unrecognized purpose:', purpose);
-        return 1;
-    };
-
-    var vector = propertyStack[i];
-    var vector_from = particlePositions[i];
-    var vector_direction = new THREE.Vector3().copy(vector).normalize();
-    var arrow = arrowStack[i];
-    arrow.position.copy(vector_from);
-    if (if_proportionate_arrows_with_vectors) {
-        //var vector_to = new THREE.Vector3().addVectors(vector_from, vector_direction);
-        var vector_length = vector.length() * rescalingFactor;
-        if (vector_length > max_arrow_length) {
-            vector_length = max_arrow_length
-        };
-        arrow.setLength(vector_length);
-    } else {
-        arrow.setLength(max_arrow_length);
-    };
-    arrow.setDirection(vector_direction);
-}
-
 function generateTexture() {
     //credit: http://jsfiddle.net/7yDGy/1/
     // draw a circle in the center of the canvas
@@ -360,6 +328,9 @@ function animate() {
                 particleForces[j].add(r);
             };
         };
+    //statistics:
+    arrowScaleForForces = unitArrowLength/_.max(_.map(particleForces, function(vector){return vector.length();}));
+    arrowScaleForVelocities = unitArrowLength/_.max(_.map(particleVelocities, function(vector){return vector.length();}));
     for (var i = 0; i < particleCount; i++) {
         //======================== now update eveything user could see ========================
         //update velocities according to force:
@@ -390,9 +361,21 @@ function animate() {
         }
         // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user 
         //update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-        if (if_drawArrows) {
-            drawArrow(0, i); // 0 -> for particleVelocities; i -> ID of the target particle. 
-            drawArrow(1, i);  // 1 -> for particleForces; i -> ID of the target particle.
+        function drawArrow(arrow, from, vector, scale) {
+            var lengthToScale = if_proportionate_arrows_with_vectors ? vector.length() * scale : unitArrowLength;
+            arrow.setLength(if_limitArrowsMaxLength && lengthToScale>maxArrowLength ? maxArrowLength : lengthToScale);
+            arrow.position.copy(from);
+            arrow.setDirection(new THREE.Vector3().copy(vector).normalize());
+        }
+        if (if_showArrows) {
+            drawArrow(  arrow = arrowVelocities[i],
+                        from = particlePositions[i],
+                        vector = particleVelocities[i], 
+                        scale = arrowScaleForForces   );
+            drawArrow(  arrow = arrowForces[i],
+                        from = particlePositions[i],
+                        vector = particleForces[i], 
+                        scale = arrowScaleForVelocities   );
         };
         //update trajectories:
         if (if_showTrajectory) {
