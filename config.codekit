@@ -4,10 +4,21 @@
 "files": {
 	"\/3Dmol-nojquery.js": {
 		"fileType": 64,
-		"ignore": 0,
-		"ignoreWasSetByUser": 0,
+		"ignore": 1,
+		"ignoreWasSetByUser": 1,
 		"inputAbbreviatedPath": "\/3Dmol-nojquery.js",
 		"outputAbbreviatedPath": "\/min\/3Dmol-nojquery-min.js",
+		"outputPathIsOutsideProject": 0,
+		"outputPathIsSetByUser": 0,
+		"outputStyle": 1,
+		"syntaxCheckerStyle": 1
+		},
+	"\/dat.gui.min.js": {
+		"fileType": 64,
+		"ignore": 1,
+		"ignoreWasSetByUser": 1,
+		"inputAbbreviatedPath": "\/dat.gui.min.js",
+		"outputAbbreviatedPath": "\/min\/dat.gui.min-min.js",
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 0,
 		"outputStyle": 1,
@@ -24,8 +35,8 @@
 		},
 	"\/jquery.min.js": {
 		"fileType": 64,
-		"ignore": 0,
-		"ignoreWasSetByUser": 0,
+		"ignore": 1,
+		"ignoreWasSetByUser": 1,
 		"inputAbbreviatedPath": "\/jquery.min.js",
 		"outputAbbreviatedPath": "\/min\/jquery.min-min.js",
 		"outputPathIsOutsideProject": 0,
@@ -87,8 +98,8 @@
 		},
 	"\/script.js": {
 		"fileType": 64,
-		"ignore": 0,
-		"ignoreWasSetByUser": 0,
+		"ignore": 1,
+		"ignoreWasSetByUser": 1,
 		"inputAbbreviatedPath": "\/script.js",
 		"outputAbbreviatedPath": "\/min\/script-min.js",
 		"outputPathIsOutsideProject": 0,
@@ -107,8 +118,8 @@
 		},
 	"\/yui-min.js": {
 		"fileType": 64,
-		"ignore": 0,
-		"ignoreWasSetByUser": 0,
+		"ignore": 1,
+		"ignoreWasSetByUser": 1,
 		"inputAbbreviatedPath": "\/yui-min.js",
 		"outputAbbreviatedPath": "\/min\/yui-min-min.js",
 		"outputPathIsOutsideProject": 0,

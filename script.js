@@ -25,6 +25,41 @@ var DELTA = 0.02;
 var G = 0.08;
 var K = 0.1;
 var max_arrow_length = 2;
+function initializeGuiControls() {
+    //Enable the GUI Controls powered by "dat.gui.min.js":
+    var gui = new dat.GUI();
+        var guiFolderParameters = gui.addFolder("Parameters");    //toggles for parameters:
+            guiFolderParameters.add(this, "particleCount");
+            guiFolderParameters.add(this, "maxTrajectoryLength").onChange(function(value) {
+                
+            });
+            guiFolderParameters.add(this, "spaceBoundaryX");
+            guiFolderParameters.add(this, "spaceBoundaryY");
+            guiFolderParameters.add(this, "spaceBoundaryZ");
+            guiFolderParameters.add(this, "dt");
+            guiFolderParameters.open();
+        var guiFolderFunctions = gui.addFolder("Functions");    //toggles for functions:
+            guiFolderFunctions.add(this, "if_use_periodic_boundary_condition").name("Use PBC");
+            //guiFolderFunctions.add(this, "if_override_particleCount_setting_with_lastState").name("");
+            guiFolderFunctions.add(this, "if_apply_LJpotential").name("LJ potential");
+            guiFolderFunctions.add(this, "if_apply_gravitation").name("Gravitation");
+            guiFolderFunctions.add(this, "if_apply_coulombForce").name("Coulomb Force");
+            guiFolderFunctions.add(this, "if_ReferenceFrame_movesWithSun").name("Center the sun");
+            //guiFolderFunctions.add(this, "if_makeSun");
+            //guiFolderFunctions.add(this, "if_showUniverseBoundary");
+            guiFolderFunctions.add(this, "if_showTrajectory").name("Trajectories");
+            //guiFolderFunctions.add(this, "if_useFog");
+            guiFolderFunctions.open();
+        var guiFolderConstants = gui.addFolder("Physical Constants");//physical constants -- be the god!
+            guiFolderConstants.add(this, "EPSILON");
+            guiFolderConstants.add(this, "DELTA");
+            guiFolderConstants.add(this, "G");
+            guiFolderConstants.add(this, "K");
+            guiFolderConstants.add(this, "max_arrow_length").name("Max arrow length");
+        var guiFolderCommands = gui.addFolder("Commands");//controls, buttons
+            guiFolderCommands.add(this, "clearState");
+            guiFolderCommands.open();
+}
 //====================================
 //global variables
 var camera, scene, renderer;
@@ -372,8 +407,7 @@ function init() {
     if (if_mobileDevice) {
         $('#settings').hide();
     } else {
-        //enable settings
-        $('#settings > #clearState').click(clearState);
+        initializeGuiControls(); //enable settings
     };
     //initialize the scene
     scene = new THREE.Scene();
@@ -418,35 +452,6 @@ function init() {
     window.addEventListener('resize', resize, false);
     setTimeout(resize, 1);
     window.onbeforeunload = saveState;
-    setTimeout(function(){
-        //enable dropdown menus:
-        YUI({
-            classNamePrefix: 'pure'
-        }).use('gallery-sm-menu', function (Y) {
-
-            var horizontalMenu = new Y.Menu({
-                container         : '#navbar',
-                sourceNode        : '#std-menu-items',
-                orientation       : 'horizontal',
-                hideOnOutsideClick: false,
-                hideOnClick       : false
-            });
-
-            horizontalMenu.render();
-            horizontalMenu.show();
-
-        });//now update the GUI of settings list:
-        $('#if_use_periodic_boundary_condition').prop('checked', if_use_periodic_boundary_condition); 
-        $('#if_override_particleCount_setting_with_lastState').prop('checked', if_override_particleCount_setting_with_lastState); 
-        $('#if_apply_LJpotential').prop('checked', if_apply_LJpotential); 
-        $('#if_apply_gravitation').prop('checked', if_apply_gravitation); 
-        $('#if_apply_coulombForce').prop('checked', if_apply_coulombForce); 
-        $('#if_ReferenceFrame_movesWithSun').prop('checked', if_ReferenceFrame_movesWithSun); 
-        $('#if_makeSun').prop('checked', if_makeSun); 
-        $('#if_showUniverseBoundary').prop('checked', if_showUniverseBoundary); 
-        $('#if_showTrajectory').prop('checked', if_showTrajectory); 
-        $('#if_useFog').prop('checked', if_useFog);
-    }, 2000);
 }
 
 function animate() {
@@ -603,5 +608,7 @@ function fullscreen() {
 }
 
 //now execute this script:
-init();
-animate();
+$().ready(function(){
+    init();
+    animate();
+});
