@@ -329,8 +329,12 @@ function animate() {
             };
         };
     //statistics:
-    arrowScaleForForces = unitArrowLength/_.max(_.map(particleForces, function(vector){return vector.length();}));
-    arrowScaleForVelocities = unitArrowLength/_.max(_.map(particleVelocities, function(vector){return vector.length();}));
+    highestForcePresent = _.max(_.map(particleForces, function(vector){return vector.length();}));
+    arrowScaleForForces = unitArrowLength/highestForcePresent;
+    $(".mapscale#force").width(arrowScaleForForces*1000000);
+    highestVelocityPresent = _.max(_.map(particleVelocities, function(vector){return vector.length();}));
+    arrowScaleForVelocities = unitArrowLength/highestVelocityPresent;
+    $(".mapscale#velocity").width(arrowScaleForVelocities*10000);
     for (var i = 0; i < particleCount; i++) {
         //======================== now update eveything user could see ========================
         //update velocities according to force:
@@ -361,18 +365,18 @@ function animate() {
         }
         // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user 
         //update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-        function drawArrow(arrow, from, vector, scale) {
+        function updateArrow(arrow, from, vector, scale) {
             var lengthToScale = if_proportionate_arrows_with_vectors ? vector.length() * scale : unitArrowLength;
             arrow.setLength(if_limitArrowsMaxLength && lengthToScale>maxArrowLength ? maxArrowLength : lengthToScale);
             arrow.position.copy(from);
             arrow.setDirection(new THREE.Vector3().copy(vector).normalize());
         }
         if (if_showArrows) {
-            drawArrow(  arrow = arrowVelocities[i],
+            updateArrow(  arrow = arrowVelocities[i],
                         from = particlePositions[i],
                         vector = particleVelocities[i], 
                         scale = arrowScaleForForces   );
-            drawArrow(  arrow = arrowForces[i],
+            updateArrow(  arrow = arrowForces[i],
                         from = particlePositions[i],
                         vector = particleForces[i], 
                         scale = arrowScaleForVelocities   );
