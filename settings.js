@@ -2,7 +2,7 @@
 var particleCount = 5;
 var maxTrajectoryLength = 500;
 var unitArrowLength = .1;
-var maxArrowLength = 5;
+var maxArrowLength = 2;
 var originalSpaceBoundaryX = 5;
 var originalSpaceBoundaryY = 5;
 var originalSpaceBoundaryZ = 5;
@@ -25,7 +25,7 @@ var if_showUniverseBoundary = true;
 var if_showTrajectory = true;
 var if_showArrows = true;
 var if_showMapscale = true;
-var if_useFog = false;
+var if_useFog = true;
 var if_proportionate_arrows_with_vectors = true;
 var if_limitArrowsMaxLength = true;
 //physical constants -- be the god!
@@ -72,7 +72,7 @@ function initializeGuiControls() {
             //guiFolderPlotting.add(this, "if_useFog");
 
             var guiFolderTrajectories = guiFolderPlotting.addFolder("Particle trajectories");
-            	guiFolderTrajectories.add(this, "if_showTrajectory").name("Show");
+            	guiFolderTrajectories.add(this, "if_showTrajectory").name("Trace");
 	        	guiFolderTrajectories.add(this, "maxTrajectoryLength").name("Steps to remember").onChange(function(value) {}); //TODO
 
             var guiFolderArrows = guiFolderPlotting.addFolder("Arrows for forces and velocities");

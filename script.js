@@ -121,7 +121,7 @@ function createParticleSystem() {
         blending: THREE.NormalBlending, // required
         depthTest: false, // required
         transparent: true,
-        opacity: 0.9,
+        //opacity: 0.9,
         size: .3,
         vertexColors: THREE.VertexColors
     });
