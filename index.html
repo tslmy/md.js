@@ -36,20 +36,42 @@
 <body>
     <div class="mapscale" id="velocity">Speed</div>
     <div class="mapscale" id="force">Force</div>
-    <script src="//fast.eager.io/YEbsDk5Uy-.js"></script>
-    <!--for loading indicator-->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/build/three.min.js"></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/lodash/4.13.1/lodash.min.js"></script>
-    <!--script src="//cdn.rawgit.com/mrdoob/three.js/master/examples/js/Detector.js"></script-->
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/libs/stats.min.js"></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/effects/StereoEffect.js"></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/DeviceOrientationControls.js"></script>
-    <script src="https://cdn.rawgit.com/dataarts/dat.gui/master/build/dat.gui.min.js"></script>
-    <script src="settings.js"></script>
-    <script src="stateStorage.js"></script>
-    <script src="script.js"></script>
+    <script src="modules/fallback.min.js"></script>
+    <script>
+        fallback.load({
+            //'eager':         ['//fast.eager.io/YEbsDk5Uy-.js'],
+            'jQuery':                     [//'//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js',
+                                           //'//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.0/jquery.min.js',
+                                           'modules/jquery.min.js'],
+            'three':                      [//'//cdn.rawgit.com/mrdoob/three.js/master/build/three.min.js',
+                                           'modules/three.min.js'],
+            'OrbitControls':              [//'//cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js',
+                                           'modules/OrbitControls.js'],
+            'lodash':                     [//'//cdn.jsdelivr.net/lodash/4.13.1/lodash.min.js',
+                                           'modules/lodash.min.js'],
+            'stats':                      [//'//cdn.rawgit.com/mrdoob/three.js/master/examples/js/libs/stats.min.js',
+                                           'modules/stats.min.js'],
+            'StereoEffect':               [//'//cdn.rawgit.com/mrdoob/three.js/master/examples/js/effects/StereoEffect.js',
+                                           'modules/StereoEffect.js'],
+            'DeviceOrientationControls':  [//'//cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/DeviceOrientationControls.js',
+                                           'modules/DeviceOrientationControls.js'],
+            'dat.gui':                    [//'//cdn.rawgit.com/dataarts/dat.gui/master/build/dat.gui.min.js',
+                                           'modules/dat.gui.min.js'],
+            'settings':                   ['settings.js'],
+            'stateStorage':               ['stateStorage.js'],
+            'script':                     ['script.js']
+        }, {
+            shim: {
+                'OrbitControls': ['three'],
+                'stats': ['three'],
+                'StereoEffect': ['three'],
+                'DeviceOrientationControls': ['three'],
+                'script': ['jQuery', 'OrbitControls', 'lodash', 'StereoEffect', 'DeviceOrientationControls', 'stateStorage'],
+                'stateStorage': ['settings'],
+                'settings': ['dat.gui']
+            }
+        });
+    </script>
 </body>
 
 </html>

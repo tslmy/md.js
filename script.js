@@ -448,7 +448,7 @@ function fullscreen() {
 }
 
 //now execute this script:
-$().ready(function(){
+fallback.ready(function(){
     init();
     animate();
 });
