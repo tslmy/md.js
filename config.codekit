@@ -22,31 +22,9 @@
 		"outputStyle": 1,
 		"syntaxCheckerStyle": 1
 		},
-	"\/min\/settings-min.js": {
-		"fileType": 64,
-		"ignore": 1,
-		"ignoreWasSetByUser": 0,
-		"inputAbbreviatedPath": "\/min\/settings-min.js",
-		"outputAbbreviatedPath": "\/min\/min\/settings-min-min.js",
-		"outputPathIsOutsideProject": 0,
-		"outputPathIsSetByUser": 0,
-		"outputStyle": 1,
-		"syntaxCheckerStyle": 1
-		},
-	"\/min\/stateStorage-min.js": {
-		"fileType": 64,
-		"ignore": 1,
-		"ignoreWasSetByUser": 0,
-		"inputAbbreviatedPath": "\/min\/stateStorage-min.js",
-		"outputAbbreviatedPath": "\/min\/min\/stateStorage-min-min.js",
-		"outputPathIsOutsideProject": 0,
-		"outputPathIsSetByUser": 0,
-		"outputStyle": 1,
-		"syntaxCheckerStyle": 1
-		},
 	"\/modules\/dat.gui.min.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/modules\/dat.gui.min.js",
 		"outputAbbreviatedPath": "\/modules\/min\/dat.gui.min-min.js",
@@ -57,7 +35,7 @@
 		},
 	"\/modules\/DeviceOrientationControls.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/modules\/DeviceOrientationControls.js",
 		"outputAbbreviatedPath": "\/modules\/min\/DeviceOrientationControls-min.js",
@@ -79,7 +57,7 @@
 		},
 	"\/modules\/jquery.min.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/modules\/jquery.min.js",
 		"outputAbbreviatedPath": "\/modules\/min\/jquery.min-min.js",
@@ -90,7 +68,7 @@
 		},
 	"\/modules\/lodash.min.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/modules\/lodash.min.js",
 		"outputAbbreviatedPath": "\/modules\/min\/lodash.min-min.js",
@@ -101,7 +79,7 @@
 		},
 	"\/modules\/OrbitControls.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/modules\/OrbitControls.js",
 		"outputAbbreviatedPath": "\/modules\/min\/OrbitControls-min.js",
@@ -112,7 +90,7 @@
 		},
 	"\/modules\/stats.min.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/modules\/stats.min.js",
 		"outputAbbreviatedPath": "\/modules\/min\/stats.min-min.js",
@@ -123,7 +101,7 @@
 		},
 	"\/modules\/StereoEffect.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/modules\/StereoEffect.js",
 		"outputAbbreviatedPath": "\/modules\/min\/StereoEffect-min.js",
@@ -134,7 +112,7 @@
 		},
 	"\/modules\/three.min.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/modules\/three.min.js",
 		"outputAbbreviatedPath": "\/modules\/min\/three.min-min.js",
@@ -177,42 +155,104 @@
 		},
 	"\/script.js": {
 		"fileType": 64,
-		"ignore": 0,
-		"ignoreWasSetByUser": 0,
+		"ignore": 1,
+		"ignoreWasSetByUser": 1,
 		"inputAbbreviatedPath": "\/script.js",
 		"outputAbbreviatedPath": "\/min\/script-min.js",
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 0,
 		"outputStyle": 1,
-		"syntaxCheckerStyle": 1
+		"syntaxCheckerStyle": 0
 		},
 	"\/settings.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/settings.js",
 		"outputAbbreviatedPath": "\/min\/settings-min.js",
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 0,
 		"outputStyle": 1,
-		"syntaxCheckerStyle": 1
+		"syntaxCheckerStyle": 0
 		},
 	"\/stateStorage.js": {
 		"fileType": 64,
-		"ignore": 0,
+		"ignore": 1,
 		"ignoreWasSetByUser": 0,
 		"inputAbbreviatedPath": "\/stateStorage.js",
 		"outputAbbreviatedPath": "\/min\/stateStorage-min.js",
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 0,
 		"outputStyle": 1,
-		"syntaxCheckerStyle": 1
+		"syntaxCheckerStyle": 0
 		}
 	},
 "hooks": [
 	],
 "lastSavedByUser": "Mingyang Li",
 "manualImportLinks": {
+	"\/script.js": [
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/modules\/jquery.min.js",
+			"position": 0,
+			"type": 0
+			},
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/modules\/lodash.min.js",
+			"position": 1,
+			"type": 0
+			},
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/modules\/dat.gui.min.js",
+			"position": 2,
+			"type": 0
+			},
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/modules\/three.min.js",
+			"position": 3,
+			"type": 0
+			},
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/modules\/OrbitControls.js",
+			"position": 4,
+			"type": 0
+			},
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/modules\/DeviceOrientationControls.js",
+			"position": 5,
+			"type": 0
+			},
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/modules\/stats.min.js",
+			"position": 6,
+			"type": 0
+			},
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/modules\/StereoEffect.js",
+			"position": 7,
+			"type": 0
+			},
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/settings.js",
+			"position": 8,
+			"type": 0
+			},
+		{
+			"followForSyntaxChecking": 1,
+			"linkedFileAbbreviatedPath": "\/stateStorage.js",
+			"position": 9,
+			"type": 0
+			}
+		]
 	},
 "projectAttributes": {
 	"bowerAbbreviatedPath": "",

@@ -1,11 +1,8 @@
-
 //global variables
 var camera, scene, renderer;
 var effect, controls;
 var element, container;
-var if_mobileDevice =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent);
+var if_mobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 var geometry, material, mesh, particleMaterial, trajectoryMaterial;
 var particleColors = [];
 var particlePositions = [];
