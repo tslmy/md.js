@@ -3,7 +3,7 @@ var camera, scene, renderer;
 var effect, controls;
 var element, container;
 var if_mobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-var geometry, material, mesh, particleMaterial, trajectoryMaterial;
+var geometry, material, particleMaterial, trajectoryMaterial;
 var particleColors = [];
 var particlePositions = [];
 var particleForces = [];
@@ -113,6 +113,7 @@ thisCharge) {
 function createParticleSystem() {
     // Particles are just individual vertices in a geometry
     // Create the geometry that will hold all of the vertices
+    group = new THREE.Object3D();
     particles = new THREE.Geometry();
     texture = new THREE.Texture(generateTexture());
     texture.needsUpdate = true; // important
@@ -122,6 +123,15 @@ function createParticleSystem() {
         depthTest: false, // required
         transparent: true,
         //opacity: 0.9,
+        size: .3,
+        vertexColors: THREE.VertexColors
+    });
+    particleMaterialForClones = new THREE.PointsMaterial({ //http://jsfiddle.net/7yDGy/1/
+        map: texture,
+        blending: THREE.NormalBlending, // required
+        depthTest: false, // required
+        transparent: true,
+        opacity: 0.3,
         size: .3,
         vertexColors: THREE.VertexColors
     });
@@ -198,7 +208,51 @@ function createParticleSystem() {
     // Create the material that will be used to render each vertex of the geometry
     // Create the particle system
     particleSystem = new THREE.Points(particles, particleMaterial);
-    return particleSystem;
+    particleSystem.position.set(0, 0, 0);
+    group.add(particleSystem);
+
+    var clone;
+    var clonePositions = makeClonePositionsList();
+    var cloneTemplate = particleSystem.clone();
+    cloneTemplate.material = particleMaterialForClones;
+    for (i = 0; i<26; i++) {
+        clone = cloneTemplate.clone();
+        clone.position.set(clonePositions[i][0],clonePositions[i][1],clonePositions[i][2]);
+        group.add(clone);
+    }
+
+    return group;
+};
+
+function makeClonePositionsList() {
+    return [
+        [2*spaceBoundaryX, 0, 0],
+        [-2*spaceBoundaryX, 0, 0],
+        [0, 2*spaceBoundaryY, 0],
+        [0, -2*spaceBoundaryY, 0],
+        [0, 0, 2*spaceBoundaryZ],
+        [0, 0, -2*spaceBoundaryZ],
+        [2*spaceBoundaryX, 0, 2*spaceBoundaryZ],
+        [-2*spaceBoundaryX, 0, 2*spaceBoundaryZ],
+        [2*spaceBoundaryX, 0, -2*spaceBoundaryZ],
+        [-2*spaceBoundaryX, 0, -2*spaceBoundaryZ],
+        [0, 2*spaceBoundaryY, 2*spaceBoundaryZ],
+        [0, -2*spaceBoundaryY, 2*spaceBoundaryZ],
+        [0, 2*spaceBoundaryY, -2*spaceBoundaryZ],
+        [0, -2*spaceBoundaryY, -2*spaceBoundaryZ],
+        [2*spaceBoundaryX, 2*spaceBoundaryY, 0],
+        [-2*spaceBoundaryX, 2*spaceBoundaryY, 0],
+        [2*spaceBoundaryX, -2*spaceBoundaryY, 0],
+        [-2*spaceBoundaryX, -2*spaceBoundaryY, 0],
+        [2*spaceBoundaryX, 2*spaceBoundaryY, 2*spaceBoundaryZ],
+        [-2*spaceBoundaryX, 2*spaceBoundaryY, 2*spaceBoundaryZ],
+        [2*spaceBoundaryX, -2*spaceBoundaryY, 2*spaceBoundaryZ],
+        [-2*spaceBoundaryX, -2*spaceBoundaryY, 2*spaceBoundaryZ],
+        [2*spaceBoundaryX, 2*spaceBoundaryY, -2*spaceBoundaryZ],
+        [-2*spaceBoundaryX, 2*spaceBoundaryY, -2*spaceBoundaryZ],
+        [2*spaceBoundaryX, -2*spaceBoundaryY, -2*spaceBoundaryZ],
+        [-2*spaceBoundaryX, -2*spaceBoundaryY, -2*spaceBoundaryZ]
+    ];
 };
 
 /*function addParticleOnTheFly() {
@@ -271,167 +325,30 @@ function init() {
 }
 
 function applyForce(i, j, func) {
-    var r = new THREE.Vector3();
     var thisPosition = particlePositions[i];
-    var particleJClones = [particlePositions[j].clone()];
+    var thatPosition = particlePositions[j];
+    var rOriginal = new THREE.Vector3().subVectors(thisPosition, thatPosition); //relative displacement
+    var r;
     //====== populate the array "particleJClones" ======
-    var thatPosition;
     if (if_use_periodic_boundary_condition) {
-
-        //j clones in cells that sharing a face with the current cell
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x -= spaceBoundaryX; //j in the left cell
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x += spaceBoundaryX; //j in the right cell
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.y -= spaceBoundaryY; //j in the front cell
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.y += spaceBoundaryY; //j in the back cell
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.z -= spaceBoundaryZ; //j in the bottom cell
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.z += spaceBoundaryZ; //j in the top cell
-        particleJClones.push(thatPosition);
-
-        //j clones in cells that sharing a line with the current cell
-
-            // with this line parallel to the z-axis
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x -= spaceBoundaryX;
-        thatPosition.y -= spaceBoundaryY;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x -= spaceBoundaryX;
-        thatPosition.y += spaceBoundaryY;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x += spaceBoundaryX;
-        thatPosition.y -= spaceBoundaryY;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x += spaceBoundaryX;
-        thatPosition.y += spaceBoundaryY;
-        particleJClones.push(thatPosition);
-
-            // with this line parallel to the y-axis
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x -= spaceBoundaryX;
-        thatPosition.z -= spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x -= spaceBoundaryX;
-        thatPosition.z += spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x += spaceBoundaryX;
-        thatPosition.z -= spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x += spaceBoundaryX;
-        thatPosition.z += spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-            // with this line parallel to the x-axis
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.y -= spaceBoundaryY;
-        thatPosition.z -= spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.y -= spaceBoundaryY;
-        thatPosition.z += spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.y += spaceBoundaryY;
-        thatPosition.z -= spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.y += spaceBoundaryY;
-        thatPosition.z += spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        //j clones in cells that sharing a point with the current cell
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x -= spaceBoundaryX;
-        thatPosition.y -= spaceBoundaryY;
-        thatPosition.z -= spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x -= spaceBoundaryX;
-        thatPosition.y -= spaceBoundaryY;
-        thatPosition.z += spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x -= spaceBoundaryX;
-        thatPosition.y += spaceBoundaryY;
-        thatPosition.z -= spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x -= spaceBoundaryX;
-        thatPosition.y += spaceBoundaryY;
-        thatPosition.z += spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x += spaceBoundaryX;
-        thatPosition.y -= spaceBoundaryY;
-        thatPosition.z -= spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x += spaceBoundaryX;
-        thatPosition.y -= spaceBoundaryY;
-        thatPosition.z += spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x += spaceBoundaryX;
-        thatPosition.y += spaceBoundaryY;
-        thatPosition.z -= spaceBoundaryZ;
-        particleJClones.push(thatPosition);
-
-        thatPosition = particlePositions[j].clone();
-        thatPosition.x += spaceBoundaryX;
-        thatPosition.y += spaceBoundaryY;
-        thatPosition.z += spaceBoundaryZ;
-        particleJClones.push(thatPosition);
+        var clonePositions = makeClonePositionsList();
+        clonePositions.push([0,0,0]);
+    } else {
+        var clonePositions = [[0,0,0]];
     };
     //==================================================
     //force due to j in this cell:
-    for (thatPosition of particleJClones) { // (don't use "for-in" loops!)
-        r.subVectors(thisPosition, thatPosition); //relative displacement
-        var d = r.length(); //length
+    for (thatPositionDisplacement of clonePositions) { // (don't use "for-in" loops!)
+        r = rOriginal.clone();
+        //(possibly) displace shift the end of this vector from particle j to one of its clones:
+        r.x -= thatPositionDisplacement[0];
+        r.y -= thatPositionDisplacement[1];
+        r.z -= thatPositionDisplacement[2];
+        var d = r.length(); //calculate distance between particles i and j (with j may being a clone)
         if (d<cutoffDistance) {
             r.setLength(func(i,j,d)); //use calculated "force strength" as vector length
             particleForces[i].sub(r);
             particleForces[j].add(r);
-            r.setLength(d); //roll back to "distance" as vector length
         };
     };
 };
