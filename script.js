@@ -223,7 +223,12 @@ function createParticleSystem() {
 
     return group;
 };
-
+function updateClonesPositions() {
+    var clonePositions = makeClonePositionsList();
+    for (i = 0; i<26; i++) {
+        group.children[i+1].position.set(clonePositions[i][0],clonePositions[i][1],clonePositions[i][2]);
+    }
+};
 function makeClonePositionsList() {
     return [
         [2*spaceBoundaryX, 0, 0],

@@ -53,11 +53,11 @@ function initializeGuiControls() {
 
             var guiFolderBoundary = guiFolderWorld.addFolder("Universe boundary");
                 guiFolderBoundary.add(this, "if_showUniverseBoundary");
-                guiFolderBoundary.add(this, "if_use_periodic_boundary_condition").name("Use PBC");
+                guiFolderBoundary.add(this, "if_use_periodic_boundary_condition").name("Use PBC").onChange(function(value){particleMaterialForClones.visible = value;});
 	            var guiFolderSize = guiFolderBoundary.addFolder("Custom size");
-	                guiFolderSize.add(this, "spaceBoundaryX").name("Size, X").onChange(function(value) { if (boxMesh) boxMesh.scale.x = spaceBoundaryX / originalSpaceBoundaryX; });
-	                guiFolderSize.add(this, "spaceBoundaryY").name("Size, Y").onChange(function(value) { if (boxMesh) boxMesh.scale.y = spaceBoundaryY / originalSpaceBoundaryY; });
-	                guiFolderSize.add(this, "spaceBoundaryZ").name("Size, Z").onChange(function(value) { if (boxMesh) boxMesh.scale.z = spaceBoundaryZ / originalSpaceBoundaryZ; });
+	                guiFolderSize.add(this, "spaceBoundaryX").name("Size, X").onChange(function(value) { if (boxMesh) boxMesh.scale.x = spaceBoundaryX / originalSpaceBoundaryX; updateClonesPositions();});
+	                guiFolderSize.add(this, "spaceBoundaryY").name("Size, Y").onChange(function(value) { if (boxMesh) boxMesh.scale.y = spaceBoundaryY / originalSpaceBoundaryY; updateClonesPositions();});
+	                guiFolderSize.add(this, "spaceBoundaryZ").name("Size, Z").onChange(function(value) { if (boxMesh) boxMesh.scale.z = spaceBoundaryZ / originalSpaceBoundaryZ; updateClonesPositions();});
 	            
             var guiFolderForces = guiFolderWorld.addFolder("Forcefields to apply");
                 guiFolderForces.add(this, "if_apply_LJpotential").name("LJ potential");
