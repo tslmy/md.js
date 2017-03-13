@@ -270,10 +270,176 @@ function init() {
     window.onbeforeunload = saveState;
 }
 
+function applyForce(i, j, func) {
+    var r = new THREE.Vector3();
+    var thisPosition = particlePositions[i];
+    var particleJClones = [particlePositions[j].clone()];
+    //====== populate the array "particleJClones" ======
+    var thatPosition;
+    if (if_use_periodic_boundary_condition) {
+
+        //j clones in cells that sharing a face with the current cell
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x -= spaceBoundaryX; //j in the left cell
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x += spaceBoundaryX; //j in the right cell
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.y -= spaceBoundaryY; //j in the front cell
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.y += spaceBoundaryY; //j in the back cell
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.z -= spaceBoundaryZ; //j in the bottom cell
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.z += spaceBoundaryZ; //j in the top cell
+        particleJClones.push(thatPosition);
+
+        //j clones in cells that sharing a line with the current cell
+
+            // with this line parallel to the z-axis
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x -= spaceBoundaryX;
+        thatPosition.y -= spaceBoundaryY;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x -= spaceBoundaryX;
+        thatPosition.y += spaceBoundaryY;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x += spaceBoundaryX;
+        thatPosition.y -= spaceBoundaryY;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x += spaceBoundaryX;
+        thatPosition.y += spaceBoundaryY;
+        particleJClones.push(thatPosition);
+
+            // with this line parallel to the y-axis
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x -= spaceBoundaryX;
+        thatPosition.z -= spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x -= spaceBoundaryX;
+        thatPosition.z += spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x += spaceBoundaryX;
+        thatPosition.z -= spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x += spaceBoundaryX;
+        thatPosition.z += spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+            // with this line parallel to the x-axis
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.y -= spaceBoundaryY;
+        thatPosition.z -= spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.y -= spaceBoundaryY;
+        thatPosition.z += spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.y += spaceBoundaryY;
+        thatPosition.z -= spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.y += spaceBoundaryY;
+        thatPosition.z += spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        //j clones in cells that sharing a point with the current cell
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x -= spaceBoundaryX;
+        thatPosition.y -= spaceBoundaryY;
+        thatPosition.z -= spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x -= spaceBoundaryX;
+        thatPosition.y -= spaceBoundaryY;
+        thatPosition.z += spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x -= spaceBoundaryX;
+        thatPosition.y += spaceBoundaryY;
+        thatPosition.z -= spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x -= spaceBoundaryX;
+        thatPosition.y += spaceBoundaryY;
+        thatPosition.z += spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x += spaceBoundaryX;
+        thatPosition.y -= spaceBoundaryY;
+        thatPosition.z -= spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x += spaceBoundaryX;
+        thatPosition.y -= spaceBoundaryY;
+        thatPosition.z += spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x += spaceBoundaryX;
+        thatPosition.y += spaceBoundaryY;
+        thatPosition.z -= spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+
+        thatPosition = particlePositions[j].clone();
+        thatPosition.x += spaceBoundaryX;
+        thatPosition.y += spaceBoundaryY;
+        thatPosition.z += spaceBoundaryZ;
+        particleJClones.push(thatPosition);
+    };
+    //==================================================
+    //force due to j in this cell:
+    for (thatPosition of particleJClones) { // (don't use "for-in" loops!)
+        r.subVectors(thisPosition, thatPosition); //relative displacement
+        var d = r.length(); //length
+        if (d<cutoffDistance) {
+            r.setLength(func(i,j,d)); //use calculated "force strength" as vector length
+            particleForces[i].sub(r);
+            particleForces[j].add(r);
+            r.setLength(d); //roll back to "distance" as vector length
+        };
+    };
+};
+
 function animate() {
     time += dt;
     //for (var i in arrows) {scene.remove(arrows[i])}; //remove all existing arrows
-    for (var i = 0; i < particleCount; i++) particleForces[i].set(0, 0, 0); //remove all forces first
+    for (i of particleForces) i.set(0, 0, 0); //remove all forces first
     for (var i = 0; i < particleCount; i++)
         for (var j = i + 1; j < particleCount; j++) {
             //generate all forces:
@@ -281,48 +447,39 @@ function animate() {
                 // Use Lennard-Jones potential
                 // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
                 // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
-                var r = new THREE.Vector3().subVectors(particlePositions[i],
-                    particlePositions[j]); //relative displacement
-                var d = r.length(); //length
-                var d6 = (DELTA / d);
-                if (d6 < 0.5) d6 = 0.5; //what kind of socery is this??
-                d6 = d6 * d6 * d6;
-                d6 = d6 * d6;
-                r.setLength(4 * EPSILON * (6 / d) * (-2 * d6 * d6 + d6));
-                particleForces[i].sub(r);
-                particleForces[j].add(r);
+                applyForce(i, j, function(i,j,d){
+                    var d6 = (DELTA / d);
+                    if (d6 < 0.5) d6 = 0.5; //what kind of socery is this??
+                    d6 = d6 * d6 * d6;
+                    d6 = d6 * d6;
+                    return 4 * EPSILON * (6 / d) * (-2 * d6 * d6 + d6);
+                });
             };
             if (if_apply_gravitation) {
                 //Use gravitational potential
                 //-> F = GMm/(d*d) r/|r|
-                var r = new THREE.Vector3().subVectors(particlePositions[i],
-                    particlePositions[j]); //relative displacement
-                var d = r.length(); //length
-                // Use d_min to prevent high potential when particles are close
-                // to avoid super high accelerations in poor time resolution
-                if (d < d_min) {
-                    console.log('particle', i, ',', j, 'too near.');
-                    d = d_min;
-                };
-                r.setLength(G * particleMasses[i] * particleMasses[j] / (d * d));
-                particleForces[i].sub(r);
-                particleForces[j].add(r);
+                applyForce(i, j, function(i,j,d){
+                    // Use d_min to prevent high potential when particles are close
+                    // to avoid super high accelerations in poor time resolution
+                    if (d < d_min) {
+                        console.log('particle', i, ',', j, 'too near for gravitation.');
+                        d = d_min;
+                    };
+                    return (G * particleMasses[i] * particleMasses[j] / (d * d));
+                });
             };
             if (if_apply_coulombForce) {
                 //Use gravitational potential
                 //-> F = GMm/(d*d) r/|r|
-                var r = new THREE.Vector3().subVectors(particlePositions[i],
-                    particlePositions[j]); //relative displacement
-                var d = r.length(); //length
-                // Use d_min to prevent high potential when particles are close
-                // to avoid super high accelerations in poor time resolution
-                if (d < d_min) {
-                    console.log('particle', i, ',', j, 'too near.');
-                    d = d_min;
-                };
-                r.setLength(-K * particleCharges[i] * particleCharges[j] / (d * d));
-                particleForces[i].sub(r);
-                particleForces[j].add(r);
+                applyForce(i, j, function(i,j,d){
+                    // Use d_min to prevent high potential when particles are close
+                    // to avoid super high accelerations in poor time resolution
+                    if (d < d_min) {
+                        console.log('particle', i, ',', j, 'too near for coulomb force.');
+                        d = d_min;
+                    };
+                    return -K * particleCharges[i] * particleCharges[j] / (d * d);
+                });
             };
         };
     //statistics:
