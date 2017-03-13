@@ -13,7 +13,7 @@ var spaceBoundaryZ = originalSpaceBoundaryZ;
 var cutoffDistance = _spaceBoundary*2;
 var dt = 0.01;
 var availableCharges = [-3, -2, -1, 0, 1, 2, 3];
-var d_min = 0.02;
+var d_min = 0;
 var sunMass = 500;
 //toggles for Plotting:
 var if_use_periodic_boundary_condition = true;
@@ -93,6 +93,7 @@ function initializeGuiControls() {
 
         var guiFolderCommands = gui.addFolder("Commands");//controls, buttons
             guiFolderCommands.add(this, "clearState").name("New world");
+            guiFolderCommands.add(this, "stop").name("Halt");
             guiFolderCommands.open();
     gui.remember(this);
     gui.close();

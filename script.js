@@ -3,6 +3,7 @@ var camera, scene, renderer;
 var effect, controls;
 var element, container;
 var if_mobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+var ifRun = true;
 var geometry, material, particleMaterial, trajectoryMaterial;
 var particleColors = [];
 var particlePositions = [];
@@ -487,7 +488,9 @@ function animate() {
     update();
     render();
     //set up the next call
-    requestAnimationFrame(animate);
+    if (ifRun) {
+        requestAnimationFrame(animate);
+    };
     stats.update();
 }
 
@@ -537,6 +540,10 @@ function fullscreen() {
         container.webkitRequestFullscreen();
     }
 }
+
+function stop() {
+    ifRun = false;
+};
 
 //now execute this script:
 $().ready(function(){
