@@ -322,6 +322,8 @@ function init() {
     window.addEventListener('deviceorientation', setOrientationControls, true);
     //add stat
     stats = new Stats();
+    temperaturePanel = stats.addPanel( new Stats.Panel( 'Temp.', '#ff8', '#221' ) );
+    stats.showPanel(2);
     container.append(stats.domElement);
     //add event listeners
     window.addEventListener('resize', resize, false);
@@ -481,6 +483,7 @@ function animate() {
     // flag to the particle system that we've changed its vertices.
     particleSystem.geometry.verticesNeedUpdate = true;
     //draw this frame
+    statistics();
     update();
     render();
     //set up the next call
@@ -495,6 +498,18 @@ function resize() {
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
     if (if_mobileDevice) effect.setSize(width, height);
+}
+var maxTemperature = 0;
+function statistics() {
+    var temperature = 0;
+    for (var i = 0; i < particleCount; i++) {
+        temperature += particleMasses[i]*particleVelocities[i].length()*particleVelocities[i].length();
+    };
+    temperature *= 1/kB/(3*particleCount-3);
+    if (temperature>maxTemperature) {
+        maxTemperature = temperature;
+    }
+    temperaturePanel.update( temperature, maxTemperature );
 }
 
 function update() {

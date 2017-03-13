@@ -1,5 +1,5 @@
 //===============options and settings:
-var particleCount = 5;
+var particleCount = 10;
 var maxTrajectoryLength = 500;
 var unitArrowLength = .1;
 var maxArrowLength = 2;
@@ -35,6 +35,7 @@ var EPSILON = 1;
 var DELTA = 0.02;
 var G = 0.08;
 var K = 0.1;
+var kB = 6.02;
 function initializeGuiControls() {
     //Enable the GUI Controls powered by "dat.gui.min.js":
     var gui = new dat.GUI();
