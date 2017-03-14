@@ -300,11 +300,7 @@ function removeParticleOnTheFly() {
 }*/
 
 function init() {
-    if (if_mobileDevice) {
-        $('#settings').hide();
-    } else {
-        initializeGuiControls(); //enable settings
-    };
+    initializeGuiControls(); //enable settings
     //initialize the scene
     scene = new THREE.Scene();
     //    configure the scene:
