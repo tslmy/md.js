@@ -425,21 +425,63 @@ function animate() {
         if (if_use_periodic_boundary_condition) {
             while (particlePositions[i].x < -spaceBoundaryX) {
                 particlePositions[i].x += 2*spaceBoundaryX;
+                if (if_showTrajectory) {
+                    var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
+                    for (var j = 0; j < maxTrajectoryLength; j++) {
+                        lineNodePositions.setX(j, lineNodePositions.getX(j) + 2*spaceBoundaryX);
+                    };
+                    lineNodePositions.needsUpdate = true;
+                };
             };
             while (particlePositions[i].x > spaceBoundaryX) {
                 particlePositions[i].x -= 2*spaceBoundaryX;
+                if (if_showTrajectory) {
+                    var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
+                    for (var j = 0; j < maxTrajectoryLength; j++) {
+                        lineNodePositions.setX(j, lineNodePositions.getX(j) - 2*spaceBoundaryX);
+                    };
+                    lineNodePositions.needsUpdate = true;
+                };
             };
             while (particlePositions[i].y < -spaceBoundaryY) {
                 particlePositions[i].y += 2*spaceBoundaryY;
+                if (if_showTrajectory) {
+                    var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
+                    for (var j = 0; j < maxTrajectoryLength; j++) {
+                        lineNodePositions.setY(j, lineNodePositions.getY(j) + 2*spaceBoundaryY);
+                    };
+                    lineNodePositions.needsUpdate = true;
+                };
             };
             while (particlePositions[i].y > spaceBoundaryY) {
                 particlePositions[i].y -= 2*spaceBoundaryY;
+                if (if_showTrajectory) {
+                    var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
+                    for (var j = 0; j < maxTrajectoryLength; j++) {
+                        lineNodePositions.setY(j, lineNodePositions.getY(j) - 2*spaceBoundaryY);
+                    };
+                    lineNodePositions.needsUpdate = true;
+                };
             };
             while (particlePositions[i].z < -spaceBoundaryZ) {
                 particlePositions[i].z += 2*spaceBoundaryZ;
+                if (if_showTrajectory) {
+                    var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
+                    for (var j = 0; j < maxTrajectoryLength; j++) {
+                        lineNodePositions.setZ(j, lineNodePositions.getZ(j) + 2*spaceBoundaryZ);
+                    };
+                    lineNodePositions.needsUpdate = true;
+                };
             };
             while (particlePositions[i].z > spaceBoundaryZ) {
                 particlePositions[i].z -= 2*spaceBoundaryZ;
+                if (if_showTrajectory) {
+                    var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
+                    for (var j = 0; j < maxTrajectoryLength; j++) {
+                        lineNodePositions.setZ(j, lineNodePositions.getZ(j) - 2*spaceBoundaryZ);
+                    };
+                    lineNodePositions.needsUpdate = true;
+                };
             };
         }
         // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user 
@@ -503,7 +545,7 @@ function resize() {
     if (if_mobileDevice) effect.setSize(width, height);
 }
 var maxTemperature = 0;
-function statistics() {
+function calculateTemperature() {
     var temperature = 0;
     for (var i = 0; i < particleCount; i++) {
         temperature += particleMasses[i]*particleVelocities[i].length()*particleVelocities[i].length();
@@ -511,7 +553,11 @@ function statistics() {
     temperature *= 1/kB/(3*particleCount-3);
     if (temperature>maxTemperature) {
         maxTemperature = temperature;
-    }
+    };
+    return temperature;
+}
+function statistics() {
+    var temperature = calculateTemperature();
     temperaturePanel.update( temperature, maxTemperature );
 }
 
