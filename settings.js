@@ -1,6 +1,6 @@
 //===============options and settings:
-var particleCount = 5;
-var maxTrajectoryLength = 50;
+var particleCount = 8;
+var maxTrajectoryLength = 200;
 var unitArrowLength = .1;
 var maxArrowLength = 2;
 var _spaceBoundary = 5;
@@ -16,6 +16,7 @@ var availableCharges = [-3, -2, -1, 0, 1, 2, 3];
 var d_min = 0;
 var sunMass = 500;
 var targetTemperature = 100;
+var escapeSpeed = _spaceBoundary*2;
 //toggles for Plotting:
 var if_use_periodic_boundary_condition = true;
 var if_override_particleCount_setting_with_lastState = true;
