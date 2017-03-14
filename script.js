@@ -104,19 +104,24 @@ thisCharge) {
     //add trajectories. See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>
     if (if_showTrajectory) {
         var thisGeometry = new THREE.BufferGeometry();
-        trajectoryGeometries.push(thisGeometry);
+        var white = new THREE.Color('#FFFFFF');
         // attributes
-        var point = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
-        thisGeometry.addAttribute('position', new THREE.BufferAttribute(point, 3));
-        for (var i = 0; i < maxTrajectoryLength; i++) thisGeometry.attributes.position
-            .setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z);
-        var thisTrajectoryColor = thisColor.clone();
-        thisTrajectoryColor.offsetHSL(0, -0.5, 0.2);
+        var points = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
+        var colors = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
+        thisGeometry.addAttribute('position', new THREE.BufferAttribute(points, 3));
+        thisGeometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+        for (var i = 0; i < maxTrajectoryLength; i++) { //for each vertex of this trajectory:
+            var interpolationFactor = (maxTrajectoryLength-i)/maxTrajectoryLength; //calculate for how many percent should the color of this vertex be diluted/bleached.
+            var thisVertexColor = thisColor.clone().lerp(white, interpolationFactor); //make the bleached color object by cloning the particle's color and then lerping it with the white color.
+            thisGeometry.attributes.color.setXYZ(i, thisVertexColor.r, thisVertexColor.g, thisVertexColor.b); //assign this color to this vertex
+            thisGeometry.attributes.position.setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z); //put this(every) vertex to the same place as the particle started
+        };
+        trajectoryGeometries.push(thisGeometry); //finished preparing the geometry for this trajectory
         thisTrajectoryMaterial = new THREE.LineBasicMaterial({
-            color: thisTrajectoryColor,
-            linewidth: .5
+            linewidth: .5,
+            vertexColors: THREE.VertexColors
         });
-        var thisTrajectory = new THREE.Line(thisGeometry, thisTrajectoryMaterial);
+        var thisTrajectory = new THREE.Line(thisGeometry, thisTrajectoryMaterial);//, THREE.LinePieces);
         trajectoryLines.push(thisTrajectory);
         scene.add(thisTrajectory);
     }
