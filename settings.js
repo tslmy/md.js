@@ -1,6 +1,6 @@
 //===============options and settings:
-var particleCount = 10;
-var maxTrajectoryLength = 500;
+var particleCount = 5;
+var maxTrajectoryLength = 50;
 var unitArrowLength = .1;
 var maxArrowLength = 2;
 var _spaceBoundary = 5;
@@ -15,6 +15,7 @@ var dt = 0.01;
 var availableCharges = [-3, -2, -1, 0, 1, 2, 3];
 var d_min = 0;
 var sunMass = 500;
+var targetTemperature = 100;
 //toggles for Plotting:
 var if_use_periodic_boundary_condition = true;
 var if_override_particleCount_setting_with_lastState = true;
@@ -30,6 +31,7 @@ var if_showMapscale = true;
 var if_useFog = false;
 var if_proportionate_arrows_with_vectors = true;
 var if_limitArrowsMaxLength = true;
+var if_constant_temperature = false;
 //physical constants -- be the god!
 var EPSILON = 1;
 var DELTA = 0.02;
@@ -41,6 +43,9 @@ function initializeGuiControls() {
     var gui = new dat.GUI();
 
     	var guiFolderWorld = gui.addFolder("World building");
+
+            guiFolderWorld.add(this, "if_constant_temperature").name("Constant T");
+            guiFolderWorld.add(this, "targetTemperature").name("Target temp.");
 
 	        var guiFolderParameters = guiFolderWorld.addFolder("Parameters");    //toggles for parameters:
 	            guiFolderParameters.add(this, "particleCount");
