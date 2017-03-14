@@ -553,6 +553,11 @@ function animate() {
                 };
             };
         };
+        if (if_constant_temperature) {
+            var currentTemperature = calculateTemperature();
+            scaleFactor = Math.sqrt(targetTemperature/currentTemperature);
+            _.forEach(particleVelocities,function(velocity){velocity.multiplyScalar(scaleFactor)});
+        }
     };
     if (if_showTrajectory && time - lastSnapshotTime > snapshotDuration)
         lastSnapshotTime = time;
