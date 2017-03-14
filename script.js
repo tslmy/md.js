@@ -25,7 +25,8 @@ var particleProperties = [
     arrowVelocities,
     arrowForces,
     trajectoryGeometries,
-    trajectoryLines];
+    trajectoryLines
+];
 var totalMass = 0;
 var time = 0;
 var lastSnapshotTime = 0;
@@ -69,9 +70,10 @@ function drawBox() {
     /*light = new THREE.AmbientLight( 0x222222 );
                   scene.add( light );*/
 }
+
 function addParticle(colorH, colorS, colorL, positionX, positionY, positionZ,
-velocityX, velocityY, velocityZ, forceX, forceY, forceZ, thisMass,
-thisCharge) {
+    velocityX, velocityY, velocityZ, forceX, forceY, forceZ, thisMass,
+    thisCharge) {
     // make colors (http://jsfiddle.net/J7zp4/200/)
     var thisColor = new THREE.Color();
     thisColor.setHSL(colorH, colorS, colorL);
@@ -111,7 +113,7 @@ thisCharge) {
         thisGeometry.addAttribute('position', new THREE.BufferAttribute(points, 3));
         thisGeometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
         for (var i = 0; i < maxTrajectoryLength; i++) { //for each vertex of this trajectory:
-            var interpolationFactor = (maxTrajectoryLength-i)/maxTrajectoryLength; //calculate for how many percent should the color of this vertex be diluted/bleached.
+            var interpolationFactor = (maxTrajectoryLength - i) / maxTrajectoryLength; //calculate for how many percent should the color of this vertex be diluted/bleached.
             var thisVertexColor = thisColor.clone().lerp(white, interpolationFactor); //make the bleached color object by cloning the particle's color and then lerping it with the white color.
             thisGeometry.attributes.color.setXYZ(i, thisVertexColor.r, thisVertexColor.g, thisVertexColor.b); //assign this color to this vertex
             thisGeometry.attributes.position.setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z); //put this(every) vertex to the same place as the particle started
@@ -121,7 +123,7 @@ thisCharge) {
             linewidth: .5,
             vertexColors: THREE.VertexColors
         });
-        var thisTrajectory = new THREE.Line(thisGeometry, thisTrajectoryMaterial);//, THREE.LinePieces);
+        var thisTrajectory = new THREE.Line(thisGeometry, thisTrajectoryMaterial); //, THREE.LinePieces);
         trajectoryLines.push(thisTrajectory);
         scene.add(thisTrajectory);
     }
@@ -183,17 +185,17 @@ function createParticleSystem() {
                 thisCharge = previous_particleCharges[i])
         };
         var particleCountToAdd = particleCount - previous_particleCount;
-        if (particleCountToAdd<0) {
-            console.log("Dropping",-particleCountToAdd,"particles stored, since we only need",particleCount,"particles this time.");
-        } else if (particleCountToAdd>0) {
-            console.log("md.js will be creating only",particleCountToAdd,"particles from scratch, since",previous_particleCount,"has been loaded from previous browser session.");
+        if (particleCountToAdd < 0) {
+            console.log("Dropping", -particleCountToAdd, "particles stored, since we only need", particleCount, "particles this time.");
+        } else if (particleCountToAdd > 0) {
+            console.log("md.js will be creating only", particleCountToAdd, "particles from scratch, since", previous_particleCount, "has been loaded from previous browser session.");
         };
         time = previous_time;
         lastSnapshotTime = previous_lastSnapshotTime;
     } else {
         console.log('Creating new universe.');
         var particleCountToAdd = particleCount;
-        console.log("md.js will be creating all",particleCount,"particles from scratch.");
+        console.log("md.js will be creating all", particleCount, "particles from scratch.");
         //create a sun:
         if (if_makeSun) addParticle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sunMass, 0); //always make the sun the first particle, please.
     };
@@ -232,48 +234,50 @@ function createParticleSystem() {
     var clonePositions = makeClonePositionsList();
     var cloneTemplate = particleSystem.clone();
     cloneTemplate.material = particleMaterialForClones;
-    for (i = 0; i<26; i++) {
+    for (i = 0; i < 26; i++) {
         clone = cloneTemplate.clone();
-        clone.position.set(clonePositions[i][0],clonePositions[i][1],clonePositions[i][2]);
+        clone.position.set(clonePositions[i][0], clonePositions[i][1], clonePositions[i][2]);
         group.add(clone);
     }
 
     return group;
 };
+
 function updateClonesPositions() {
     var clonePositions = makeClonePositionsList();
-    for (i = 0; i<26; i++) {
-        group.children[i+1].position.set(clonePositions[i][0],clonePositions[i][1],clonePositions[i][2]);
+    for (i = 0; i < 26; i++) {
+        group.children[i + 1].position.set(clonePositions[i][0], clonePositions[i][1], clonePositions[i][2]);
     }
 };
+
 function makeClonePositionsList() {
     return [
-        [2*spaceBoundaryX, 0, 0],
-        [-2*spaceBoundaryX, 0, 0],
-        [0, 2*spaceBoundaryY, 0],
-        [0, -2*spaceBoundaryY, 0],
-        [0, 0, 2*spaceBoundaryZ],
-        [0, 0, -2*spaceBoundaryZ],
-        [2*spaceBoundaryX, 0, 2*spaceBoundaryZ],
-        [-2*spaceBoundaryX, 0, 2*spaceBoundaryZ],
-        [2*spaceBoundaryX, 0, -2*spaceBoundaryZ],
-        [-2*spaceBoundaryX, 0, -2*spaceBoundaryZ],
-        [0, 2*spaceBoundaryY, 2*spaceBoundaryZ],
-        [0, -2*spaceBoundaryY, 2*spaceBoundaryZ],
-        [0, 2*spaceBoundaryY, -2*spaceBoundaryZ],
-        [0, -2*spaceBoundaryY, -2*spaceBoundaryZ],
-        [2*spaceBoundaryX, 2*spaceBoundaryY, 0],
-        [-2*spaceBoundaryX, 2*spaceBoundaryY, 0],
-        [2*spaceBoundaryX, -2*spaceBoundaryY, 0],
-        [-2*spaceBoundaryX, -2*spaceBoundaryY, 0],
-        [2*spaceBoundaryX, 2*spaceBoundaryY, 2*spaceBoundaryZ],
-        [-2*spaceBoundaryX, 2*spaceBoundaryY, 2*spaceBoundaryZ],
-        [2*spaceBoundaryX, -2*spaceBoundaryY, 2*spaceBoundaryZ],
-        [-2*spaceBoundaryX, -2*spaceBoundaryY, 2*spaceBoundaryZ],
-        [2*spaceBoundaryX, 2*spaceBoundaryY, -2*spaceBoundaryZ],
-        [-2*spaceBoundaryX, 2*spaceBoundaryY, -2*spaceBoundaryZ],
-        [2*spaceBoundaryX, -2*spaceBoundaryY, -2*spaceBoundaryZ],
-        [-2*spaceBoundaryX, -2*spaceBoundaryY, -2*spaceBoundaryZ]
+        [2 * spaceBoundaryX, 0, 0],
+        [-2 * spaceBoundaryX, 0, 0],
+        [0, 2 * spaceBoundaryY, 0],
+        [0, -2 * spaceBoundaryY, 0],
+        [0, 0, 2 * spaceBoundaryZ],
+        [0, 0, -2 * spaceBoundaryZ],
+        [2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
+        [-2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
+        [2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
+        [-2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
+        [0, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+        [0, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+        [0, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+        [0, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+        [2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
+        [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
+        [2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
+        [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
+        [2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+        [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+        [2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+        [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+        [2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+        [-2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+        [2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+        [-2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ]
     ];
 };
 
@@ -339,7 +343,7 @@ function init() {
     window.addEventListener('deviceorientation', setOrientationControls, true);
     //add stat
     stats = new Stats();
-    temperaturePanel = stats.addPanel( new Stats.Panel( 'Temp.', '#ff8', '#221' ) );
+    temperaturePanel = stats.addPanel(new Stats.Panel('Temp.', '#ff8', '#221'));
     stats.showPanel(2);
     container.append(stats.domElement);
     //add event listeners
@@ -356,9 +360,11 @@ function applyForce(i, j, func) {
     //====== populate the array "particleJClones" ======
     if (if_use_periodic_boundary_condition) {
         var clonePositions = makeClonePositionsList();
-        clonePositions.push([0,0,0]);
+        clonePositions.push([0, 0, 0]);
     } else {
-        var clonePositions = [[0,0,0]];
+        var clonePositions = [
+            [0, 0, 0]
+        ];
     };
     //==================================================
     //force due to j in this cell:
@@ -369,8 +375,8 @@ function applyForce(i, j, func) {
         r.y -= thatPositionDisplacement[1];
         r.z -= thatPositionDisplacement[2];
         var d = r.length(); //calculate distance between particles i and j (with j may being a clone)
-        if (d<cutoffDistance) {
-            r.setLength(func(i,j,d)); //use calculated "force strength" as vector length
+        if (d < cutoffDistance) {
+            r.setLength(func(i, j, d)); //use calculated "force strength" as vector length
             particleForces[i].sub(r);
             particleForces[j].add(r);
         };
@@ -388,7 +394,7 @@ function animate() {
                 // Use Lennard-Jones potential
                 // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
                 // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
-                applyForce(i, j, function(i,j,d){
+                applyForce(i, j, function(i, j, d) {
                     var d6 = (DELTA / d);
                     if (d6 < 0.5) d6 = 0.5; //what kind of socery is this??
                     d6 = d6 * d6 * d6;
@@ -399,7 +405,7 @@ function animate() {
             if (if_apply_gravitation) {
                 //Use gravitational potential
                 //-> F = GMm/(d*d) r/|r|
-                applyForce(i, j, function(i,j,d){
+                applyForce(i, j, function(i, j, d) {
                     // Use d_min to prevent high potential when particles are close
                     // to avoid super high accelerations in poor time resolution
                     if (d < d_min) {
@@ -412,7 +418,7 @@ function animate() {
             if (if_apply_coulombForce) {
                 //Use gravitational potential
                 //-> F = GMm/(d*d) r/|r|
-                applyForce(i, j, function(i,j,d){
+                applyForce(i, j, function(i, j, d) {
                     // Use d_min to prevent high potential when particles are close
                     // to avoid super high accelerations in poor time resolution
                     if (d < d_min) {
@@ -424,12 +430,14 @@ function animate() {
             };
         };
     //statistics:
-    highestForcePresent = _.max(_.map(particleForces, function(vector){return vector.length();}));
-    arrowScaleForForces = unitArrowLength/highestForcePresent;
-    $(".mapscale#force").width(arrowScaleForForces*1000000);
-    highestVelocityPresent = _.max(_.map(particleVelocities, function(vector){return vector.length();}));
-    arrowScaleForVelocities = unitArrowLength/highestVelocityPresent;
-    $(".mapscale#velocity").width(arrowScaleForVelocities*10000);
+    highestForcePresent = _.max(_.map(particleForces, function(vector) {
+        return vector.length(); }));
+    arrowScaleForForces = unitArrowLength / highestForcePresent;
+    $(".mapscale#force").width(arrowScaleForForces * 1000000);
+    highestVelocityPresent = _.max(_.map(particleVelocities, function(vector) {
+        return vector.length(); }));
+    arrowScaleForVelocities = unitArrowLength / highestVelocityPresent;
+    $(".mapscale#velocity").width(arrowScaleForVelocities * 10000);
     for (var i = 0; i < particleCount; i++) {
         //shorthands
         thisPosition = particlePositions[i];
@@ -438,13 +446,13 @@ function animate() {
         //update velocities according to force:
         thisVelocity.addScaledVector(particleForces[i], dt / particleMasses[i]); //v = v + f/m·dt
         thisSpeed = thisVelocity.length(); //vector -> scalar
-        if (if_use_periodic_boundary_condition && thisSpeed > escapeSpeed && (Math.abs(thisPosition.x)>=0.9*spaceBoundaryX || Math.abs(thisPosition.y)>=0.9*spaceBoundaryY || Math.abs(thisPosition.z)>=0.9*spaceBoundaryZ)) {
-            console.log('Particle ',i,' escaped with speed',thisSpeed,'.');
+        if (if_use_periodic_boundary_condition && thisSpeed > escapeSpeed && (Math.abs(thisPosition.x) >= 0.9 * spaceBoundaryX || Math.abs(thisPosition.y) >= 0.9 * spaceBoundaryY || Math.abs(thisPosition.z) >= 0.9 * spaceBoundaryZ)) {
+            console.log('Particle ', i, ' escaped with speed', thisSpeed, '.');
             //remove this particle from all lists:
             particleCount -= 1;
-            particles.colors[i].offsetHSL(0,-.1,.1);
+            particles.colors[i].offsetHSL(0, -.1, .1);
             particles.colorsNeedUpdate = true;
-            _.forEach(particleProperties,function(array){_.pullAt(array,i)});
+            _.forEach(particleProperties, function(array) { _.pullAt(array, i) });
             ifThisParticleEscaped = true;
         } else {
             ifThisParticleEscaped = false;
@@ -453,61 +461,61 @@ function animate() {
             //Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
             if (if_use_periodic_boundary_condition) {
                 while (thisPosition.x < -spaceBoundaryX) {
-                    thisPosition.x += 2*spaceBoundaryX;
+                    thisPosition.x += 2 * spaceBoundaryX;
                     if (if_showTrajectory) {
                         var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
                         for (var j = 0; j < maxTrajectoryLength; j++) {
-                            lineNodePositions.setX(j, lineNodePositions.getX(j) + 2*spaceBoundaryX);
+                            lineNodePositions.setX(j, lineNodePositions.getX(j) + 2 * spaceBoundaryX);
                         };
                         lineNodePositions.needsUpdate = true;
                     };
                 };
                 while (thisPosition.x > spaceBoundaryX) {
-                    thisPosition.x -= 2*spaceBoundaryX;
+                    thisPosition.x -= 2 * spaceBoundaryX;
                     if (if_showTrajectory) {
                         var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
                         for (var j = 0; j < maxTrajectoryLength; j++) {
-                            lineNodePositions.setX(j, lineNodePositions.getX(j) - 2*spaceBoundaryX);
+                            lineNodePositions.setX(j, lineNodePositions.getX(j) - 2 * spaceBoundaryX);
                         };
                         lineNodePositions.needsUpdate = true;
                     };
                 };
                 while (thisPosition.y < -spaceBoundaryY) {
-                    thisPosition.y += 2*spaceBoundaryY;
+                    thisPosition.y += 2 * spaceBoundaryY;
                     if (if_showTrajectory) {
                         var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
                         for (var j = 0; j < maxTrajectoryLength; j++) {
-                            lineNodePositions.setY(j, lineNodePositions.getY(j) + 2*spaceBoundaryY);
+                            lineNodePositions.setY(j, lineNodePositions.getY(j) + 2 * spaceBoundaryY);
                         };
                         lineNodePositions.needsUpdate = true;
                     };
                 };
                 while (thisPosition.y > spaceBoundaryY) {
-                    thisPosition.y -= 2*spaceBoundaryY;
+                    thisPosition.y -= 2 * spaceBoundaryY;
                     if (if_showTrajectory) {
                         var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
                         for (var j = 0; j < maxTrajectoryLength; j++) {
-                            lineNodePositions.setY(j, lineNodePositions.getY(j) - 2*spaceBoundaryY);
+                            lineNodePositions.setY(j, lineNodePositions.getY(j) - 2 * spaceBoundaryY);
                         };
                         lineNodePositions.needsUpdate = true;
                     };
                 };
                 while (thisPosition.z < -spaceBoundaryZ) {
-                    thisPosition.z += 2*spaceBoundaryZ;
+                    thisPosition.z += 2 * spaceBoundaryZ;
                     if (if_showTrajectory) {
                         var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
                         for (var j = 0; j < maxTrajectoryLength; j++) {
-                            lineNodePositions.setZ(j, lineNodePositions.getZ(j) + 2*spaceBoundaryZ);
+                            lineNodePositions.setZ(j, lineNodePositions.getZ(j) + 2 * spaceBoundaryZ);
                         };
                         lineNodePositions.needsUpdate = true;
                     };
                 };
                 while (thisPosition.z > spaceBoundaryZ) {
-                    thisPosition.z -= 2*spaceBoundaryZ;
+                    thisPosition.z -= 2 * spaceBoundaryZ;
                     if (if_showTrajectory) {
                         var lineNodePositions = trajectoryLines[i].geometry.attributes.position; //fisrt, make a short-hand
                         for (var j = 0; j < maxTrajectoryLength; j++) {
-                            lineNodePositions.setZ(j, lineNodePositions.getZ(j) - 2*spaceBoundaryZ);
+                            lineNodePositions.setZ(j, lineNodePositions.getZ(j) - 2 * spaceBoundaryZ);
                         };
                         lineNodePositions.needsUpdate = true;
                     };
@@ -517,19 +525,19 @@ function animate() {
             //update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
             function updateArrow(arrow, from, vector, scale) {
                 var lengthToScale = if_proportionate_arrows_with_vectors ? vector.length() * scale : unitArrowLength;
-                arrow.setLength(if_limitArrowsMaxLength && lengthToScale>maxArrowLength ? maxArrowLength : lengthToScale);
+                arrow.setLength(if_limitArrowsMaxLength && lengthToScale > maxArrowLength ? maxArrowLength : lengthToScale);
                 arrow.position.copy(from);
                 arrow.setDirection(new THREE.Vector3().copy(vector).normalize());
             }
             if (if_showArrows) {
-                updateArrow(  arrow = arrowVelocities[i],
-                            from = particlePositions[i],
-                            vector = particleVelocities[i], 
-                            scale = arrowScaleForForces   );
-                updateArrow(  arrow = arrowForces[i],
-                            from = particlePositions[i],
-                            vector = particleForces[i], 
-                            scale = arrowScaleForVelocities   );
+                updateArrow(arrow = arrowVelocities[i],
+                    from = particlePositions[i],
+                    vector = particleVelocities[i],
+                    scale = arrowScaleForForces);
+                updateArrow(arrow = arrowForces[i],
+                    from = particlePositions[i],
+                    vector = particleForces[i],
+                    scale = arrowScaleForVelocities);
             };
             //update trajectories:
             if (if_showTrajectory) {
@@ -575,20 +583,22 @@ function resize() {
     if (if_mobileDevice) effect.setSize(width, height);
 }
 var maxTemperature = 0;
+
 function calculateTemperature() {
     var temperature = 0;
     for (var i = 0; i < particleCount; i++) {
-        temperature += particleMasses[i]*particleVelocities[i].length()*particleVelocities[i].length();
+        temperature += particleMasses[i] * particleVelocities[i].length() * particleVelocities[i].length();
     };
-    temperature *= 1/kB/(3*particleCount-3);
-    if (temperature>maxTemperature) {
+    temperature *= 1 / kB / (3 * particleCount - 3);
+    if (temperature > maxTemperature) {
         maxTemperature = temperature;
     };
     return temperature;
 }
+
 function statistics() {
     var temperature = calculateTemperature();
-    temperaturePanel.update( temperature, maxTemperature );
+    temperaturePanel.update(temperature, maxTemperature);
 }
 
 function update() {
@@ -622,7 +632,7 @@ function stop() {
 };
 
 //now execute this script:
-$().ready(function(){
+$().ready(function() {
     init();
     animate();
 });
