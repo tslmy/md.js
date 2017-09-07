@@ -1,3 +1,41 @@
+// Load packages
+fallback.load({
+    jQuery: ['//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js',
+             'node_modules/jquery/dist/jquery.min.js'],
+
+    THREE: ['//cdn.rawgit.com/mrdoob/three.js/master/build/three.min.js',
+            'node_modules/three/build/three.min.js'],
+
+    OrbitControls: ['//cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js',
+                    'node_modules/three/examples/js/controls/OrbitControls.js'],
+
+    lodash: ['//cdn.jsdelivr.net/lodash/4.13.1/lodash.min.js',
+             'node_modules/lodash/lodash.min.js'],
+
+    stats: ['//cdn.rawgit.com/mrdoob/three.js/master/examples/js/libs/stats.min.js', 
+            'node_modules/stats.js/build/stats.min.js'], 
+
+    StereoEffect: ['//cdn.rawgit.com/mrdoob/three.js/master/examples/js/effects/StereoEffect.js', 
+                   'node_modules/three/examples/js/effects/StereoEffect.js'], 
+
+    DeviceOrientationControls: ['//cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/DeviceOrientationControls.js', 
+                                'node_modules/three/examples/js/controls/DeviceOrientationControls.js'], 
+
+    'dat.gui': ['//cdn.rawgit.com/dataarts/dat.gui/master/build/dat.gui.min.js', 
+                'modules/dat.gui.min.js'], 
+
+    strftime: ['//cdn.rawgit.com/samsonjs/strftime/8a06a301/strftime-min.js', 
+               'node_modules/strftime/strftime-min.js']
+}, {
+    shim: {
+            'OrbitControls': ['THREE'],
+            'stats': ['THREE'],
+            'StereoEffect': ['THREE'],
+            'DeviceOrientationControls': ['THREE']
+        },
+});
+
+
 //global variables
 var camera, scene, renderer;
 var effect, controls;
@@ -633,7 +671,12 @@ function stop() {
 };
 
 //now execute this script:
-$().ready(function() {
-    init();
-    animate();
+fallback.ready(function() { //when packages are fully loaded:
+    console.log("Packages loaded.");
+    $().ready(function() {  //when document is ready:
+        console.log("Ready.");
+        init();
+        animate();
+    });
 });
+

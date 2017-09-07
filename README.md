@@ -8,6 +8,10 @@ Now in 3D.
 
 Run `index.html`, or simply visit <https://tslmy.github.io/md.js>. Best viewed on a smartphone with a Google Cardboard.
 
+##Development
+
+Please remember to `yarn` this project.
+
 ## Plan
 
 - [ ] Start with a Three.js-based molecule viewer.
@@ -26,3 +30,6 @@ Run `index.html`, or simply visit <https://tslmy.github.io/md.js>. Best viewed o
 - [ ] Migrate code for VR support.
 
 - [ ] Migrate code for molecular dynamics.
+
+- [x] Use a Javascript Package Manager, such as [yarn](https://yarnpkg.com/zh-Hans/docs/install).
+

@@ -82,7 +82,7 @@ function initializeGuiControls() {
 
             var guiFolderTrajectories = guiFolderPlotting.addFolder("Particle trajectories");
             	guiFolderTrajectories.add(this, "if_showTrajectory").name("Trace");
-	        	guiFolderTrajectories.add(this, "maxTrajectoryLength").name("Steps to remember").onChange(function(value) {}); //TODO
+	        	guiFolderTrajectories.add(this, "maxTrajectoryLength").name("Length").onChange(function(value) {}); //TODO
 
             var guiFolderArrows = guiFolderPlotting.addFolder("Arrows for forces and velocities");
                 guiFolderArrows.add(this, "if_showArrows").name("Show arrows").onChange(function (value) {
@@ -99,6 +99,7 @@ function initializeGuiControls() {
 
         var guiFolderCommands = gui.addFolder("Commands");//controls, buttons
             guiFolderCommands.add(this, "clearState").name("New world");
+            guiFolderCommands.add(this, "dump").name("Dump");
             guiFolderCommands.add(this, "stop").name("Halt");
             guiFolderCommands.open();
     gui.remember(this);
