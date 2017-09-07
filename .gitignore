@@ -1,3 +1,10 @@
-
-min/
-node_modules/
+min/*
+node_modules/*
+!node_modules/jquery/dist/jquery.min.js
+!node_modules/three/build/three.min.js
+!node_modules/three/examples/js/controls/OrbitControls.js
+!node_modules/lodash/lodash.min.js
+!node_modules/stats.js/build/stats.min.js
+!node_modules/strftime/strftime-min.js
+!node_modules/three/examples/js/effects/StereoEffect.js
+!node_modules/three/examples/js/controls/DeviceOrientationControls.js
