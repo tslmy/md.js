@@ -4,7 +4,7 @@ node_modules/*
 # Now Whitelist:
 
 node_modules/jquery/dist/*
-!node_modules/jquery/dist/jquery.min.j
+!node_modules/jquery/dist/jquery.min.js
 
 node_modules/three/build/*
 !node_modules/three/build/three.min.js
