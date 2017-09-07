@@ -1,3 +1,20 @@
+function dump(name, obj) {
+    var textToSave = JSON.stringify({'particleCount': particleCount,
+                                    'particleColors': particleColors,
+                                    'particlePositions': particlePositions,
+                                    'particleForces': particleForces,
+                                    'particleVelocities': particleVelocities,
+                                    'particleMasses': particleMasses,
+                                    'particleCharges': particleCharges,
+                                    'time': time,
+                                    'lastSnapshotTime': lastSnapshotTime}, null, '\t');
+    var hiddenElement = document.createElement('a');
+    hiddenElement.href = 'data:attachment/text,' + encodeURI(textToSave);
+    hiddenElement.target = '_blank';
+    hiddenElement.download = strftime('%A %l:%M%P %e %b %Y')+'.json';
+    hiddenElement.click();
+};
+
 //local storage functions:
 function save(name, obj) {
     localStorage.setItem(name, JSON.stringify(obj));

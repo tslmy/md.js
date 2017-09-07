@@ -99,6 +99,7 @@ function initializeGuiControls() {
 
         var guiFolderCommands = gui.addFolder("Commands");//controls, buttons
             guiFolderCommands.add(this, "clearState").name("New world");
+            guiFolderCommands.add(this, "dump").name("Dump");
             guiFolderCommands.add(this, "stop").name("Halt");
             guiFolderCommands.open();
     gui.remember(this);

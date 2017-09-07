@@ -11,12 +11,12 @@
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 0
 		},
-	"\/min\/script-min.js": {
+	"\/library.js": {
 		"fileType": 64,
-		"ignore": 1,
+		"ignore": 0,
 		"ignoreWasSetByUser": 0,
-		"inputAbbreviatedPath": "\/min\/script-min.js",
-		"outputAbbreviatedPath": "\/min\/min\/script-min-min.js",
+		"inputAbbreviatedPath": "\/library.js",
+		"outputAbbreviatedPath": "\/min\/library-min.js",
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 0,
 		"outputStyle": 1,
