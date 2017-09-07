@@ -30,7 +30,8 @@ fallback.load({
     shim: {
             'OrbitControls': ['THREE'],
             'stats': ['THREE'],
-            'StereoEffect': ['THREE']
+            'StereoEffect': ['THREE'],
+            'DeviceOrientationControls': ['THREE']
         },
 });
 
