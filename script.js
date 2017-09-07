@@ -35,7 +35,6 @@ fallback.load({
         },
 });
 
-
 //global variables
 var camera, scene, renderer;
 var effect, controls;
@@ -71,7 +70,11 @@ var lastSnapshotTime = 0;
 var snapshotDuration = dt;
 var strongestForcePresent = 1;
 var fastestVelocityPresent = 1;
-//js fixes and helper functions:
+// ============= js fixes and helper functions =============
+//Where el is the DOM element you'd like to test for visibility
+function isVisible(el) {
+    return (el.offsetParent !== null)
+}
 function generateTexture() {
     //credit: http://jsfiddle.net/7yDGy/1/
     // draw a circle in the center of the canvas
@@ -165,6 +168,18 @@ function addParticle(colorH, colorS, colorL, positionX, positionY, positionZ,
         trajectoryLines.push(thisTrajectory);
         scene.add(thisTrajectory);
     }
+    $('#tabularInfo > tbody').append('<tr>\
+        <td class="particle" style="\
+            color: hsl('+(colorH*360)+','+(colorS*100)+'%,'+(colorL*100)+'%)">&#x2B24;</td>\
+        <td class="mass">'+ Math.round(thisMass * 10) / 10 +'</td>\
+        <td class="charge">'+ Math.round(thisCharge * 10) / 10 +'</td>\
+        <td class="speed"></td>\
+        <td class="kineticEnergy"></td>\
+        <td class="LJForceStrength"></td>\
+        <td class="GravitationForceStrength"></td>\
+        <td class="CoulombForceStrength"></td>\
+        <td class="TotalForceStrength"></td>\
+    </tr>');
 }
 
 function createParticleSystem() {
@@ -415,31 +430,38 @@ function applyForce(i, j, func) {
             particleForces[j].add(r);
         };
     };
+    return r; //return the calculated force for further investigation.
 };
 
 function animate() {
     time += dt;
     //for (var i in arrows) {scene.remove(arrows[i])}; //remove all existing arrows
     for (i of particleForces) i.set(0, 0, 0); //remove all forces first
-    for (var i = 0; i < particleCount; i++)
+    for (var i = 0; i < particleCount; i++) {
+        //initialize total force counters:
+        thisLJForceStrength = 0;
+        thisGravitationForceStrength = 0;
+        thisCoulombForceStrength = 0;
+        //process interactions:
         for (var j = i + 1; j < particleCount; j++) {
             //generate all forces:
             if (if_apply_LJpotential) {
                 // Use Lennard-Jones potential
                 // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
                 // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
-                applyForce(i, j, function(i, j, d) {
+                thisLJForce = applyForce(i, j, function(i, j, d) {
                     var d6 = (DELTA / d);
                     if (d6 < 0.5) d6 = 0.5; //what kind of socery is this??
                     d6 = d6 * d6 * d6;
                     d6 = d6 * d6;
                     return 4 * EPSILON * (6 / d) * (-2 * d6 * d6 + d6);
                 });
+                thisLJForceStrength += thisLJForce.length();
             };
             if (if_apply_gravitation) {
                 //Use gravitational potential
                 //-> F = GMm/(d*d) r/|r|
-                applyForce(i, j, function(i, j, d) {
+                thisGravitationForce = applyForce(i, j, function(i, j, d) {
                     // Use d_min to prevent high potential when particles are close
                     // to avoid super high accelerations in poor time resolution
                     if (d < d_min) {
@@ -448,11 +470,12 @@ function animate() {
                     };
                     return (G * particleMasses[i] * particleMasses[j] / (d * d));
                 });
+                thisGravitationForceStrength += thisGravitationForce.length();
             };
             if (if_apply_coulombForce) {
                 //Use gravitational potential
                 //-> F = GMm/(d*d) r/|r|
-                applyForce(i, j, function(i, j, d) {
+                thisCoulombForce = applyForce(i, j, function(i, j, d) {
                     // Use d_min to prevent high potential when particles are close
                     // to avoid super high accelerations in poor time resolution
                     if (d < d_min) {
@@ -461,8 +484,16 @@ function animate() {
                     };
                     return -K * particleCharges[i] * particleCharges[j] / (d * d);
                 });
+                thisCoulombForceStrength += thisCoulombForce.length();
             };
         };
+        if (isVisible($("#hud"))) {
+            $thisRow = $('#tabularInfo > tbody > tr:nth-child('+(i+1)+')');
+            $('.LJForceStrength', $thisRow).text((Math.round(thisLJForceStrength * 100) / 100));
+            $('.GravitationForceStrength', $thisRow).text((Math.round(thisGravitationForceStrength * 100) / 100));
+            $('.CoulombForceStrength', $thisRow).text((Math.round(thisCoulombForceStrength * 100) / 100));
+        }
+    };
     //statistics:
     highestForcePresent = _.max(_.map(particleForces, function(vector) {
         return vector.length(); }));
@@ -587,6 +618,13 @@ function animate() {
                 };
             };
         };
+        //update HUD, if visible:
+        if (isVisible($("#hud"))) {
+            $thisRow = $('#tabularInfo > tbody > tr:nth-child('+(i+1)+')');
+            $('.speed', $thisRow).text((Math.round(thisSpeed * 100) / 100));
+            $('.kineticEnergy', $thisRow).text((Math.round(thisSpeed*thisSpeed*thisMass * 50) / 100));
+            $('.TotalForceStrength', $thisRow).text(particleForces[i]? (Math.round(particleForces[i].length() * 100) / 100): "0");
+        }
         if (if_constant_temperature) {
             var currentTemperature = calculateTemperature();
             scaleFactor = Math.sqrt(targetTemperature/currentTemperature);
@@ -670,6 +708,9 @@ function stop() {
     ifRun = false;
 };
 
+function toggleHUD() {
+    $("#hud").toggle();
+}
 //now execute this script:
 fallback.ready(function() { //when packages are fully loaded:
     console.log("Packages loaded.");
@@ -677,6 +718,14 @@ fallback.ready(function() { //when packages are fully loaded:
         console.log("Ready.");
         init();
         animate();
+        //bind keyboard event:
+        document.onkeydown = function(e) {
+            switch (e.keyCode) {
+                case 9:
+                    toggleHUD();
+                    break;
+            }
+        };
     });
 });
 

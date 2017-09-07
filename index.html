@@ -5,6 +5,7 @@
     <title>Molecular Dynamics</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
     <meta content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" name="viewport">
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
     <style>
     html,
     body {
@@ -30,12 +31,45 @@
     .mapscale#velocity {
         bottom: 80px;
     }
+    #hud {
+        width: 90%;
+        height: 90%;
+        position: fixed;
+        background: rgba(0,0,0,.2);
+        top: 5%;
+        left: 5%;
+        display: none;
+        pointer-events: none;
+    }
+    .particle {
+
+    }
     </style>
 </head>
 
 <body>
     <div class="mapscale" id="velocity">Speed</div>
     <div class="mapscale" id="force">Force</div>
+
+    <div id="hud">
+        <table id="tabularInfo" class="pure-table">
+            <thead>
+                <tr>
+                    <th>Particle</th>
+                    <th>Mass</th>
+                    <th>Charge</th>
+                    <th>Speed</th>
+                    <th>Kinetic Energy</th>
+                    <th>LJ Force</th>
+                    <th>Gravitation Force</th>
+                    <th>Coulomb Force</th>
+                    <th>Total Force</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
 
     <script src="modules/fallback.min.js"></script>
 

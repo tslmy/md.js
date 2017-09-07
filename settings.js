@@ -102,6 +102,8 @@ function initializeGuiControls() {
             guiFolderCommands.add(this, "dump").name("Dump");
             guiFolderCommands.add(this, "stop").name("Halt");
             guiFolderCommands.open();
+        gui.add(this, "toggleHUD").name("Show Detail HUD");
+
     gui.remember(this);
     gui.close();
 }
