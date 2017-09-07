@@ -24,7 +24,7 @@ fallback.load({
     'dat.gui': ['//cdn.rawgit.com/dataarts/dat.gui/master/build/dat.gui.min.js', 
                 'modules/dat.gui.min.js'], 
 
-    strftime: ['//cdn.rawgit.com/samsonjs/strftime/strftime-min.js', 
+    strftime: ['//cdn.rawgit.com/samsonjs/strftime/8a06a301/strftime-min.js', 
                'node_modules/strftime/strftime-min.js']
 }, {
     shim: {
