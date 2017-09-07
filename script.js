@@ -634,6 +634,7 @@ function stop() {
 
 //now execute this script:
 $().ready(function() {
+    console.log("Ready.");
     init();
     animate();
 });
