@@ -1,18 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <title>Molecular Dynamics</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-    <meta content=
-    "width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
-    name="viewport">
+    <meta content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" name="viewport">
     <style>
-        html,body {
-            padding:0;margin:0;
-        }
-        #stats { position: absolute; top:0; left: 0 }  
+    html,
+    body {
+        padding: 0;
+        margin: 0;
+    }
+    .mapscale {
+        position: fixed;
+        left: 30px;
+        height: 5px;
+        width: 0px;
+        border-top:0px solid #000000;
+        border-right:1px solid #000000;
+        border-bottom:1px solid #000000;
+        border-left:1px solid #000000;
+        opacity: .5;
+        font:11px "Lucida Grande",sans-serif;
+        line-height:30px;
+    }
+    .mapscale#force {
+        bottom: 50px;
+    }
+    .mapscale#velocity {
+        bottom: 80px;
+    }
     </style>
 </head>
+<<<<<<< HEAD
 <body>
     <script src="//fast.eager.io/YEbsDk5Uy-.js"></script><!--for loading indicator-->
     <script src=
@@ -418,141 +438,27 @@
             // Use Lennard-Jones potential
             // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
             // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
+=======
+>>>>>>> gh-pages
 
-            var r = new THREE.Vector3().subVectors(particlePositions[i], particlePositions[j]); //relative displacement
-            var d = r.length(); //length
-
-            var d6 = (DELTA / d);
-            if (d6 < 0.5) d6 = 0.5; //what kind of socery is this??
-            d6 = d6 * d6 * d6;
-            d6 = d6 * d6;
-
-            r.setLength(4 * EPSILON * (6 / d) * (-2 * d6 * d6 + d6));
-
-            particleForces[i].sub(r);
-            particleForces[j].add(r);
-          };
-          if (if_apply_gravitation) {
-            //Use gravitational potential
-            //-> F = GMm/(d*d) r/|r|
-            var r = new THREE.Vector3().subVectors(particlePositions[i], particlePositions[j]); //relative displacement
-
-            var d = r.length(); //length
-
-            // Use d_min to prevent high potential when particles are close
-            // to avoid super high accelerations in poor time resolution
-            if (d < d_min) {
-              console.log('particle', i, ',', j, 'too near.');
-              d = d_min;
-            };
-
-            r.setLength(G * particleMasses[i] * particleMasses[j] / (d * d));
-            particleForces[i].sub(r);
-            particleForces[j].add(r);
-          };
-          if (if_apply_coulombForce) {
-            //Use gravitational potential
-            //-> F = GMm/(d*d) r/|r|
-            var r = new THREE.Vector3().subVectors(particlePositions[i], particlePositions[j]); //relative displacement
-            var d = r.length(); //length
-
-            // Use d_min to prevent high potential when particles are close
-            // to avoid super high accelerations in poor time resolution
-            if (d < d_min) {
-              console.log('particle', i, ',', j, 'too near.');
-              d = d_min;
-            };
-
-            r.setLength(-K * particleCharges[i] * particleCharges[j] / (d * d));
-
-            particleForces[i].sub(r);
-            particleForces[j].add(r);
-          };
-
-        };
-      for (var i = 0; i < particleCount; i++) {
-        //======================== now update eveything user could see ========================
-        //update velocities according to force:
-        particleVelocities[i].addScaledVector(particleForces[i], dt / particleMasses[i]); //v = v + f/m·dt
-        //update positions according to velocity:
-        particlePositions[i].addScaledVector(particleVelocities[i], dt); //x = x + v·dt
-        // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user 
-
-        //update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-        drawArrow(i, arrowVelocities, particleVelocities);
-        drawArrow(i, arrowForces, particleForces);
-        //update trajectories:
-        if (if_showTrajectory) {
-          if (time - lastSnapshotTime > snapshotDuration) {
-            //fisrt, make a short-hand:
-            var lineNodePositions = trajectoryLines[i].geometry.attributes.position;
-            for (var j = 0; j < maxTrajectoryLength - 1; j++) {
-              lineNodePositions.copyAt(j, lineNodePositions, j + 1);
-            };
-            lineNodePositions.setXYZ(j, particlePositions[i].x,
-              particlePositions[i].y,
-              particlePositions[i].z);
-            lineNodePositions.needsUpdate = true;
-          };
-        };
-      };
-      if (if_showTrajectory && time - lastSnapshotTime > snapshotDuration) lastSnapshotTime = time;
-      if (if_ReferenceFrame_movesWithSun) {
-        for (var i in particlePositions) particlePositions[i].sub(particlePositions[0]);
-      }
-      //=============================== now the rendering ==================================
-      // flag to the particle system that we've changed its vertices.
-      particleSystem.geometry.verticesNeedUpdate = true;
-      //draw this frame
-      update();
-      render();
-      //set up the next call
-      requestAnimationFrame(animate);
-      stats.update();
-    }
+<body>
+    <div class="mapscale" id="velocity">Speed</div>
+    <div class="mapscale" id="force">Force</div>
 
 
-    init();
-    animate();
 
-    function resize() {
-      var width = container.offsetWidth;
-      var height = container.offsetHeight;
+    <script src="modules/jquery.min.js"></script>
+    <script src="modules/three.min.js"></script>
+    <script src="modules/OrbitControls.js"></script>
+    <script src="modules/lodash.min.js"></script>
+    <script src="modules/stats.min.js"></script>
+    <script src="modules/StereoEffect.js"></script>
+    <script src="modules/DeviceOrientationControls.js"></script>
+    <script src="modules/dat.gui.min.js"></script>
 
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-
-      renderer.setSize(width, height);
-      if (if_mobileDevice) effect.setSize(width, height);
-    }
-
-    function update() {
-      //resize();
-
-      camera.updateProjectionMatrix();
-
-      controls.update();
-    }
-
-    function render() {
-      if (if_mobileDevice) {
-        effect.render(scene, camera); 
-      } else {
-        renderer.render(scene, camera);
-      }
-    }
-
-    function fullscreen() {
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else if (container.msRequestFullscreen) {
-        container.msRequestFullscreen();
-      } else if (container.mozRequestFullScreen) {
-        container.mozRequestFullScreen();
-      } else if (container.webkitRequestFullscreen) {
-        container.webkitRequestFullscreen();
-      }
-    }
-    </script>
+    <script src="settings.js"></script>
+    <script src="stateStorage.js"></script>
+    <script src="script.js"></script>
 </body>
+
 </html>
