@@ -26,3 +26,6 @@ Run `index.html`, or simply visit <https://tslmy.github.io/md.js>. Best viewed o
 - [ ] Migrate code for VR support.
 
 - [ ] Migrate code for molecular dynamics.
+
+- [ ] Use a Javascript Package Manager, such as [yarn](https://yarnpkg.com/zh-Hans/docs/install).
+
