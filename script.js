@@ -26,6 +26,12 @@ fallback.load({
 
     strftime: ['//cdn.rawgit.com/samsonjs/strftime/strftime-min.js', 
                'node_modules/strftime/strftime-min.js']
+}, {
+    shim: {
+            'OrbitControls': ['THREE'],
+            'stats': ['THREE'],
+            'StereoEffect': ['THREE']
+        },
 });
 
 
