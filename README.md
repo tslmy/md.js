@@ -1,8 +1,16 @@
 # MD.js
 
-A JavaScript molecular dynamics simulator.
+![](https://ws4.sinaimg.cn/large/006tNbRwly1fw0qpf9s53j31kw0wa7c9.jpg)
+
+A JavaScript [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) simulator.
 
 Now in 3D.
+
+## Screenshots
+
+![](https://ws1.sinaimg.cn/large/006tNbRwly1fw0qn94k74j31kw0wb11d.jpg)
+
+![](https://ws2.sinaimg.cn/large/006tNbRwly1fw0qlxynpdj31kw0wb16e.jpg)
 
 ## Usage
 
