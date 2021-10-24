@@ -3,22 +3,19 @@ fallback.load({
     jQuery: ['//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js',
              'node_modules/jquery/dist/jquery.min.js'],
 
-    THREE: ['//cdn.rawgit.com/mrdoob/three.js/master/build/three.min.js',
-            'node_modules/three/build/three.min.js'],
-
-    OrbitControls: ['//cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js',
+    OrbitControls: ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/controls/OrbitControls.js',
                     'node_modules/three/examples/js/controls/OrbitControls.js'],
 
     lodash: ['//cdn.jsdelivr.net/lodash/4.13.1/lodash.min.js',
              'node_modules/lodash/lodash.min.js'],
 
-    stats: ['//cdn.rawgit.com/mrdoob/three.js/master/examples/js/libs/stats.min.js', 
+    stats: ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/libs/stats.min.js', 
             'node_modules/stats.js/build/stats.min.js'], 
 
-    StereoEffect: ['//cdn.rawgit.com/mrdoob/three.js/master/examples/js/effects/StereoEffect.js', 
+    StereoEffect: ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/effects/StereoEffect.js', 
                    'node_modules/three/examples/js/effects/StereoEffect.js'], 
 
-    DeviceOrientationControls: ['//cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/DeviceOrientationControls.js', 
+    DeviceOrientationControls: ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/controls/DeviceOrientationControls.js', 
                                 'node_modules/three/examples/js/controls/DeviceOrientationControls.js'], 
 
     'dat.gui': ['//cdn.rawgit.com/dataarts/dat.gui/master/build/dat.gui.min.js', 
