@@ -1,28 +1,13 @@
 {
-  "name": "md.js",
-  "version": "0.0.1",
-  "description": "A Molecular Dynamics Simulator with Visual Reality support.",
   "author": "Mingyang Li <tslmy@outlook.com>",
-  "contributors": [
-    {
-      "name": "Mingyang Li",
-      "email": "tslmy@outlook.com"
-    }
-  ],
-  "main": "index.html",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tslmy/md.js"
-  },
   "bugs": {
     "url": "https://github.com/md.js/issues"
   },
-  "keywords": [
-    "Molecular Dynamics",
-    "Simulator",
-    "Javascript",
-    "virtual reality",
-    "Google Cardboard"
+  "contributors": [
+    {
+      "email": "tslmy@outlook.com",
+      "name": "Mingyang Li"
+    }
   ],
   "dependencies": {
     "jquery": "^3.2.1",
@@ -31,6 +16,25 @@
     "strftime": "^0.10.0",
     "three": "^0.87.1"
   },
+  "description": "A Molecular Dynamics Simulator with Visual Reality support.",
+  "devDependencies": {
+    "eslint": "^8.1.0",
+    "eslint-config-google": "^0.14.0"
+  },
+  "keywords": [
+    "Molecular Dynamics",
+    "Simulator",
+    "Javascript",
+    "virtual reality",
+    "Google Cardboard"
+  ],
+  "license": "MIT",
+  "main": "index.html",
+  "name": "md.js",
   "private": true,
-  "license": "MIT"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tslmy/md.js"
+  },
+  "version": "0.0.1"
 }
