@@ -40,4 +40,3 @@ Please remember to `yarn` this project.
 - [ ] Migrate code for molecular dynamics.
 
 - [x] Use a Javascript Package Manager, such as [yarn](https://yarnpkg.com/zh-Hans/docs/install).
-
