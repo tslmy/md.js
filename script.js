@@ -18,6 +18,7 @@ fallback.load({
   'DeviceOrientationControls': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/controls/DeviceOrientationControls.js',
     'node_modules/three/examples/js/controls/DeviceOrientationControls.js'],
 
+  // https://github.com/dataarts/dat.gui
   'dat.gui': ['//cdn.rawgit.com/dataarts/dat.gui/master/build/dat.gui.min.js',
     'modules/dat.gui.min.js'],
 
