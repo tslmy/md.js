@@ -1,29 +1,10 @@
 // Load packages
 fallback.load({
-  'jQuery': ['//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js',
-    'node_modules/jquery/dist/jquery.min.js'],
-
-  'OrbitControls': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/controls/OrbitControls.js',
-    'node_modules/three/examples/js/controls/OrbitControls.js'],
-
-  'lodash': ['//cdn.jsdelivr.net/lodash/4.13.1/lodash.min.js',
-    'node_modules/lodash/lodash.min.js'],
-
-  'stats': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/libs/stats.min.js',
-    'node_modules/stats.js/build/stats.min.js'],
-
-  'StereoEffect': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/effects/StereoEffect.js',
-    'node_modules/three/examples/js/effects/StereoEffect.js'],
-
-  'DeviceOrientationControls': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/controls/DeviceOrientationControls.js',
-    'node_modules/three/examples/js/controls/DeviceOrientationControls.js'],
-
-  // https://github.com/dataarts/dat.gui
-  'dat.gui': ['//cdn.rawgit.com/dataarts/dat.gui/master/build/dat.gui.min.js',
-    'modules/dat.gui.min.js'],
-
-  'strftime': ['//cdn.rawgit.com/samsonjs/strftime/8a06a301/strftime-min.js',
-    'node_modules/strftime/strftime-min.js'],
+  'OrbitControls': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/controls/OrbitControls.js'],
+  'stats': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/libs/stats.min.js'],
+  'StereoEffect': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/effects/StereoEffect.js'],
+  'DeviceOrientationControls': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/controls/DeviceOrientationControls.js'],
+  'strftime': ['//cdn.rawgit.com/samsonjs/strftime/8a06a301/strftime-min.js'],
 }, {
   shim: {
     'OrbitControls': ['THREE'],
