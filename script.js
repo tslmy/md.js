@@ -1,24 +1,8 @@
-// Load packages
-fallback.load({
-  'OrbitControls': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/controls/OrbitControls.js'],
-  'stats': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/libs/stats.min.js'],
-  'StereoEffect': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/effects/StereoEffect.js'],
-  'DeviceOrientationControls': ['https://cdn.jsdelivr.net/gh/mrdoob/three.js@70438028775dd4d539ebdfdaf1aafd6fbcac43c7/examples/js/controls/DeviceOrientationControls.js'],
-  'strftime': ['//cdn.rawgit.com/samsonjs/strftime/8a06a301/strftime-min.js'],
-}, {
-  shim: {
-    'OrbitControls': ['THREE'],
-    'stats': ['THREE'],
-    'StereoEffect': ['THREE'],
-    'DeviceOrientationControls': ['THREE'],
-  },
-});
-
 // global variables
 let camera; let scene; let renderer;
 let effect; let controls;
 let element; let container;
-const if_mobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const ifMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 let ifRun = true;
 let geometry; let material; let particleMaterial; let trajectoryMaterial;
 const particleColors = [];
@@ -49,14 +33,19 @@ let lastSnapshotTime = 0;
 const snapshotDuration = dt;
 const strongestForcePresent = 1;
 const fastestVelocityPresent = 1;
-// ============= js fixes and helper functions =============
-// Where el is the DOM element you'd like to test for visibility
+
+/**
+ * el: the DOM element you'd like to test for visibility.
+ */
 function isVisible(el) {
   return (el.offsetParent !== null);
 }
+
+/**
+ * Draw a circle in the center of the canvas.
+ * Credit: http://jsfiddle.net/7yDGy/1/
+ */
 function generateTexture() {
-  // credit: http://jsfiddle.net/7yDGy/1/
-  // draw a circle in the center of the canvas
   const size = 32;
   // create canvas
   const canvas = document.createElement('canvas');
@@ -86,9 +75,6 @@ function drawBox() {
   // add this object to the scene
   boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
   scene.add(boxMesh);
-  // add a light to the scene
-  /* light = new THREE.AmbientLight( 0x222222 );
-                  scene.add( light );*/
 }
 
 function addParticle(colorH, colorS, colorL, positionX, positionY, positionZ,
@@ -123,30 +109,13 @@ function addParticle(colorH, colorS, colorL, positionX, positionY, positionZ,
       1, 0x555555);
   scene.add(arrow);
   arrowForces.push(arrow);
-  // add trajectories. See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>
+  // add trajectories. 
   if (if_showTrajectory) {
-    const thisGeometry = new THREE.BufferGeometry();
-    const white = new THREE.Color('#FFFFFF');
-    // attributes
-    const points = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
-    const colors = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
-    thisGeometry.addAttribute('position', new THREE.BufferAttribute(points, 3));
-    thisGeometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
-    for (let i = 0; i < maxTrajectoryLength; i++) { // for each vertex of this trajectory:
-      const interpolationFactor = (maxTrajectoryLength - i) / maxTrajectoryLength; // calculate for how many percent should the color of this vertex be diluted/bleached.
-      const thisVertexColor = thisColor.clone().lerp(white, interpolationFactor); // make the bleached color object by cloning the particle's color and then lerping it with the white color.
-      thisGeometry.attributes.color.setXYZ(i, thisVertexColor.r, thisVertexColor.g, thisVertexColor.b); // assign this color to this vertex
-      thisGeometry.attributes.position.setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z); // put this(every) vertex to the same place as the particle started
-    };
-    trajectoryGeometries.push(thisGeometry); // finished preparing the geometry for this trajectory
-    thisTrajectoryMaterial = new THREE.LineBasicMaterial({
-      linewidth: .5,
-      vertexColors: THREE.VertexColors,
-    });
-    const thisTrajectory = new THREE.Line(thisGeometry, thisTrajectoryMaterial); // , THREE.LinePieces);
+    const thisTrajectory = makeTrajectory(thisColor, thisPosition);
     trajectoryLines.push(thisTrajectory);
     scene.add(thisTrajectory);
   }
+  // Make the HUD table.
   $('#tabularInfo > tbody').append('<tr>\
         <td class="particle" style="\
             color: hsl('+(colorH*360)+','+(colorS*100)+'%,'+(colorL*100)+'%)">&#x2B24;</td>\
@@ -159,6 +128,37 @@ function addParticle(colorH, colorS, colorL, positionX, positionY, positionZ,
         <td class="CoulombForceStrength"></td>\
         <td class="TotalForceStrength"></td>\
     </tr>');
+}
+
+/**
+ *  Make objects that will contain the trajectory points.
+ * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
+ */
+function makeTrajectory(thisColor, thisPosition) {
+    const thisGeometry = new THREE.BufferGeometry();
+    const white = new THREE.Color('#FFFFFF');
+    // attributes
+    const points = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
+    const colors = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
+    thisGeometry.addAttribute('position', new THREE.BufferAttribute(points, 3));
+    thisGeometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+    for (let i = 0; i < maxTrajectoryLength; i++) { // for each vertex of this trajectory:
+        // calculate for how many percent should the color of this vertex be diluted/bleached.
+      const interpolationFactor = (maxTrajectoryLength - i) / maxTrajectoryLength;
+      // make the bleached color object by cloning the particle's color and then lerping it with the white color.
+      const thisVertexColor = thisColor.clone().lerp(white, interpolationFactor);
+      // assign this color to this vertex
+      thisGeometry.attributes.color.setXYZ(i, thisVertexColor.r, thisVertexColor.g, thisVertexColor.b);
+      // put this(every) vertex to the same place as the particle started
+      thisGeometry.attributes.position.setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z);
+    };
+    trajectoryGeometries.push(thisGeometry);
+    // finished preparing the geometry for this trajectory
+    thisTrajectoryMaterial = new THREE.LineBasicMaterial({
+      linewidth: .5,
+      vertexColors: THREE.VertexColors,
+    });
+    return new THREE.Line(thisGeometry, thisTrajectoryMaterial);
 }
 
 function createParticleSystem() {
@@ -266,12 +266,11 @@ function createParticleSystem() {
   const clonePositions = makeClonePositionsList();
   const cloneTemplate = particleSystem.clone();
   cloneTemplate.material = particleMaterialForClones;
-  for (i = 0; i < 26; i++) {
-    clone = cloneTemplate.clone();
-    clone.position.set(clonePositions[i][0], clonePositions[i][1], clonePositions[i][2]);
-    group.add(clone);
-  }
-
+  clonePositions.forEach(clonePosition => {
+        clone = cloneTemplate.clone();
+        clone.position.set(clonePosition[0], clonePosition[1], clonePosition[2]);
+        group.add(clone);
+    })
   return group;
 };
 
@@ -313,24 +312,6 @@ function makeClonePositionsList() {
   ];
 };
 
-/* function addParticleOnTheFly() {
-    particleCount += 1;
-    var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
-    var this_y = _.random(-spaceBoundaryY, spaceBoundaryY, true);
-    var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
-    var this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z);
-    var this_vx = 0;
-    var this_vy = 0;
-    var this_vz = 0;
-    addParticle(Math.random(), 1.0, 0.5, this_x, this_y, this_z, this_vx,
-        this_vy, this_vz, 0, 0, 0, _.random(16, 20, true), _.sample(
-            availableCharges));
-}
-function removeParticleOnTheFly() {
-    particleCount -= 1;
-    //TODO
-}*/
-
 function init() {
   initializeGuiControls(); // enable settings
   // initialize the scene
@@ -351,7 +332,7 @@ function init() {
   });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(4); // enhance resolution
-  if (if_mobileDevice) effect = new THREE.StereoEffect(renderer);
+  if (ifMobileDevice) effect = new THREE.StereoEffect(renderer);
   element = renderer.domElement;
   container = document.body;
   container.appendChild(element);
@@ -414,8 +395,8 @@ function applyForce(i, j, func) {
 
 function animate() {
   time += dt;
-  // for (var i in arrows) {scene.remove(arrows[i])}; //remove all existing arrows
-  for (i of particleForces) i.set(0, 0, 0); // remove all forces first
+  // remove all forces first.
+  particleForces.forEach(particleForce => particleForce.set(0, 0, 0));
   for (var i = 0; i < particleCount; i++) {
     // initialize total force counters:
     thisLJForceStrength = 0;
@@ -645,7 +626,7 @@ function resize() {
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
-  if (if_mobileDevice) effect.setSize(width, height);
+  if (ifMobileDevice) effect.setSize(width, height);
 }
 let maxTemperature = 0;
 
@@ -673,7 +654,7 @@ function update() {
 }
 
 function render() {
-  if (if_mobileDevice) {
+  if (ifMobileDevice) {
     effect.render(scene, camera);
   } else {
     renderer.render(scene, camera);
@@ -699,20 +680,18 @@ function stop() {
 function toggleHUD() {
   $('#hud').toggle();
 }
-// now execute this script:
-fallback.ready(function() { // when packages are fully loaded:
-  console.log('Packages loaded.');
-  $().ready(function() { // when document is ready:
-    console.log('Ready.');
-    init();
-    animate();
-    // bind keyboard event:
-    document.onkeydown = function(e) {
-      switch (e.keyCode) {
-        case 9:
-          toggleHUD();
-          break;
-      }
-    };
-  });
+
+// when document is ready:
+$(() => {
+console.log('Ready.');
+init();
+animate();
+// bind keyboard event:
+document.onkeydown = function(e) {
+  switch (e.keyCode) {
+    case 9:
+      toggleHUD();
+      break;
+  }
+};
 });
