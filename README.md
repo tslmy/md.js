@@ -14,10 +14,6 @@ Clone this repo. In a terminal, run `python -m http.server --directory .`. Go to
 
 Run `index.html`. Best viewed on a smartphone with a Google Cardboard.
 
-## Development
-
-Please remember to `yarn` this project.
-
 ## Plan
 
 - [ ] Start with a Three.js-based molecule viewer.
