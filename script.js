@@ -183,7 +183,11 @@ function makeTrajectory(thisColor, thisPosition) {
 }
 
 function updateClonesPositions() {
-  const clonePositions = makeClonePositionsList();
+  const clonePositions = makeClonePositionsList(
+    spaceBoundaryX,
+    spaceBoundaryY,
+    spaceBoundaryZ
+  );
   for (i = 0; i < 26; i++) {
     group.children[i + 1].position.set(
       clonePositions[i][0],
@@ -193,7 +197,11 @@ function updateClonesPositions() {
   }
 }
 
-function makeClonePositionsList() {
+function makeClonePositionsList(
+  spaceBoundaryX,
+  spaceBoundaryY,
+  spaceBoundaryZ
+) {
   return [
     [2 * spaceBoundaryX, 0, 0],
     [-2 * spaceBoundaryX, 0, 0],
@@ -293,7 +301,11 @@ function applyForce(i, j, func) {
   let r;
   // ====== populate the array "particleJClones" ======
   if (if_use_periodic_boundary_condition) {
-    var clonePositions = makeClonePositionsList();
+    var clonePositions = makeClonePositionsList(
+      spaceBoundaryX,
+      spaceBoundaryY,
+      spaceBoundaryZ
+    );
     clonePositions.push([0, 0, 0]);
   } else {
     var clonePositions = [[0, 0, 0]];

@@ -141,7 +141,11 @@ function createParticleSystem(group) {
   group.add(particleSystem);
 
   let clone;
-  const clonePositions = makeClonePositionsList();
+  const clonePositions = makeClonePositionsList(
+    spaceBoundaryX,
+    spaceBoundaryY,
+    spaceBoundaryZ
+  );
   const cloneTemplate = particleSystem.clone();
   cloneTemplate.material = particleMaterialForClones;
   clonePositions.forEach((clonePosition) => {
