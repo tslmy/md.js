@@ -361,48 +361,47 @@ function createParticleSystem(
       ); // always make the sun the first particle, please.
   }
   // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
-  for (var i = particlePositions.length; i < settings.particleCount; i++) {
+  for (let i = particlePositions.length; i < settings.particleCount; i++) {
+    let this_x;
+    let this_y;
+    let this_z;
+    let this_r;
+    let this_vx = 0;
+    let this_vy;
+    let this_vz = 0;
     if (settings.if_makeSun) {
-      var this_x = _.random(
+      this_x = _.random(
         -settings.spaceBoundaryX,
         settings.spaceBoundaryX,
         true
       );
-      var this_y = 0;
-      var this_z = _.random(
+      this_y = 0;
+      this_z = _.random(
         -settings.spaceBoundaryZ,
         settings.spaceBoundaryZ,
         true
       );
-      var this_r = Math.sqrt(
-        this_x * this_x + this_y * this_y + this_z * this_z
-      );
-      var this_vx = 0;
-      var this_vy = Math.sqrt((settings.G * particleMasses[0]) / this_r);
-      var this_vz = 0;
+      this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z);
+      this_vy = Math.sqrt((settings.G * particleMasses[0]) / this_r);
       if (i % 2 == 0) this_vy *= -1;
     } else {
-      var this_x = _.random(
+      this_x = _.random(
         -settings.spaceBoundaryX,
         settings.spaceBoundaryX,
         true
       );
-      var this_y = _.random(
+      this_y = _.random(
         -settings.spaceBoundaryY,
         settings.spaceBoundaryY,
         true
       );
-      var this_z = _.random(
+      this_z = _.random(
         -settings.spaceBoundaryZ,
         settings.spaceBoundaryZ,
         true
       );
-      var this_r = Math.sqrt(
-        this_x * this_x + this_y * this_y + this_z * this_z
-      );
-      var this_vx = 0;
-      var this_vy = 0;
-      var this_vz = 0;
+      this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z);
+      this_vy = 0;
     }
     addParticle(
       Math.random(),

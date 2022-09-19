@@ -184,16 +184,17 @@ function applyForce(i, j, func) {
   const thatPosition = particlePositions[j];
   const rOriginal = new THREE.Vector3().subVectors(thisPosition, thatPosition); // relative displacement
   let r;
+  let clonePositions;
   // ====== populate the array "particleJClones" ======
   if (settings.if_use_periodic_boundary_condition) {
-    var clonePositions = makeClonePositionsList(
+    clonePositions = makeClonePositionsList(
       settings.spaceBoundaryX,
       settings.spaceBoundaryY,
       settings.spaceBoundaryZ
     );
     clonePositions.push([0, 0, 0]);
   } else {
-    var clonePositions = [[0, 0, 0]];
+    clonePositions = [[0, 0, 0]];
   }
   // ==================================================
   // force due to j in this cell:
