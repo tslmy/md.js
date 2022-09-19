@@ -1,9 +1,6 @@
 env:
   browser: true
   es2021: true
-extends:
-  - google
+  jquery: true
 parserOptions:
-  ecmaVersion: 13
   sourceType: module
-rules: {}
