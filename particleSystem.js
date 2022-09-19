@@ -199,6 +199,7 @@ function makeTrajectory(
   // finished preparing the geometry for this trajectory
   const thisTrajectoryMaterial = new THREE.LineBasicMaterial({
     linewidth: 0.5,
+    vertexColors: true,
   });
   return new THREE.Line(thisGeometry, thisTrajectoryMaterial);
 }
@@ -238,7 +239,7 @@ function createParticleSystem(
     transparent: true,
     // opacity: 0.9,
     size: 0.3,
-    vertexColors: THREE.VertexColors,
+    vertexColors: true,
   });
   const particleMaterialForClones = new THREE.PointsMaterial({
     // http://jsfiddle.net/7yDGy/1/
@@ -248,7 +249,7 @@ function createParticleSystem(
     transparent: true,
     opacity: 0.3,
     size: 0.3,
-    vertexColors: THREE.VertexColors,
+    vertexColors: true,
   });
 
   // Create the vertices and add them to the particles geometry
