@@ -37,3 +37,5 @@ function drawBox(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, scene) {
   const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
   scene.add(boxMesh);
 }
+
+export { generateTexture, drawBox };

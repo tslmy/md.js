@@ -1,5 +1,6 @@
 "use strict";
 
+import { generateTexture } from "./drawing_helpers.js";
 function addParticle(
   colorH,
   colorS,
@@ -26,7 +27,10 @@ function addParticle(
   scene,
   arrowVelocities,
   arrowForces,
-  trajectoryLines
+  if_showTrajectory,
+  trajectoryLines,
+  maxTrajectoryLength,
+  trajectoryGeometries
 ) {
   // make colors (http://jsfiddle.net/J7zp4/200/)
   const thisColor = new THREE.Color();
@@ -67,7 +71,12 @@ function addParticle(
   arrowForces.push(arrow2);
   // add trajectories.
   if (if_showTrajectory) {
-    const thisTrajectory = makeTrajectory(thisColor, thisPosition);
+    const thisTrajectory = makeTrajectory(
+      thisColor,
+      thisPosition,
+      maxTrajectoryLength,
+      trajectoryGeometries
+    );
     trajectoryLines.push(thisTrajectory);
     scene.add(thisTrajectory);
   }
@@ -133,7 +142,71 @@ function makeClonePositionsList(
   ];
 }
 
-function createParticleSystem(group) {
+/**
+ *  Make objects that will contain the trajectory points.
+ * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
+ */
+function makeTrajectory(
+  thisColor,
+  thisPosition,
+  maxTrajectoryLength,
+  trajectoryGeometries
+) {
+  const thisGeometry = new THREE.BufferGeometry();
+  const white = new THREE.Color("#FFFFFF");
+  // attributes
+  const points = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
+  const colors = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
+  thisGeometry.addAttribute("position", new THREE.BufferAttribute(points, 3));
+  thisGeometry.addAttribute("color", new THREE.BufferAttribute(colors, 3));
+  for (let i = 0; i < maxTrajectoryLength; i++) {
+    // for each vertex of this trajectory:
+    // calculate for how many percent should the color of this vertex be diluted/bleached.
+    const interpolationFactor = (maxTrajectoryLength - i) / maxTrajectoryLength;
+    // make the bleached color object by cloning the particle's color and then lerping it with the white color.
+    const thisVertexColor = thisColor.clone().lerp(white, interpolationFactor);
+    // assign this color to this vertex
+    thisGeometry.attributes.color.setXYZ(
+      i,
+      thisVertexColor.r,
+      thisVertexColor.g,
+      thisVertexColor.b
+    );
+    // put this(every) vertex to the same place as the particle started
+    thisGeometry.attributes.position.setXYZ(
+      i,
+      thisPosition.x,
+      thisPosition.y,
+      thisPosition.z
+    );
+  }
+  trajectoryGeometries.push(thisGeometry);
+  // finished preparing the geometry for this trajectory
+  const thisTrajectoryMaterial = new THREE.LineBasicMaterial({
+    linewidth: 0.5,
+    vertexColors: THREE.VertexColors,
+  });
+  return new THREE.Line(thisGeometry, thisTrajectoryMaterial);
+}
+
+function createParticleSystem(
+  group,
+  particleColors,
+  particlePositions,
+  particleVelocities,
+  particleForces,
+  particleMasses,
+  totalMass,
+  particleCharges,
+  scene,
+  arrowVelocities,
+  arrowForces,
+  trajectoryLines,
+  trajectoryGeometries,
+  time,
+  lastSnapshotTime,
+  settings
+) {
   // Particles are just individual vertices in a geometry
   // Create the geometry that will hold all of the vertices
   const particles = new THREE.Geometry();
@@ -166,8 +239,8 @@ function createParticleSystem(group) {
     // Initialize the particleSystem with the info stored from localStorage.
     let particleCountToRead = 0;
     if (
-      previous_particleCount < particleCount ||
-      if_override_particleCount_setting_with_lastState
+      previous_particleCount < settings.particleCount ||
+      settings.if_override_particleCount_setting_with_lastState
     ) {
       particleCountToRead = previous_particleCount;
     } else {
@@ -203,16 +276,19 @@ function createParticleSystem(group) {
         scene,
         arrowVelocities,
         arrowForces,
-        trajectoryLines
+        settings.if_showTrajectory,
+        trajectoryLines,
+        settings.maxTrajectoryLength,
+        trajectoryGeometries
       );
     }
-    let particleCountToAdd = particleCount - previous_particleCount;
+    let particleCountToAdd = settings.particleCount - previous_particleCount;
     if (particleCountToAdd < 0) {
       console.log(
         "Dropping",
         -particleCountToAdd,
         "particles stored, since we only need",
-        particleCount,
+        settings.particleCount,
         "particles this time."
       );
     } else if (particleCountToAdd > 0) {
@@ -228,14 +304,14 @@ function createParticleSystem(group) {
     lastSnapshotTime = previous_lastSnapshotTime;
   } else {
     console.log("Creating new universe.");
-    let particleCountToAdd = particleCount;
+    let particleCountToAdd = settings.particleCount;
     console.log(
       "md.js will be creating all",
-      particleCount,
+      settings.particleCount,
       "particles from scratch."
     );
     // create a sun:
-    if (if_makeSun)
+    if (settings.if_makeSun)
       addParticle(
         0,
         0,
@@ -262,26 +338,49 @@ function createParticleSystem(group) {
         scene,
         arrowVelocities,
         arrowForces,
-        trajectoryLines
+        settings.if_showTrajectory,
+        trajectoryLines,
+        settings.maxTrajectoryLength,
+        trajectoryGeometries
       ); // always make the sun the first particle, please.
   }
   // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
-  for (var i = particlePositions.length; i < particleCount; i++) {
-    if (if_makeSun) {
-      var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
+  for (var i = particlePositions.length; i < settings.particleCount; i++) {
+    if (settings.if_makeSun) {
+      var this_x = _.random(
+        -settings.spaceBoundaryX,
+        settings.spaceBoundaryX,
+        true
+      );
       var this_y = 0;
-      var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
+      var this_z = _.random(
+        -settings.spaceBoundaryZ,
+        settings.spaceBoundaryZ,
+        true
+      );
       var this_r = Math.sqrt(
         this_x * this_x + this_y * this_y + this_z * this_z
       );
       var this_vx = 0;
-      var this_vy = Math.sqrt((G * particleMasses[0]) / this_r);
+      var this_vy = Math.sqrt((settings.G * particleMasses[0]) / this_r);
       var this_vz = 0;
       if (i % 2 == 0) this_vy *= -1;
     } else {
-      var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
-      var this_y = _.random(-spaceBoundaryY, spaceBoundaryY, true);
-      var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
+      var this_x = _.random(
+        -settings.spaceBoundaryX,
+        settings.spaceBoundaryX,
+        true
+      );
+      var this_y = _.random(
+        -settings.spaceBoundaryY,
+        settings.spaceBoundaryY,
+        true
+      );
+      var this_z = _.random(
+        -settings.spaceBoundaryZ,
+        settings.spaceBoundaryZ,
+        true
+      );
       var this_r = Math.sqrt(
         this_x * this_x + this_y * this_y + this_z * this_z
       );
@@ -303,7 +402,7 @@ function createParticleSystem(group) {
       0,
       0,
       _.random(16, 20, true),
-      _.sample(availableCharges),
+      _.sample(settings.availableCharges),
       particles,
       particleColors,
       particlePositions,
@@ -315,7 +414,10 @@ function createParticleSystem(group) {
       scene,
       arrowVelocities,
       arrowForces,
-      trajectoryLines
+      settings.if_showTrajectory,
+      trajectoryLines,
+      settings.maxTrajectoryLength,
+      trajectoryGeometries
     );
   }
   particles.colors = particleColors;
@@ -327,9 +429,9 @@ function createParticleSystem(group) {
 
   let clone;
   const clonePositions = makeClonePositionsList(
-    spaceBoundaryX,
-    spaceBoundaryY,
-    spaceBoundaryZ
+    settings.spaceBoundaryX,
+    settings.spaceBoundaryY,
+    settings.spaceBoundaryZ
   );
   const cloneTemplate = particleSystem.clone();
   cloneTemplate.material = particleMaterialForClones;
@@ -340,3 +442,5 @@ function createParticleSystem(group) {
   });
   return particleSystem;
 }
+
+export { createParticleSystem, makeClonePositionsList };
