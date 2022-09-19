@@ -29,7 +29,7 @@ const ifMobileDevice =
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   );
-let ifRun = true;
+const ifRun = true;
 let particles = [];
 const particlePositions = [];
 const particleForces = [];
@@ -51,7 +51,7 @@ const particleProperties = [
   trajectoryGeometries,
   trajectoryLines,
 ];
-let totalMass = 0;
+const totalMass = 0;
 let time = 0;
 let lastSnapshotTime = 0;
 const snapshotDuration = settings.dt;
@@ -169,12 +169,12 @@ function init(settings) {
       particleCount: settings.particleCount,
       particleColors: particles.getAttribute("color").array,
       particlePositions: particles.getAttribute("position").array,
-      particleForces: particleForces,
-      particleVelocities: particleVelocities,
-      particleMasses: particleMasses,
-      particleCharges: particleCharges,
-      time: time,
-      lastSnapshotTime: lastSnapshotTime,
+      particleForces,
+      particleVelocities,
+      particleMasses,
+      particleCharges,
+      time,
+      lastSnapshotTime,
     });
   };
 }
@@ -198,7 +198,7 @@ function applyForce(i, j, func) {
   }
   // ==================================================
   // force due to j in this cell:
-  for (let thatPositionDisplacement of clonePositions) {
+  for (const thatPositionDisplacement of clonePositions) {
     // (don't use "for-in" loops!)
     r = rOriginal.clone();
     // (possibly) displace shift the end of this vector from particle j to one of its clones:
@@ -526,7 +526,7 @@ function animate() {
     lastSnapshotTime = time;
   }
   if (settings.if_ReferenceFrame_movesWithSun) {
-    for (let i in particlePositions) {
+    for (const i in particlePositions) {
       particlePositions[i].sub(particlePositions[0]);
     }
   }
