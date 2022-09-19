@@ -37,6 +37,7 @@ const settings = {
   if_proportionate_arrows_with_vectors: true,
   if_limitArrowsMaxLength: true,
   if_constant_temperature: false,
+  ifRun: true,
   // physical constants -- be the god!
   EPSILON: 1,
   DELTA: 0.02,

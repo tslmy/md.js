@@ -37,7 +37,6 @@ const ifMobileDevice =
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   )
-const ifRun = true
 let particles = []
 const particlePositions = []
 const particleForces = []
@@ -499,14 +498,14 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
       thisPosition.y,
       thisPosition.z
     )
-    const lineNodePositions = settings.if_showTrajectory
+    const trajectoryPositions = settings.if_showTrajectory
       ? trajectoryLines[i].geometry.attributes.position
       : null
     // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
     if (settings.if_use_periodic_boundary_condition) {
       applyPbc(
         thisPosition,
-        lineNodePositions,
+        trajectoryPositions,
         settings.maxTrajectoryLength,
         settings.spaceBoundaryX,
         settings.spaceBoundaryY,
@@ -546,15 +545,15 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
     if (settings.if_showTrajectory) {
       if (time - lastSnapshotTime > settings.snapshotDuration) {
         for (let j = 0; j < settings.maxTrajectoryLength - 1; j++) {
-          lineNodePositions.copyAt(j, lineNodePositions, j + 1)
+          trajectoryPositions.copyAt(j, trajectoryPositions, j + 1)
         }
-        lineNodePositions.setXYZ(
+        trajectoryPositions.setXYZ(
           i,
           particlePositions[i].x,
           particlePositions[i].y,
           particlePositions[i].z
         )
-        lineNodePositions.needsUpdate = true
+        trajectoryPositions.needsUpdate = true
       }
     }
   }
@@ -584,7 +583,7 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
 
 function applyPbc (
   thisPosition,
-  lineNodePositions,
+  trajectoryPositions,
   maxTrajectoryLength,
   spaceBoundaryX,
   spaceBoundaryY,
@@ -592,75 +591,73 @@ function applyPbc (
 ) {
   while (thisPosition.x < -spaceBoundaryX) {
     thisPosition.x += 2 * spaceBoundaryX
-    if (lineNodePositions !== null) {
+    if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
-        lineNodePositions.setX(
+        trajectoryPositions.setX(
           j,
-          lineNodePositions.getX(j) + 2 * spaceBoundaryX
+          trajectoryPositions.getX(j) + 2 * spaceBoundaryX
         )
       }
-      lineNodePositions.needsUpdate = true
     }
   }
   while (thisPosition.x > spaceBoundaryX) {
     thisPosition.x -= 2 * spaceBoundaryX
-    if (lineNodePositions !== null) {
+    if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
-        lineNodePositions.setX(
+        trajectoryPositions.setX(
           j,
-          lineNodePositions.getX(j) - 2 * spaceBoundaryX
+          trajectoryPositions.getX(j) - 2 * spaceBoundaryX
         )
       }
-      lineNodePositions.needsUpdate = true
     }
   }
   while (thisPosition.y < -spaceBoundaryY) {
     thisPosition.y += 2 * spaceBoundaryY
-    if (lineNodePositions !== null) {
+    if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
-        lineNodePositions.setY(
+        trajectoryPositions.setY(
           j,
-          lineNodePositions.getY(j) + 2 * spaceBoundaryY
+          trajectoryPositions.getY(j) + 2 * spaceBoundaryY
         )
       }
-      lineNodePositions.needsUpdate = true
     }
   }
   while (thisPosition.y > spaceBoundaryY) {
     thisPosition.y -= 2 * spaceBoundaryY
-    if (lineNodePositions !== null) {
+    if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
-        lineNodePositions.setY(
+        trajectoryPositions.setY(
           j,
-          lineNodePositions.getY(j) - 2 * spaceBoundaryY
+          trajectoryPositions.getY(j) - 2 * spaceBoundaryY
         )
       }
-      lineNodePositions.needsUpdate = true
     }
   }
   while (thisPosition.z < -spaceBoundaryZ) {
     thisPosition.z += 2 * spaceBoundaryZ
-    if (lineNodePositions !== null) {
+    if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
-        lineNodePositions.setZ(
+        trajectoryPositions.setZ(
           j,
-          lineNodePositions.getZ(j) + 2 * spaceBoundaryZ
+          trajectoryPositions.getZ(j) + 2 * spaceBoundaryZ
         )
       }
-      lineNodePositions.needsUpdate = true
+      trajectoryPositions.needsUpdate = true
     }
   }
   while (thisPosition.z > spaceBoundaryZ) {
     thisPosition.z -= 2 * spaceBoundaryZ
-    if (lineNodePositions !== null) {
+    if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
-        lineNodePositions.setZ(
+        trajectoryPositions.setZ(
           j,
-          lineNodePositions.getZ(j) - 2 * spaceBoundaryZ
+          trajectoryPositions.getZ(j) - 2 * spaceBoundaryZ
         )
       }
-      lineNodePositions.needsUpdate = true
     }
+  }
+  if (trajectoryPositions !== null) {
+    trajectoryPositions.needsUpdate = true
   }
 }
 
@@ -691,7 +688,7 @@ function animate () {
   update()
   render()
   // set up the next call
-  if (ifRun) {
+  if (settings.ifRun) {
     requestAnimationFrame(animate)
   }
   stats.update()
