@@ -165,7 +165,6 @@ function initializeGuiControls(settings) {
 
   const guiFolderCommands = gui.addFolder("Commands"); // controls, buttons
   guiFolderCommands.add(commands, "clearState").name("New world");
-  guiFolderCommands.add(commands, "dump").name("Dump");
   guiFolderCommands.add(commands, "stop").name("Halt");
   gui.add(commands, "toggleHUD").name("Show Detail HUD");
   guiFolderCommands.open();
