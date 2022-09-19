@@ -197,8 +197,7 @@ function updateClonesPositions(
   spaceBoundaryX,
   spaceBoundaryY,
   spaceBoundaryZ,
-  group,
-  clonePositions
+  group
 ) {
   const clonePositions = makeClonePositionsList(
     spaceBoundaryX,

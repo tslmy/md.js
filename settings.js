@@ -76,8 +76,7 @@ function initializeGuiControls() {
         spaceBoundaryX,
         spaceBoundaryY,
         spaceBoundaryZ,
-        group,
-        clonePositions
+        group
       );
     });
   guiFolderSize
@@ -89,8 +88,7 @@ function initializeGuiControls() {
         spaceBoundaryX,
         spaceBoundaryY,
         spaceBoundaryZ,
-        group,
-        clonePositions
+        group
       );
     });
   guiFolderSize
@@ -102,8 +100,7 @@ function initializeGuiControls() {
         spaceBoundaryX,
         spaceBoundaryY,
         spaceBoundaryZ,
-        group,
-        clonePositions
+        group
       );
     });
 
