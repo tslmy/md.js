@@ -1,5 +1,6 @@
 import { settings, initializeGuiControls } from "./settings.js";
 import { drawBox } from "./drawing_helpers.js";
+import { saveState } from "./stateStorage.js";
 import {
   createParticleSystem,
   makeClonePositionsList,
@@ -167,7 +168,19 @@ function init(settings) {
   // add event listeners
   window.addEventListener("resize", resize, false);
   setTimeout(resize, 1);
-  window.onbeforeunload = saveState;
+  window.onbeforeunload = () => {
+    saveState({
+      particleCount: settings.particleCount,
+      particleColors: particleColors,
+      particlePositions: particlePositions,
+      particleForces: particleForces,
+      particleVelocities: particleVelocities,
+      particleMasses: particleMasses,
+      particleCharges: particleCharges,
+      time: time,
+      lastSnapshotTime: lastSnapshotTime,
+    });
+  };
 }
 
 function applyForce(i, j, func) {
@@ -579,14 +592,6 @@ function fullscreen() {
   } else if (container.webkitRequestFullscreen) {
     container.webkitRequestFullscreen();
   }
-}
-
-function stop() {
-  ifRun = false;
-}
-
-function toggleHUD() {
-  $("#hud").toggle();
 }
 
 // when document is ready:

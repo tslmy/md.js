@@ -164,14 +164,24 @@ function initializeGuiControls(settings) {
   guiFolderPlotting.open();
 
   const guiFolderCommands = gui.addFolder("Commands"); // controls, buttons
-  //guiFolderCommands.add(settings, "clearState").name("New world");
-  //guiFolderCommands.add(settings, "dump").name("Dump");
-  //guiFolderCommands.add(settings, "stop").name("Halt");
+  guiFolderCommands.add(commands, "clearState").name("New world");
+  guiFolderCommands.add(commands, "dump").name("Dump");
+  guiFolderCommands.add(commands, "stop").name("Halt");
+  gui.add(commands, "toggleHUD").name("Show Detail HUD");
   guiFolderCommands.open();
-  //gui.add(settings, "toggleHUD").name("Show Detail HUD");
 
   gui.remember(this);
   gui.close();
 }
+import { dump, clearState } from "./stateStorage.js";
+const commands = {
+  stop: () => {
+    settings.ifRun = false;
+  },
+  toggleHUD: function () {
+    $("#hud").toggle();
+  },
+  clearState: clearState,
+};
 
 export { settings, initializeGuiControls };

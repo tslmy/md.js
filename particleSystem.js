@@ -1,6 +1,7 @@
 "use strict";
 
 import { generateTexture } from "./drawing_helpers.js";
+import { loadState, previousState } from "./stateStorage.js";
 function addParticle(
   colorH,
   colorS,
@@ -239,32 +240,32 @@ function createParticleSystem(
     // Initialize the particleSystem with the info stored from localStorage.
     let particleCountToRead = 0;
     if (
-      previous_particleCount < settings.particleCount ||
+      previousState.particleCount < settings.particleCount ||
       settings.if_override_particleCount_setting_with_lastState
     ) {
-      particleCountToRead = previous_particleCount;
+      particleCountToRead = previousState.particleCount;
     } else {
-      particleCountToRead = particleCount;
+      particleCountToRead = settings.particleCount;
     }
     for (let i = 0; i < particleCountToRead; i++) {
       const tempColor = new THREE.Color();
-      tempColor.set(previous_particleColors[i]);
+      tempColor.set(previousState.particleColors[i]);
       const tempColorInHSL = tempColor.getHSL();
       addParticle(
         tempColorInHSL.h,
         tempColorInHSL.s,
         tempColorInHSL.l,
-        previous_particlePositions[i].x,
-        previous_particlePositions[i].y,
-        previous_particlePositions[i].z,
-        previous_particleVelocities[i].x,
-        previous_particleVelocities[i].y,
-        previous_particleVelocities[i].z,
-        previous_particleForces[i].x,
-        previous_particleForces[i].y,
-        previous_particleForces[i].z,
-        previous_particleMasses[i],
-        previous_particleCharges[i],
+        previousState.particlePositions[i].x,
+        previousState.particlePositions[i].y,
+        previousState.particlePositions[i].z,
+        previousState.particleVelocities[i].x,
+        previousState.particleVelocities[i].y,
+        previousState.particleVelocities[i].z,
+        previousState.particleForces[i].x,
+        previousState.particleForces[i].y,
+        previousState.particleForces[i].z,
+        previousState.particleMasses[i],
+        previousState.particleCharges[i],
         particles,
         particleColors,
         particlePositions,
@@ -282,7 +283,8 @@ function createParticleSystem(
         trajectoryGeometries
       );
     }
-    let particleCountToAdd = settings.particleCount - previous_particleCount;
+    let particleCountToAdd =
+      settings.particleCount - previousState.particleCount;
     if (particleCountToAdd < 0) {
       console.log(
         "Dropping",
@@ -296,12 +298,12 @@ function createParticleSystem(
         "md.js will be creating only",
         particleCountToAdd,
         "particles from scratch, since",
-        previous_particleCount,
+        previousState.particleCount,
         "has been loaded from previous browser session."
       );
     }
-    time = previous_time;
-    lastSnapshotTime = previous_lastSnapshotTime;
+    time = previousState.time;
+    lastSnapshotTime = previousState.lastSnapshotTime;
   } else {
     console.log("Creating new universe.");
     let particleCountToAdd = settings.particleCount;
@@ -325,7 +327,7 @@ function createParticleSystem(
         0,
         0,
         0,
-        sunMass,
+        settings.sunMass,
         0,
         particles,
         particleColors,
