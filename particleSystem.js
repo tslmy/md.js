@@ -1,5 +1,6 @@
 "use strict";
 
+import * as THREE from "three";
 import { generateTexture } from "./drawing_helpers.js";
 import { loadState, previousState } from "./stateStorage.js";
 function addParticle(

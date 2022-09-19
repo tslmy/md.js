@@ -1,5 +1,6 @@
 "use strict";
 
+import * as THREE from "three";
 /**
  * Draw a circle in the center of the canvas.
  * Credit: http://jsfiddle.net/7yDGy/1/

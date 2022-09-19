@@ -1,6 +1,12 @@
 import { settings, initializeGuiControls } from "./settings.js";
 import { drawBox } from "./drawing_helpers.js";
 import { saveState } from "./stateStorage.js";
+
+import * as THREE from "three";
+import { OrbitControls } from "OrbitControls";
+import { DeviceOrientationControls } from "DeviceOrientationControls";
+import Stats from "Stats";
+import { StereoEffect } from "StereoEffect";
 import {
   createParticleSystem,
   makeClonePositionsList,
@@ -129,17 +135,17 @@ function init(settings) {
   });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(4); // enhance resolution
-  if (ifMobileDevice) effect = new THREE.StereoEffect(renderer);
+  if (ifMobileDevice) effect = new StereoEffect(renderer);
   element = renderer.domElement;
   container = document.body;
   container.appendChild(element);
   // activate plugins:
-  controls = new THREE.OrbitControls(camera, element); // this is for non-VR devices
+  controls = new OrbitControls(camera, element); // this is for non-VR devices
   function setOrientationControls(e) {
     if (!e.alpha) {
       return;
     }
-    controls = new THREE.DeviceOrientationControls(camera, true);
+    controls = new DeviceOrientationControls(camera, true);
     controls.connect();
     controls.update();
     element.addEventListener("click", fullscreen, false);

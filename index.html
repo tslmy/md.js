@@ -6,15 +6,20 @@
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
     <meta content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" name="viewport">
     <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.144.0/three.min.js" integrity="sha512-a+99cBAt+ou5bThiz5wJeuvXSrZVqZctMU5L8MWaLEc3PB+DPWMK3UycRong0zWYyhavY8HT0YyB/jtJD1S/yQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-compat/3.0.0-alpha1/jquery.min.js" integrity="sha512-4GsgvzFFry8SXj8c/VcCjjEZ+du9RZp/627AEQRVLatx6d60AUnUYXg0lGn538p44cgRs5E2GXq+8IOetJ+6ow==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.slim.min.js" integrity="sha512-yBpuflZmP5lwMzZ03hiCLzA94N0K2vgBtJgqQ2E1meJzmIBfjbb7k4Y23k2i2c/rIeSUGc7jojyIY5waK3ZxCQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js" integrity="sha512-WFN04846sdKMIP5LKNphMaWzU7YpMyCU245etK3g/2ARYbPK9Ub18eG+ljU96qKRCWh+quCY7yefSmlkQw1ANQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js" integrity="sha512-LF8ZB1iTwi4Qvkm4pekHG4a437Y9Af5ZuwbnW4GTbAWQeR2E4KW8WF+xH8b9psevV7wIlDMx1MH9YfPqgKhA/Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r144/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r144/examples/js/libs/stats.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r144/examples/js/effects/StereoEffect.js"></script>
-    <!-- https://discourse.threejs.org/t/deviceorientationcontrols/33461/3 -->
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r133/examples/js/controls/DeviceOrientationControls.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.144.0/three.module.min.js",
+                "OrbitControls": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r144/examples/jsm/controls/OrbitControls.js",
+                "DeviceOrientationControls": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r133/examples/jsm/controls/DeviceOrientationControls.js",
+                "StereoEffect": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r144/examples/jsm/effects/StereoEffect.js",
+                "Stats": "https://cdnjs.cloudflare.com/ajax/libs/stats.js/r17/Stats.min.js"
+            }
+        }
+    </script>
     <script src="//cdn.rawgit.com/samsonjs/strftime/8a06a301/strftime-min.js"></script>
     <style>
     html,
@@ -80,6 +85,7 @@
             </tbody>
         </table>
     </div>
+
     <script type="module" src="stateStorage.js"></script>
     <script type="module" src="settings.js"></script>
     <script type="module" src="drawing_helpers.js"></script>
