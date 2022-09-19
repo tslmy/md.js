@@ -193,7 +193,13 @@ function makeTrajectory(thisColor, thisPosition) {
   return new THREE.Line(thisGeometry, thisTrajectoryMaterial);
 }
 
-function updateClonesPositions() {
+function updateClonesPositions(
+  spaceBoundaryX,
+  spaceBoundaryY,
+  spaceBoundaryZ,
+  group,
+  clonePositions
+) {
   const clonePositions = makeClonePositionsList(
     spaceBoundaryX,
     spaceBoundaryY,

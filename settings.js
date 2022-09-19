@@ -72,21 +72,39 @@ function initializeGuiControls() {
     .name("Size, X")
     .onChange(function (value) {
       if (boxMesh) boxMesh.scale.x = spaceBoundaryX / originalSpaceBoundaryX;
-      updateClonesPositions();
+      updateClonesPositions(
+        spaceBoundaryX,
+        spaceBoundaryY,
+        spaceBoundaryZ,
+        group,
+        clonePositions
+      );
     });
   guiFolderSize
     .add(this, "spaceBoundaryY")
     .name("Size, Y")
     .onChange(function (value) {
       if (boxMesh) boxMesh.scale.y = spaceBoundaryY / originalSpaceBoundaryY;
-      updateClonesPositions();
+      updateClonesPositions(
+        spaceBoundaryX,
+        spaceBoundaryY,
+        spaceBoundaryZ,
+        group,
+        clonePositions
+      );
     });
   guiFolderSize
     .add(this, "spaceBoundaryZ")
     .name("Size, Z")
     .onChange(function (value) {
       if (boxMesh) boxMesh.scale.z = spaceBoundaryZ / originalSpaceBoundaryZ;
-      updateClonesPositions();
+      updateClonesPositions(
+        spaceBoundaryX,
+        spaceBoundaryY,
+        spaceBoundaryZ,
+        group,
+        clonePositions
+      );
     });
 
   const guiFolderForces = guiFolderWorld.addFolder("Forcefields to apply");
