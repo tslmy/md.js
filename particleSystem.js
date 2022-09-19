@@ -1,8 +1,7 @@
-function createParticleSystem() {
+function createParticleSystem(group) {
   // Particles are just individual vertices in a geometry
   // Create the geometry that will hold all of the vertices
-  group = new THREE.Object3D();
-  particles = new THREE.Geometry();
+  const particles = new THREE.Geometry();
   texture = new THREE.Texture(generateTexture());
   texture.needsUpdate = true; // important
   particleMaterial = new THREE.PointsMaterial({
@@ -41,25 +40,26 @@ function createParticleSystem() {
     for (var i = 0; i < particleCountToRead; i++) {
       const tempColor = new THREE.Color();
       tempColor.set(previous_particleColors[i]);
-      tempColorInHSL = tempColor.getHSL();
+      const tempColorInHSL = tempColor.getHSL();
       addParticle(
-        (colorH = tempColorInHSL.h),
-        (colorS = tempColorInHSL.s),
-        (colorL = tempColorInHSL.l),
-        (positionX = previous_particlePositions[i].x),
-        (positionY = previous_particlePositions[i].y),
-        (positionZ = previous_particlePositions[i].z),
-        (velocityX = previous_particleVelocities[i].x),
-        (velocityY = previous_particleVelocities[i].y),
-        (velocityZ = previous_particleVelocities[i].z),
-        (forceX = previous_particleForces[i].x),
-        (forceY = previous_particleForces[i].y),
-        (forceZ = previous_particleForces[i].z),
-        (thisMass = previous_particleMasses[i]),
-        (thisCharge = previous_particleCharges[i])
+        tempColorInHSL.h,
+        tempColorInHSL.s,
+        tempColorInHSL.l,
+        previous_particlePositions[i].x,
+        previous_particlePositions[i].y,
+        previous_particlePositions[i].z,
+        previous_particleVelocities[i].x,
+        previous_particleVelocities[i].y,
+        previous_particleVelocities[i].z,
+        previous_particleForces[i].x,
+        previous_particleForces[i].y,
+        previous_particleForces[i].z,
+        previous_particleMasses[i],
+        previous_particleCharges[i],
+        particles
       );
     }
-    var particleCountToAdd = particleCount - previous_particleCount;
+    let particleCountToAdd = particleCount - previous_particleCount;
     if (particleCountToAdd < 0) {
       console.log(
         "Dropping",
@@ -81,14 +81,15 @@ function createParticleSystem() {
     lastSnapshotTime = previous_lastSnapshotTime;
   } else {
     console.log("Creating new universe.");
-    var particleCountToAdd = particleCount;
+    let particleCountToAdd = particleCount;
     console.log(
       "md.js will be creating all",
       particleCount,
       "particles from scratch."
     );
     // create a sun:
-    if (if_makeSun) addParticle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sunMass, 0); // always make the sun the first particle, please.
+    if (if_makeSun)
+      addParticle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sunMass, 0, particles); // always make the sun the first particle, please.
   }
   // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
   for (var i = particlePositions.length; i < particleCount; i++) {
@@ -128,7 +129,8 @@ function createParticleSystem() {
       0,
       0,
       _.random(16, 20, true),
-      _.sample(availableCharges)
+      _.sample(availableCharges),
+      particles
     );
   }
   particles.colors = particleColors;
@@ -147,5 +149,5 @@ function createParticleSystem() {
     clone.position.set(clonePosition[0], clonePosition[1], clonePosition[2]);
     group.add(clone);
   });
-  return group;
+  return particles;
 }

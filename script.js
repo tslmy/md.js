@@ -67,7 +67,8 @@ function addParticle(
   forceY,
   forceZ,
   thisMass,
-  thisCharge
+  thisCharge,
+  particles
 ) {
   // make colors (http://jsfiddle.net/J7zp4/200/)
   const thisColor = new THREE.Color();
@@ -222,7 +223,6 @@ function makeClonePositionsList() {
     [-2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
   ];
 }
-
 function init() {
   // enable settings
   initializeGuiControls();
@@ -236,7 +236,9 @@ function init() {
   if (if_showUniverseBoundary) {
     drawBox(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, scene);
   }
-  scene.add(createParticleSystem());
+  const group = new THREE.Object3D();
+  particles = createParticleSystem(group);
+  scene.add(group);
   // initialize the camera
   camera = new THREE.PerspectiveCamera(
     90,
@@ -426,12 +428,13 @@ function animate() {
   const arrowScaleForVelocities = rescaleVelocityScaleBar(particleVelocities);
   for (let i = 0; i < particleCount; i++) {
     // shorthands
-    thisPosition = particlePositions[i];
-    thisVelocity = particleVelocities[i];
+    const thisPosition = particlePositions[i];
+    const thisVelocity = particleVelocities[i];
+    const thisMass = particleMasses[i];
     // ======================== now update eveything user could see ========================
     // update velocities according to force:
     thisVelocity.addScaledVector(particleForces[i], dt / particleMasses[i]); // v = v + f/m·dt
-    thisSpeed = thisVelocity.length(); // vector -> scalar
+    const thisSpeed = thisVelocity.length(); // vector -> scalar
     if (
       if_use_periodic_boundary_condition &&
       thisSpeed > escapeSpeed &&
