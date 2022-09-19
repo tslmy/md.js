@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import * as THREE from 'three'
-import { generateTexture } from './drawing_helpers.js'
+import { generateTexture } from './drawingHelpers.js'
 import { loadState, previousState } from './stateStorage.js'
 const texture = new THREE.Texture(generateTexture())
 texture.needsUpdate = true // important
