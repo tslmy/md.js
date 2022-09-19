@@ -37,7 +37,6 @@ function addParticle (
   particleVelocities,
   particleForces,
   particleMasses,
-  totalMass,
   particleCharges,
   scene,
   arrowVelocities,
@@ -72,7 +71,6 @@ function addParticle (
   particleForces.push(thisForce)
   // mass
   particleMasses.push(thisMass)
-  totalMass += thisMass
   // charge
   particleCharges.push(thisCharge)
   // add two arrows
@@ -225,7 +223,6 @@ function createParticleSystem (
   particleVelocities,
   particleForces,
   particleMasses,
-  totalMass,
   particleCharges,
   scene,
   arrowVelocities,
@@ -289,7 +286,6 @@ function createParticleSystem (
         particleVelocities,
         particleForces,
         particleMasses,
-        totalMass,
         particleCharges,
         scene,
         arrowVelocities,
@@ -349,7 +345,6 @@ function createParticleSystem (
         particleVelocities,
         particleForces,
         particleMasses,
-        totalMass,
         particleCharges,
         scene,
         arrowVelocities,
@@ -406,7 +401,6 @@ function createParticleSystem (
       particleVelocities,
       particleForces,
       particleMasses,
-      totalMass,
       particleCharges,
       scene,
       arrowVelocities,

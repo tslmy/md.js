@@ -59,7 +59,6 @@ const particleProperties = [
   trajectoryGeometries,
   trajectoryLines
 ]
-const totalMass = 0
 let time = 0
 let lastSnapshotTime = 0
 const snapshotDuration = settings.dt
@@ -257,7 +256,6 @@ function init (settings) {
     particleVelocities,
     particleForces,
     particleMasses,
-    totalMass,
     particleCharges,
     scene,
     arrowVelocities,
