@@ -1,8 +1,22 @@
 'use strict'
 
+import _ from 'lodash'
 import * as THREE from 'three'
 import { generateTexture } from './drawing_helpers.js'
 import { loadState, previousState } from './stateStorage.js'
+const texture = new THREE.Texture(generateTexture())
+texture.needsUpdate = true // important
+const particleMaterialForClones = new THREE.PointsMaterial({
+  // http://jsfiddle.net/7yDGy/1/
+  map: texture,
+  blending: THREE.NormalBlending, // required
+  depthTest: false, // required
+  transparent: true,
+  opacity: 0.3,
+  size: 0.3,
+  vertexColors: true
+})
+
 function addParticle (
   colorH,
   colorS,
@@ -28,7 +42,7 @@ function addParticle (
   scene,
   arrowVelocities,
   arrowForces,
-  if_showTrajectory,
+  shouldShowTrajectory,
   trajectoryLines,
   maxTrajectoryLength,
   trajectoryGeometries
@@ -86,7 +100,7 @@ function addParticle (
     particles.attributes.color.getY(particlePositions.length - 1),
     particles.attributes.color.getZ(particlePositions.length - 1)
   )
-  if (if_showTrajectory) {
+  if (shouldShowTrajectory) {
     const thisTrajectory = makeTrajectory(
       thisColor,
       thisPosition,
@@ -230,8 +244,6 @@ function createParticleSystem (
   particles.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   const colors = new Float32Array(settings.particleCount * 3) // 3 vertices per point
   particles.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  const texture = new THREE.Texture(generateTexture())
-  texture.needsUpdate = true // important
   const particleMaterial = new THREE.PointsMaterial({
     // http://jsfiddle.net/7yDGy/1/
     map: texture,
@@ -242,17 +254,7 @@ function createParticleSystem (
     size: 0.3,
     vertexColors: true
   })
-  const particleMaterialForClones = new THREE.PointsMaterial({
-    // http://jsfiddle.net/7yDGy/1/
-    map: texture,
-    blending: THREE.NormalBlending, // required
-    depthTest: false, // required
-    transparent: true,
-    opacity: 0.3,
-    size: 0.3,
-    vertexColors: true
-  })
-
+  let particleCountToAdd
   // Create the vertices and add them to the particles geometry
   if (loadState()) {
     console.log('State from previous session loaded.')
@@ -298,8 +300,7 @@ function createParticleSystem (
         trajectoryGeometries
       )
     }
-    const particleCountToAdd =
-      settings.particleCount - previousState.particleCount
+    particleCountToAdd = settings.particleCount - previousState.particleCount
     if (particleCountToAdd < 0) {
       console.log(
         'Dropping',
@@ -321,7 +322,6 @@ function createParticleSystem (
     lastSnapshotTime = previousState.lastSnapshotTime
   } else {
     console.log('Creating new universe.')
-    const particleCountToAdd = settings.particleCount
     console.log(
       'md.js will be creating all',
       settings.particleCount,
@@ -363,57 +363,39 @@ function createParticleSystem (
   }
   // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
   for (let i = particlePositions.length; i < settings.particleCount; i++) {
-    let this_x
-    let this_y
-    let this_z
-    let this_r
-    const this_vx = 0
-    let this_vy
-    const this_vz = 0
+    let x
+    let y
+    let z
+    let r
+    const vx = 0
+    let vy
+    const vz = 0
     if (settings.if_makeSun) {
-      this_x = _.random(
-        -settings.spaceBoundaryX,
-        settings.spaceBoundaryX,
-        true
-      )
-      this_y = 0
-      this_z = _.random(
-        -settings.spaceBoundaryZ,
-        settings.spaceBoundaryZ,
-        true
-      )
-      this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z)
-      this_vy = Math.sqrt((settings.G * particleMasses[0]) / this_r)
-      if (i % 2 == 0) this_vy *= -1
+      x = _.random(-settings.spaceBoundaryX, settings.spaceBoundaryX, true)
+      y = 0
+      z = _.random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ, true)
+      r = Math.sqrt(x * x + y * y + z * z)
+      vy = Math.sqrt((settings.G * particleMasses[0]) / r)
+      if (i % 2 === 0) {
+        vy *= -1
+      }
     } else {
-      this_x = _.random(
-        -settings.spaceBoundaryX,
-        settings.spaceBoundaryX,
-        true
-      )
-      this_y = _.random(
-        -settings.spaceBoundaryY,
-        settings.spaceBoundaryY,
-        true
-      )
-      this_z = _.random(
-        -settings.spaceBoundaryZ,
-        settings.spaceBoundaryZ,
-        true
-      )
-      this_r = Math.sqrt(this_x * this_x + this_y * this_y + this_z * this_z)
-      this_vy = 0
+      x = _.random(-settings.spaceBoundaryX, settings.spaceBoundaryX, true)
+      y = _.random(-settings.spaceBoundaryY, settings.spaceBoundaryY, true)
+      z = _.random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ, true)
+      r = Math.sqrt(x * x + y * y + z * z)
+      vy = 0
     }
     addParticle(
       Math.random(),
       1.0,
       0.5,
-      this_x,
-      this_y,
-      this_z,
-      this_vx,
-      this_vy,
-      this_vz,
+      x,
+      y,
+      z,
+      vx,
+      vy,
+      vz,
       0,
       0,
       0,
@@ -457,4 +439,8 @@ function createParticleSystem (
   return particleSystem
 }
 
-export { createParticleSystem, makeClonePositionsList }
+export {
+  createParticleSystem,
+  makeClonePositionsList,
+  particleMaterialForClones
+}
