@@ -91,14 +91,15 @@ function addParticle (
   scene.add(arrow2)
   arrowForces.push(arrow2)
   // add trajectories.
-  // make colors (http://jsfiddle.net/J7zp4/200/)
-  const thisColor = new THREE.Color()
-  thisColor.setHSL(
-    particles.attributes.color.getX(particlePositions.length - 1),
-    particles.attributes.color.getY(particlePositions.length - 1),
-    particles.attributes.color.getZ(particlePositions.length - 1)
-  )
+
   if (shouldShowTrajectory) {
+    // make colors (http://jsfiddle.net/J7zp4/200/)
+    const thisColor = new THREE.Color()
+    thisColor.setHSL(
+      particles.attributes.color.getX(particlePositions.length - 1),
+      particles.attributes.color.getY(particlePositions.length - 1),
+      particles.attributes.color.getZ(particlePositions.length - 1)
+    )
     const thisTrajectory = makeTrajectory(
       thisColor,
       thisPosition,
