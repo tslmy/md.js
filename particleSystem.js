@@ -172,8 +172,8 @@ function makeTrajectory(
   // attributes
   const points = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
   const colors = new Float32Array(maxTrajectoryLength * 3); // 3 vertices per point
-  thisGeometry.addAttribute("position", new THREE.BufferAttribute(points, 3));
-  thisGeometry.addAttribute("color", new THREE.BufferAttribute(colors, 3));
+  thisGeometry.setAttribute("position", new THREE.BufferAttribute(points, 3));
+  thisGeometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   for (let i = 0; i < maxTrajectoryLength; i++) {
     // for each vertex of this trajectory:
     // calculate for how many percent should the color of this vertex be diluted/bleached.
@@ -199,7 +199,6 @@ function makeTrajectory(
   // finished preparing the geometry for this trajectory
   const thisTrajectoryMaterial = new THREE.LineBasicMaterial({
     linewidth: 0.5,
-    vertexColors: THREE.VertexColors,
   });
   return new THREE.Line(thisGeometry, thisTrajectoryMaterial);
 }
@@ -226,9 +225,9 @@ function createParticleSystem(
   const particles = new THREE.BufferGeometry();
   // https://stackoverflow.com/a/31411794/1147061
   const positions = new Float32Array(settings.particleCount * 3); // 3 vertices per point
-  particles.addAttribute("position", new THREE.BufferAttribute(positions, 3));
+  particles.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   const colors = new Float32Array(settings.particleCount * 3); // 3 vertices per point
-  particles.addAttribute("color", new THREE.BufferAttribute(colors, 3));
+  particles.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   const texture = new THREE.Texture(generateTexture());
   texture.needsUpdate = true; // important
   const particleMaterial = new THREE.PointsMaterial({
@@ -266,17 +265,10 @@ function createParticleSystem(
       particleCountToRead = settings.particleCount;
     }
     for (let i = 0; i < particleCountToRead; i++) {
-      const tempColor = new THREE.Color();
-      tempColor.setHSL(
+      addParticle(
         previousState.particleColors[3 * i],
         previousState.particleColors[3 * i + 1],
-        previousState.particleColors[3 * i + 2]
-      );
-      const tempColorInHSL = tempColor.getHSL();
-      addParticle(
-        tempColorInHSL.h,
-        tempColorInHSL.s,
-        tempColorInHSL.l,
+        previousState.particleColors[3 * i + 2],
         previousState.particlePositions[3 * i],
         previousState.particlePositions[3 * i + 1],
         previousState.particlePositions[3 * i + 2],
