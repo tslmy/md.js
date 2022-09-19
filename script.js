@@ -211,7 +211,8 @@ function init() {
     drawBox(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, scene);
   }
   const group = new THREE.Object3D();
-  particles = createParticleSystem(group);
+  particleSystem = createParticleSystem(group);
+  particles = particleSystem.geometry;
   scene.add(group);
   // initialize the camera
   camera = new THREE.PerspectiveCamera(

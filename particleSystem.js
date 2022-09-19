@@ -37,9 +37,9 @@ function createParticleSystem(group) {
   // Particles are just individual vertices in a geometry
   // Create the geometry that will hold all of the vertices
   const particles = new THREE.Geometry();
-  texture = new THREE.Texture(generateTexture());
+  const texture = new THREE.Texture(generateTexture());
   texture.needsUpdate = true; // important
-  particleMaterial = new THREE.PointsMaterial({
+  const particleMaterial = new THREE.PointsMaterial({
     // http://jsfiddle.net/7yDGy/1/
     map: texture,
     blending: THREE.NormalBlending, // required
@@ -49,7 +49,7 @@ function createParticleSystem(group) {
     size: 0.3,
     vertexColors: THREE.VertexColors,
   });
-  particleMaterialForClones = new THREE.PointsMaterial({
+  const particleMaterialForClones = new THREE.PointsMaterial({
     // http://jsfiddle.net/7yDGy/1/
     map: texture,
     blending: THREE.NormalBlending, // required
@@ -59,11 +59,12 @@ function createParticleSystem(group) {
     size: 0.3,
     vertexColors: THREE.VertexColors,
   });
+
   // Create the vertices and add them to the particles geometry
   if (loadState()) {
     console.log("State from previous session loaded.");
     // Initialize the particleSystem with the info stored from localStorage.
-
+    let particleCountToRead = 0;
     if (
       previous_particleCount < particleCount ||
       if_override_particleCount_setting_with_lastState
@@ -72,7 +73,7 @@ function createParticleSystem(group) {
     } else {
       particleCountToRead = particleCount;
     }
-    for (var i = 0; i < particleCountToRead; i++) {
+    for (let i = 0; i < particleCountToRead; i++) {
       const tempColor = new THREE.Color();
       tempColor.set(previous_particleColors[i]);
       const tempColorInHSL = tempColor.getHSL();
@@ -171,7 +172,7 @@ function createParticleSystem(group) {
   particles.colors = particleColors;
   // Create the material that will be used to render each vertex of the geometry
   // Create the particle system
-  particleSystem = new THREE.Points(particles, particleMaterial);
+  const particleSystem = new THREE.Points(particles, particleMaterial);
   particleSystem.position.set(0, 0, 0);
   group.add(particleSystem);
 
@@ -188,5 +189,5 @@ function createParticleSystem(group) {
     clone.position.set(clonePosition[0], clonePosition[1], clonePosition[2]);
     group.add(clone);
   });
-  return particles;
+  return particleSystem;
 }
