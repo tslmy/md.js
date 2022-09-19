@@ -14,9 +14,11 @@ Now in 3D.
 
 ## Usage
 
-Run `index.html`, or simply visit <https://tslmy.github.io/md.js>. Best viewed on a smartphone with a Google Cardboard.
+Clone this repo. In a terminal, run `python -m http.server --directory .`. Go to `http://127.0.0.1:8000/`.
 
-##Development
+Run `index.html`. Best viewed on a smartphone with a Google Cardboard.
+
+## Development
 
 Please remember to `yarn` this project.
 
