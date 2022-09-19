@@ -337,14 +337,19 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
     console.log("Particle ", i, " escaped with speed", thisSpeed, ".");
     // remove this particle from all lists:
     settings.particleCount -= 1;
-    particles.colors[i].offsetHSL(0, -0.1, 0.1);
-    particles.colorsNeedUpdate = true;
+    particles.attributes.color.setXYZ(i, 0, 0, 0);
     _.forEach(particleProperties, function (array) {
       _.pullAt(array, i);
     });
   } else {
     // update positions according to velocity:
     thisPosition.addScaledVector(thisVelocity, settings.dt); // x = x + v·dt
+    particles.attributes.position.setXYZ(
+      i,
+      thisPosition.x,
+      thisPosition.y,
+      thisPosition.z
+    );
     const lineNodePositions = settings.if_showTrajectory
       ? trajectoryLines[i].geometry.attributes.position
       : null;
@@ -529,7 +534,7 @@ function animate() {
   }
   // =============================== now the rendering ==================================
   // flag to the particle system that we've changed its vertices.
-  particleSystem.geometry.verticesNeedUpdate = true;
+  particleSystem.geometry.attributes.position.needsUpdate = true;
   // draw this frame
   statistics();
   update();

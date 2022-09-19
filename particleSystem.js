@@ -41,7 +41,18 @@ function addParticle(
   const thisPosition = new THREE.Vector3(positionX, positionY, positionZ);
   particlePositions.push(thisPosition);
   // Add the vertex to the geometry
-  particles.vertices.push(thisPosition);
+  particles.attributes.position.setXYZ(
+    particlePositions.length - 1,
+    positionX,
+    positionY,
+    positionZ
+  );
+  particles.attributes.color.setXYZ(
+    particlePositions.length - 1,
+    colorH,
+    colorL,
+    positionZ
+  );
   // make velocity
   const thisVelocity = new THREE.Vector3(velocityX, velocityY, velocityZ);
   particleVelocities.push(thisVelocity);
@@ -210,7 +221,12 @@ function createParticleSystem(
 ) {
   // Particles are just individual vertices in a geometry
   // Create the geometry that will hold all of the vertices
-  const particles = new THREE.Geometry();
+  const particles = new THREE.BufferGeometry();
+  // https://stackoverflow.com/a/31411794/1147061
+  const positions = new Float32Array(settings.particleCount * 3); // 3 vertices per point
+  particles.addAttribute("position", new THREE.BufferAttribute(positions, 3));
+  const colors = new Float32Array(settings.particleCount * 3); // 3 vertices per point
+  particles.addAttribute("color", new THREE.BufferAttribute(colors, 3));
   const texture = new THREE.Texture(generateTexture());
   texture.needsUpdate = true; // important
   const particleMaterial = new THREE.PointsMaterial({
@@ -422,7 +438,6 @@ function createParticleSystem(
       trajectoryGeometries
     );
   }
-  particles.colors = particleColors;
   // Create the material that will be used to render each vertex of the geometry
   // Create the particle system
   const particleSystem = new THREE.Points(particles, particleMaterial);
