@@ -1,3 +1,38 @@
+function makeClonePositionsList(
+  spaceBoundaryX,
+  spaceBoundaryY,
+  spaceBoundaryZ
+) {
+  return [
+    [2 * spaceBoundaryX, 0, 0],
+    [-2 * spaceBoundaryX, 0, 0],
+    [0, 2 * spaceBoundaryY, 0],
+    [0, -2 * spaceBoundaryY, 0],
+    [0, 0, 2 * spaceBoundaryZ],
+    [0, 0, -2 * spaceBoundaryZ],
+    [2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
+    [-2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
+    [2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
+    [-2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
+    [0, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+    [0, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+    [0, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+    [0, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+    [2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
+    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
+    [2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
+    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
+    [2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+    [2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
+    [2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+    [2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
+  ];
+}
+
 function createParticleSystem(group) {
   // Particles are just individual vertices in a geometry
   // Create the geometry that will hold all of the vertices

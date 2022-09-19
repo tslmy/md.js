@@ -197,40 +197,6 @@ function updateClonesPositions() {
   }
 }
 
-function makeClonePositionsList(
-  spaceBoundaryX,
-  spaceBoundaryY,
-  spaceBoundaryZ
-) {
-  return [
-    [2 * spaceBoundaryX, 0, 0],
-    [-2 * spaceBoundaryX, 0, 0],
-    [0, 2 * spaceBoundaryY, 0],
-    [0, -2 * spaceBoundaryY, 0],
-    [0, 0, 2 * spaceBoundaryZ],
-    [0, 0, -2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
-    [0, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [0, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [0, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [0, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
-    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
-    [2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
-    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
-    [2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-  ];
-}
 function init() {
   // enable settings
   initializeGuiControls();
