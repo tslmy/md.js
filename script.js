@@ -346,7 +346,6 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
       applyPbc(
         thisPosition,
         lineNodePositions,
-        if_showTrajectory,
         maxTrajectoryLength,
         spaceBoundaryX,
         spaceBoundaryY,
@@ -422,7 +421,6 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
 function applyPbc(
   thisPosition,
   lineNodePositions,
-  if_showTrajectory,
   maxTrajectoryLength,
   spaceBoundaryX,
   spaceBoundaryY,
@@ -430,7 +428,7 @@ function applyPbc(
 ) {
   while (thisPosition.x < -spaceBoundaryX) {
     thisPosition.x += 2 * spaceBoundaryX;
-    if (if_showTrajectory) {
+    if (lineNodePositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         lineNodePositions.setX(
           j,
@@ -442,7 +440,7 @@ function applyPbc(
   }
   while (thisPosition.x > spaceBoundaryX) {
     thisPosition.x -= 2 * spaceBoundaryX;
-    if (if_showTrajectory) {
+    if (lineNodePositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         lineNodePositions.setX(
           j,
@@ -454,7 +452,7 @@ function applyPbc(
   }
   while (thisPosition.y < -spaceBoundaryY) {
     thisPosition.y += 2 * spaceBoundaryY;
-    if (if_showTrajectory) {
+    if (lineNodePositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         lineNodePositions.setY(
           j,
@@ -466,7 +464,7 @@ function applyPbc(
   }
   while (thisPosition.y > spaceBoundaryY) {
     thisPosition.y -= 2 * spaceBoundaryY;
-    if (if_showTrajectory) {
+    if (lineNodePositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         lineNodePositions.setY(
           j,
@@ -478,7 +476,7 @@ function applyPbc(
   }
   while (thisPosition.z < -spaceBoundaryZ) {
     thisPosition.z += 2 * spaceBoundaryZ;
-    if (if_showTrajectory) {
+    if (lineNodePositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         lineNodePositions.setZ(
           j,
@@ -490,7 +488,7 @@ function applyPbc(
   }
   while (thisPosition.z > spaceBoundaryZ) {
     thisPosition.z -= 2 * spaceBoundaryZ;
-    if (if_showTrajectory) {
+    if (lineNodePositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         lineNodePositions.setZ(
           j,
