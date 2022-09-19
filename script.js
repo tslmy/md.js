@@ -24,10 +24,6 @@ const ifMobileDevice =
     navigator.userAgent
   );
 let ifRun = true;
-let geometry;
-let material;
-let particleMaterial;
-let trajectoryMaterial;
 let particles = [];
 const particleColors = [];
 const particlePositions = [];
@@ -45,7 +41,6 @@ const particleProperties = [
   particleForces,
   particleMasses,
   particleCharges,
-  // particleColors,
   arrowVelocities,
   arrowForces,
   trajectoryGeometries,
@@ -55,9 +50,6 @@ let totalMass = 0;
 let time = 0;
 let lastSnapshotTime = 0;
 const snapshotDuration = settings.dt;
-const strongestForcePresent = 1;
-const fastestVelocityPresent = 1;
-
 /**
  * el: the DOM element you'd like to test for visibility.
  */
