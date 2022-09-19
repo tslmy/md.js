@@ -338,92 +338,20 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
   } else {
     // update positions according to velocity:
     thisPosition.addScaledVector(thisVelocity, dt); // x = x + v·dt
+    const lineNodePositions = if_showTrajectory
+      ? trajectoryLines[i].geometry.attributes.position
+      : null;
     // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
     if (if_use_periodic_boundary_condition) {
-      while (thisPosition.x < -spaceBoundaryX) {
-        thisPosition.x += 2 * spaceBoundaryX;
-        if (if_showTrajectory) {
-          var lineNodePositions =
-            trajectoryLines[i].geometry.attributes.position; // fisrt, make a short-hand
-          for (var j = 0; j < maxTrajectoryLength; j++) {
-            lineNodePositions.setX(
-              j,
-              lineNodePositions.getX(j) + 2 * spaceBoundaryX
-            );
-          }
-          lineNodePositions.needsUpdate = true;
-        }
-      }
-      while (thisPosition.x > spaceBoundaryX) {
-        thisPosition.x -= 2 * spaceBoundaryX;
-        if (if_showTrajectory) {
-          var lineNodePositions =
-            trajectoryLines[i].geometry.attributes.position; // fisrt, make a short-hand
-          for (var j = 0; j < maxTrajectoryLength; j++) {
-            lineNodePositions.setX(
-              j,
-              lineNodePositions.getX(j) - 2 * spaceBoundaryX
-            );
-          }
-          lineNodePositions.needsUpdate = true;
-        }
-      }
-      while (thisPosition.y < -spaceBoundaryY) {
-        thisPosition.y += 2 * spaceBoundaryY;
-        if (if_showTrajectory) {
-          var lineNodePositions =
-            trajectoryLines[i].geometry.attributes.position; // fisrt, make a short-hand
-          for (var j = 0; j < maxTrajectoryLength; j++) {
-            lineNodePositions.setY(
-              j,
-              lineNodePositions.getY(j) + 2 * spaceBoundaryY
-            );
-          }
-          lineNodePositions.needsUpdate = true;
-        }
-      }
-      while (thisPosition.y > spaceBoundaryY) {
-        thisPosition.y -= 2 * spaceBoundaryY;
-        if (if_showTrajectory) {
-          var lineNodePositions =
-            trajectoryLines[i].geometry.attributes.position; // fisrt, make a short-hand
-          for (var j = 0; j < maxTrajectoryLength; j++) {
-            lineNodePositions.setY(
-              j,
-              lineNodePositions.getY(j) - 2 * spaceBoundaryY
-            );
-          }
-          lineNodePositions.needsUpdate = true;
-        }
-      }
-      while (thisPosition.z < -spaceBoundaryZ) {
-        thisPosition.z += 2 * spaceBoundaryZ;
-        if (if_showTrajectory) {
-          var lineNodePositions =
-            trajectoryLines[i].geometry.attributes.position; // fisrt, make a short-hand
-          for (var j = 0; j < maxTrajectoryLength; j++) {
-            lineNodePositions.setZ(
-              j,
-              lineNodePositions.getZ(j) + 2 * spaceBoundaryZ
-            );
-          }
-          lineNodePositions.needsUpdate = true;
-        }
-      }
-      while (thisPosition.z > spaceBoundaryZ) {
-        thisPosition.z -= 2 * spaceBoundaryZ;
-        if (if_showTrajectory) {
-          var lineNodePositions =
-            trajectoryLines[i].geometry.attributes.position; // fisrt, make a short-hand
-          for (var j = 0; j < maxTrajectoryLength; j++) {
-            lineNodePositions.setZ(
-              j,
-              lineNodePositions.getZ(j) - 2 * spaceBoundaryZ
-            );
-          }
-          lineNodePositions.needsUpdate = true;
-        }
-      }
+      applyPbc(
+        thisPosition,
+        lineNodePositions,
+        if_showTrajectory,
+        maxTrajectoryLength,
+        spaceBoundaryX,
+        spaceBoundaryY,
+        spaceBoundaryZ
+      );
     }
     // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user
     // update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
@@ -456,8 +384,6 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
     // update trajectories:
     if (if_showTrajectory) {
       if (time - lastSnapshotTime > snapshotDuration) {
-        // fisrt, make a short-hand:
-        var lineNodePositions = trajectoryLines[i].geometry.attributes.position;
         for (var j = 0; j < maxTrajectoryLength - 1; j++) {
           lineNodePositions.copyAt(j, lineNodePositions, j + 1);
         }
@@ -490,6 +416,89 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
     _.forEach(particleVelocities, function (velocity) {
       velocity.multiplyScalar(scaleFactor);
     });
+  }
+}
+
+function applyPbc(
+  thisPosition,
+  lineNodePositions,
+  if_showTrajectory,
+  maxTrajectoryLength,
+  spaceBoundaryX,
+  spaceBoundaryY,
+  spaceBoundaryZ
+) {
+  while (thisPosition.x < -spaceBoundaryX) {
+    thisPosition.x += 2 * spaceBoundaryX;
+    if (if_showTrajectory) {
+      for (let j = 0; j < maxTrajectoryLength; j++) {
+        lineNodePositions.setX(
+          j,
+          lineNodePositions.getX(j) + 2 * spaceBoundaryX
+        );
+      }
+      lineNodePositions.needsUpdate = true;
+    }
+  }
+  while (thisPosition.x > spaceBoundaryX) {
+    thisPosition.x -= 2 * spaceBoundaryX;
+    if (if_showTrajectory) {
+      for (let j = 0; j < maxTrajectoryLength; j++) {
+        lineNodePositions.setX(
+          j,
+          lineNodePositions.getX(j) - 2 * spaceBoundaryX
+        );
+      }
+      lineNodePositions.needsUpdate = true;
+    }
+  }
+  while (thisPosition.y < -spaceBoundaryY) {
+    thisPosition.y += 2 * spaceBoundaryY;
+    if (if_showTrajectory) {
+      for (let j = 0; j < maxTrajectoryLength; j++) {
+        lineNodePositions.setY(
+          j,
+          lineNodePositions.getY(j) + 2 * spaceBoundaryY
+        );
+      }
+      lineNodePositions.needsUpdate = true;
+    }
+  }
+  while (thisPosition.y > spaceBoundaryY) {
+    thisPosition.y -= 2 * spaceBoundaryY;
+    if (if_showTrajectory) {
+      for (let j = 0; j < maxTrajectoryLength; j++) {
+        lineNodePositions.setY(
+          j,
+          lineNodePositions.getY(j) - 2 * spaceBoundaryY
+        );
+      }
+      lineNodePositions.needsUpdate = true;
+    }
+  }
+  while (thisPosition.z < -spaceBoundaryZ) {
+    thisPosition.z += 2 * spaceBoundaryZ;
+    if (if_showTrajectory) {
+      for (let j = 0; j < maxTrajectoryLength; j++) {
+        lineNodePositions.setZ(
+          j,
+          lineNodePositions.getZ(j) + 2 * spaceBoundaryZ
+        );
+      }
+      lineNodePositions.needsUpdate = true;
+    }
+  }
+  while (thisPosition.z > spaceBoundaryZ) {
+    thisPosition.z -= 2 * spaceBoundaryZ;
+    if (if_showTrajectory) {
+      for (let j = 0; j < maxTrajectoryLength; j++) {
+        lineNodePositions.setZ(
+          j,
+          lineNodePositions.getZ(j) - 2 * spaceBoundaryZ
+        );
+      }
+      lineNodePositions.needsUpdate = true;
+    }
   }
 }
 
