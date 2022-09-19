@@ -51,44 +51,7 @@ function isVisible(el) {
   return el.offsetParent !== null;
 }
 
-/**
- * Draw a circle in the center of the canvas.
- * Credit: http://jsfiddle.net/7yDGy/1/
- */
-function generateTexture() {
-  const size = 32;
-  // create canvas
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  // get context
-  const context = canvas.getContext("2d");
-  // draw circle
-  const centerX = size / 2;
-  const centerY = size / 2;
-  const radius = size / 2;
-  context.beginPath();
-  context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-  context.fillStyle = "#fff";
-  context.fill();
-  return canvas;
-}
-
-function drawBox() {
-  boxGeometry = new THREE.BoxGeometry(
-    2 * spaceBoundaryX,
-    2 * spaceBoundaryY,
-    2 * spaceBoundaryZ
-  );
-  boxMaterial = new THREE.MeshBasicMaterial({
-    color: 0xaaaaaa,
-    wireframe: true,
-    opacity: 0.8,
-  });
-  // add this object to the scene
-  boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
-  scene.add(boxMesh);
-}
+// import { generateTexture } from "./utils.js";
 
 function addParticle(
   colorH,
@@ -218,158 +181,6 @@ function makeTrajectory(thisColor, thisPosition) {
   return new THREE.Line(thisGeometry, thisTrajectoryMaterial);
 }
 
-function createParticleSystem() {
-  // Particles are just individual vertices in a geometry
-  // Create the geometry that will hold all of the vertices
-  group = new THREE.Object3D();
-  particles = new THREE.Geometry();
-  texture = new THREE.Texture(generateTexture());
-  texture.needsUpdate = true; // important
-  particleMaterial = new THREE.PointsMaterial({
-    // http://jsfiddle.net/7yDGy/1/
-    map: texture,
-    blending: THREE.NormalBlending, // required
-    depthTest: false, // required
-    transparent: true,
-    // opacity: 0.9,
-    size: 0.3,
-    vertexColors: THREE.VertexColors,
-  });
-  particleMaterialForClones = new THREE.PointsMaterial({
-    // http://jsfiddle.net/7yDGy/1/
-    map: texture,
-    blending: THREE.NormalBlending, // required
-    depthTest: false, // required
-    transparent: true,
-    opacity: 0.3,
-    size: 0.3,
-    vertexColors: THREE.VertexColors,
-  });
-  // Create the vertices and add them to the particles geometry
-  if (loadState()) {
-    console.log("State from previous session loaded.");
-    // Initialize the particleSystem with the info stored from localStorage.
-
-    if (
-      previous_particleCount < particleCount ||
-      if_override_particleCount_setting_with_lastState
-    ) {
-      particleCountToRead = previous_particleCount;
-    } else {
-      particleCountToRead = particleCount;
-    }
-    for (var i = 0; i < particleCountToRead; i++) {
-      const tempColor = new THREE.Color();
-      tempColor.set(previous_particleColors[i]);
-      tempColorInHSL = tempColor.getHSL();
-      addParticle(
-        (colorH = tempColorInHSL.h),
-        (colorS = tempColorInHSL.s),
-        (colorL = tempColorInHSL.l),
-        (positionX = previous_particlePositions[i].x),
-        (positionY = previous_particlePositions[i].y),
-        (positionZ = previous_particlePositions[i].z),
-        (velocityX = previous_particleVelocities[i].x),
-        (velocityY = previous_particleVelocities[i].y),
-        (velocityZ = previous_particleVelocities[i].z),
-        (forceX = previous_particleForces[i].x),
-        (forceY = previous_particleForces[i].y),
-        (forceZ = previous_particleForces[i].z),
-        (thisMass = previous_particleMasses[i]),
-        (thisCharge = previous_particleCharges[i])
-      );
-    }
-    var particleCountToAdd = particleCount - previous_particleCount;
-    if (particleCountToAdd < 0) {
-      console.log(
-        "Dropping",
-        -particleCountToAdd,
-        "particles stored, since we only need",
-        particleCount,
-        "particles this time."
-      );
-    } else if (particleCountToAdd > 0) {
-      console.log(
-        "md.js will be creating only",
-        particleCountToAdd,
-        "particles from scratch, since",
-        previous_particleCount,
-        "has been loaded from previous browser session."
-      );
-    }
-    time = previous_time;
-    lastSnapshotTime = previous_lastSnapshotTime;
-  } else {
-    console.log("Creating new universe.");
-    var particleCountToAdd = particleCount;
-    console.log(
-      "md.js will be creating all",
-      particleCount,
-      "particles from scratch."
-    );
-    // create a sun:
-    if (if_makeSun) addParticle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sunMass, 0); // always make the sun the first particle, please.
-  }
-  // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
-  for (var i = particlePositions.length; i < particleCount; i++) {
-    if (if_makeSun) {
-      var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
-      var this_y = 0;
-      var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
-      var this_r = Math.sqrt(
-        this_x * this_x + this_y * this_y + this_z * this_z
-      );
-      var this_vx = 0;
-      var this_vy = Math.sqrt((G * particleMasses[0]) / this_r);
-      var this_vz = 0;
-      if (i % 2 == 0) this_vy *= -1;
-    } else {
-      var this_x = _.random(-spaceBoundaryX, spaceBoundaryX, true);
-      var this_y = _.random(-spaceBoundaryY, spaceBoundaryY, true);
-      var this_z = _.random(-spaceBoundaryZ, spaceBoundaryZ, true);
-      var this_r = Math.sqrt(
-        this_x * this_x + this_y * this_y + this_z * this_z
-      );
-      var this_vx = 0;
-      var this_vy = 0;
-      var this_vz = 0;
-    }
-    addParticle(
-      Math.random(),
-      1.0,
-      0.5,
-      this_x,
-      this_y,
-      this_z,
-      this_vx,
-      this_vy,
-      this_vz,
-      0,
-      0,
-      0,
-      _.random(16, 20, true),
-      _.sample(availableCharges)
-    );
-  }
-  particles.colors = particleColors;
-  // Create the material that will be used to render each vertex of the geometry
-  // Create the particle system
-  particleSystem = new THREE.Points(particles, particleMaterial);
-  particleSystem.position.set(0, 0, 0);
-  group.add(particleSystem);
-
-  let clone;
-  const clonePositions = makeClonePositionsList();
-  const cloneTemplate = particleSystem.clone();
-  cloneTemplate.material = particleMaterialForClones;
-  clonePositions.forEach((clonePosition) => {
-    clone = cloneTemplate.clone();
-    clone.position.set(clonePosition[0], clonePosition[1], clonePosition[2]);
-    group.add(clone);
-  });
-  return group;
-}
-
 function updateClonesPositions() {
   const clonePositions = makeClonePositionsList();
   for (i = 0; i < 26; i++) {
@@ -413,13 +224,18 @@ function makeClonePositionsList() {
 }
 
 function init() {
-  initializeGuiControls(); // enable settings
+  // enable settings
+  initializeGuiControls();
   // initialize the scene
   scene = new THREE.Scene();
   //    configure the scene:
-  if (if_useFog) scene.fog = new THREE.Fog(0xffffff, 0, 20);
+  if (if_useFog) {
+    scene.fog = new THREE.Fog(0xffffff, 0, 20);
+  }
   //    define objects:
-  if (if_showUniverseBoundary) drawBox();
+  if (if_showUniverseBoundary) {
+    drawBox(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, scene);
+  }
   scene.add(createParticleSystem());
   // initialize the camera
   camera = new THREE.PerspectiveCamera(
@@ -499,25 +315,33 @@ function applyForce(i, j, func) {
   return r; // return the calculated force for further investigation.
 }
 
-function animate() {
-  time += dt;
+function computeForces(
+  particleForces,
+  particleCount = 8,
+  if_apply_LJpotential = true,
+  if_apply_gravitation = true,
+  if_apply_coulombForce = true,
+  shouldUpdateHud = false
+) {
   // remove all forces first.
   particleForces.forEach((particleForce) => particleForce.set(0, 0, 0));
-  for (var i = 0; i < particleCount; i++) {
+  for (let i = 0; i < particleCount; i++) {
     // initialize total force counters:
-    thisLJForceStrength = 0;
-    thisGravitationForceStrength = 0;
-    thisCoulombForceStrength = 0;
+    let thisLJForceStrength = 0;
+    let thisGravitationForceStrength = 0;
+    let thisCoulombForceStrength = 0;
     // process interactions:
-    for (var j = i + 1; j < particleCount; j++) {
+    for (let j = i + 1; j < particleCount; j++) {
       // generate all forces:
       if (if_apply_LJpotential) {
         // Use Lennard-Jones potential
         // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
         // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
-        thisLJForce = applyForce(i, j, function (i, j, d) {
+        const thisLJForce = applyForce(i, j, (i, j, d) => {
           let d6 = DELTA / d;
-          if (d6 < 0.5) d6 = 0.5; // what kind of socery is this??
+          if (d6 < 0.5) {
+            d6 = 0.5; // what kind of socery is this??
+          }
           d6 = d6 * d6 * d6;
           d6 = d6 * d6;
           return 4 * EPSILON * (6 / d) * (-2 * d6 * d6 + d6);
@@ -527,7 +351,7 @@ function animate() {
       if (if_apply_gravitation) {
         // Use gravitational potential
         // -> F = GMm/(d*d) r/|r|
-        thisGravitationForce = applyForce(i, j, function (i, j, d) {
+        const thisGravitationForce = applyForce(i, j, (i, j, d) => {
           // Use d_min to prevent high potential when particles are close
           // to avoid super high accelerations in poor time resolution
           if (d < d_min) {
@@ -541,7 +365,7 @@ function animate() {
       if (if_apply_coulombForce) {
         // Use gravitational potential
         // -> F = GMm/(d*d) r/|r|
-        thisCoulombForce = applyForce(i, j, function (i, j, d) {
+        const thisCoulombForce = applyForce(i, j, (i, j, d) => {
           // Use d_min to prevent high potential when particles are close
           // to avoid super high accelerations in poor time resolution
           if (d < d_min) {
@@ -553,8 +377,10 @@ function animate() {
         thisCoulombForceStrength += thisCoulombForce.length();
       }
     }
-    if (isVisible($("#hud"))) {
-      $thisRow = $("#tabularInfo > tbody > tr:nth-child(" + (i + 1) + ")");
+    if (shouldUpdateHud) {
+      const $thisRow = $(
+        "#tabularInfo > tbody > tr:nth-child(" + (i + 1) + ")"
+      );
       $(".LJForceStrength", $thisRow).text(
         Math.round(thisLJForceStrength * 100) / 100
       );
@@ -566,22 +392,39 @@ function animate() {
       );
     }
   }
-  // statistics:
-  highestForcePresent = _.max(
-    _.map(particleForces, function (vector) {
-      return vector.length();
-    })
+}
+
+function rescaleForceScaleBar(particleForces) {
+  const highestForcePresent = _.max(
+    _.map(particleForces, (vector) => vector.length())
   );
-  arrowScaleForForces = unitArrowLength / highestForcePresent;
+  const arrowScaleForForces = unitArrowLength / highestForcePresent;
   $(".mapscale#force").width(arrowScaleForForces * 1000000);
-  highestVelocityPresent = _.max(
-    _.map(particleVelocities, function (vector) {
-      return vector.length();
-    })
+  return arrowScaleForForces;
+}
+
+function rescaleVelocityScaleBar(particleVelocities) {
+  const highestVelocityPresent = _.max(
+    _.map(particleVelocities, (vector) => vector.length())
   );
-  arrowScaleForVelocities = unitArrowLength / highestVelocityPresent;
+  const arrowScaleForVelocities = unitArrowLength / highestVelocityPresent;
   $(".mapscale#velocity").width(arrowScaleForVelocities * 10000);
-  for (var i = 0; i < particleCount; i++) {
+  return arrowScaleForVelocities;
+}
+
+function animate() {
+  time += dt;
+  computeForces(
+    particleForces,
+    particleCount,
+    if_apply_LJpotential,
+    if_apply_gravitation,
+    if_apply_coulombForce,
+    isVisible($("#hud"))
+  );
+  const arrowScaleForForces = rescaleForceScaleBar(particleForces);
+  const arrowScaleForVelocities = rescaleVelocityScaleBar(particleVelocities);
+  for (let i = 0; i < particleCount; i++) {
     // shorthands
     thisPosition = particlePositions[i];
     thisVelocity = particleVelocities[i];
@@ -768,7 +611,7 @@ function animate() {
     lastSnapshotTime = time;
   }
   if (if_ReferenceFrame_movesWithSun) {
-    for (var i in particlePositions) {
+    for (let i in particlePositions) {
       particlePositions[i].sub(particlePositions[0]);
     }
   }
@@ -856,7 +699,7 @@ $(() => {
   init();
   animate();
   // bind keyboard event:
-  document.onkeydown = function (e) {
+  document.onkeydown = (e) => {
     switch (e.keyCode) {
       case 9:
         toggleHUD();
