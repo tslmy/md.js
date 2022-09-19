@@ -18,7 +18,6 @@ function addParticle(
   thisMass,
   thisCharge,
   particles,
-  particleColors,
   particlePositions,
   particleVelocities,
   particleForces,
@@ -33,10 +32,6 @@ function addParticle(
   maxTrajectoryLength,
   trajectoryGeometries
 ) {
-  // make colors (http://jsfiddle.net/J7zp4/200/)
-  const thisColor = new THREE.Color();
-  thisColor.setHSL(colorH, colorS, colorL);
-  particleColors.push(thisColor);
   // Create the vertex
   const thisPosition = new THREE.Vector3(positionX, positionY, positionZ);
   particlePositions.push(thisPosition);
@@ -47,11 +42,12 @@ function addParticle(
     positionY,
     positionZ
   );
+  // TODO: Is BufferAttribute using HSL for color? Verify this.
   particles.attributes.color.setXYZ(
     particlePositions.length - 1,
     colorH,
-    colorL,
-    positionZ
+    colorS,
+    colorL
   );
   // make velocity
   const thisVelocity = new THREE.Vector3(velocityX, velocityY, velocityZ);
@@ -82,6 +78,13 @@ function addParticle(
   scene.add(arrow2);
   arrowForces.push(arrow2);
   // add trajectories.
+  // make colors (http://jsfiddle.net/J7zp4/200/)
+  const thisColor = new THREE.Color();
+  thisColor.setHSL(
+    particles.attributes.color.getX(particlePositions.length - 1),
+    particles.attributes.color.getY(particlePositions.length - 1),
+    particles.attributes.color.getZ(particlePositions.length - 1)
+  );
   if (if_showTrajectory) {
     const thisTrajectory = makeTrajectory(
       thisColor,
@@ -203,7 +206,6 @@ function makeTrajectory(
 
 function createParticleSystem(
   group,
-  particleColors,
   particlePositions,
   particleVelocities,
   particleForces,
@@ -265,15 +267,19 @@ function createParticleSystem(
     }
     for (let i = 0; i < particleCountToRead; i++) {
       const tempColor = new THREE.Color();
-      tempColor.set(previousState.particleColors[i]);
+      tempColor.setHSL(
+        previousState.particleColors[3 * i],
+        previousState.particleColors[3 * i + 1],
+        previousState.particleColors[3 * i + 2]
+      );
       const tempColorInHSL = tempColor.getHSL();
       addParticle(
         tempColorInHSL.h,
         tempColorInHSL.s,
         tempColorInHSL.l,
-        previousState.particlePositions[i].x,
-        previousState.particlePositions[i].y,
-        previousState.particlePositions[i].z,
+        previousState.particlePositions[3 * i],
+        previousState.particlePositions[3 * i + 1],
+        previousState.particlePositions[3 * i + 2],
         previousState.particleVelocities[i].x,
         previousState.particleVelocities[i].y,
         previousState.particleVelocities[i].z,
@@ -283,7 +289,6 @@ function createParticleSystem(
         previousState.particleMasses[i],
         previousState.particleCharges[i],
         particles,
-        particleColors,
         particlePositions,
         particleVelocities,
         particleForces,
@@ -346,7 +351,6 @@ function createParticleSystem(
         settings.sunMass,
         0,
         particles,
-        particleColors,
         particlePositions,
         particleVelocities,
         particleForces,
@@ -422,7 +426,6 @@ function createParticleSystem(
       _.random(16, 20, true),
       _.sample(settings.availableCharges),
       particles,
-      particleColors,
       particlePositions,
       particleVelocities,
       particleForces,

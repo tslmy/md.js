@@ -25,7 +25,6 @@ const ifMobileDevice =
   );
 let ifRun = true;
 let particles = [];
-const particleColors = [];
 const particlePositions = [];
 const particleForces = [];
 const particleVelocities = [];
@@ -98,7 +97,6 @@ function init(settings) {
   const group = new THREE.Object3D();
   particleSystem = createParticleSystem(
     group,
-    particleColors,
     particlePositions,
     particleVelocities,
     particleForces,
@@ -163,8 +161,8 @@ function init(settings) {
   window.onbeforeunload = () => {
     saveState({
       particleCount: settings.particleCount,
-      particleColors: particleColors,
-      particlePositions: particlePositions,
+      particleColors: particles.getAttribute("color").array,
+      particlePositions: particles.getAttribute("position").array,
       particleForces: particleForces,
       particleVelocities: particleVelocities,
       particleMasses: particleMasses,
@@ -330,6 +328,7 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
     // remove this particle from all lists:
     settings.particleCount -= 1;
     particles.attributes.color.setXYZ(i, 0, 0, 0);
+    particles.attributes.color.needsUpdate = true;
     _.forEach(particleProperties, function (array) {
       _.pullAt(array, i);
     });
