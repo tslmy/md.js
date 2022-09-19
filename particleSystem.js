@@ -18,9 +18,9 @@ const particleMaterialForClones = new THREE.PointsMaterial({
 })
 
 function addParticle (
-  colorH,
-  colorS,
-  colorL,
+  red,
+  green,
+  blue,
   positionX,
   positionY,
   positionZ,
@@ -56,12 +56,11 @@ function addParticle (
     positionY,
     positionZ
   )
-  // TODO: Is BufferAttribute using HSL for color? Verify this.
   particles.attributes.color.setXYZ(
     particlePositions.length - 1,
-    colorH,
-    colorS,
-    colorL
+    red,
+    green,
+    blue
   )
   // make velocity
   const thisVelocity = new THREE.Vector3(velocityX, velocityY, velocityZ)
@@ -95,7 +94,7 @@ function addParticle (
   if (shouldShowTrajectory) {
     // make colors (http://jsfiddle.net/J7zp4/200/)
     const thisColor = new THREE.Color()
-    thisColor.setHSL(
+    thisColor.setRGB(
       particles.attributes.color.getX(particlePositions.length - 1),
       particles.attributes.color.getY(particlePositions.length - 1),
       particles.attributes.color.getZ(particlePositions.length - 1)
@@ -113,13 +112,13 @@ function addParticle (
   $('#tabularInfo > tbody').append(
     '<tr>\
           <td class="particle" style="\
-              color: hsl(' +
-      colorH * 360 +
+              color: rgb(' +
+      red * 255 +
       ',' +
-      colorS * 100 +
-      '%,' +
-      colorL * 100 +
-      '%)">&#x2B24;</td>\
+      green * 255 +
+      ',' +
+      blue * 255 +
+      ')">&#x2B24;</td>\
           <td class="mass">' +
       Math.round(thisMass * 10) / 10 +
       '</td>\
@@ -384,8 +383,8 @@ function createParticleSystem (
     }
     addParticle(
       Math.random(),
-      1.0,
-      0.5,
+      Math.random(),
+      Math.random(),
       x,
       y,
       z,
