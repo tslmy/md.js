@@ -1,4 +1,5 @@
 # MD.js
+[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
 A JavaScript [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) simulator.
 
