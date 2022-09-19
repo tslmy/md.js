@@ -68,7 +68,18 @@ function addParticle(
   forceZ,
   thisMass,
   thisCharge,
-  particles
+  particles,
+  particleColors,
+  particlePositions,
+  particleVelocities,
+  particleForces,
+  particleMasses,
+  totalMass,
+  particleCharges,
+  scene,
+  arrowVelocities,
+  arrowForces,
+  trajectoryLines
 ) {
   // make colors (http://jsfiddle.net/J7zp4/200/)
   const thisColor = new THREE.Color();
@@ -91,22 +102,22 @@ function addParticle(
   // charge
   particleCharges.push(thisCharge);
   // add two arrows
-  var arrow = new THREE.ArrowHelper(
+  const arrow1 = new THREE.ArrowHelper(
     new THREE.Vector3(),
     new THREE.Vector3(),
     1,
     0x0055aa
   );
-  scene.add(arrow);
-  arrowVelocities.push(arrow);
-  var arrow = new THREE.ArrowHelper(
+  scene.add(arrow1);
+  arrowVelocities.push(arrow1);
+  const arrow2 = new THREE.ArrowHelper(
     new THREE.Vector3(),
     new THREE.Vector3(),
     1,
     0x555555
   );
-  scene.add(arrow);
-  arrowForces.push(arrow);
+  scene.add(arrow2);
+  arrowForces.push(arrow2);
   // add trajectories.
   if (if_showTrajectory) {
     const thisTrajectory = makeTrajectory(thisColor, thisPosition);

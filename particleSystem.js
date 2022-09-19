@@ -94,7 +94,18 @@ function createParticleSystem(group) {
         previous_particleForces[i].z,
         previous_particleMasses[i],
         previous_particleCharges[i],
-        particles
+        particles,
+        particleColors,
+        particlePositions,
+        particleVelocities,
+        particleForces,
+        particleMasses,
+        totalMass,
+        particleCharges,
+        scene,
+        arrowVelocities,
+        arrowForces,
+        trajectoryLines
       );
     }
     let particleCountToAdd = particleCount - previous_particleCount;
@@ -127,7 +138,34 @@ function createParticleSystem(group) {
     );
     // create a sun:
     if (if_makeSun)
-      addParticle(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sunMass, 0, particles); // always make the sun the first particle, please.
+      addParticle(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        sunMass,
+        0,
+        particles,
+        particleColors,
+        particlePositions,
+        particleVelocities,
+        particleForces,
+        particleMasses,
+        totalMass,
+        particleCharges,
+        scene,
+        arrowVelocities,
+        arrowForces,
+        trajectoryLines
+      ); // always make the sun the first particle, please.
   }
   // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
   for (var i = particlePositions.length; i < particleCount; i++) {
@@ -168,7 +206,18 @@ function createParticleSystem(group) {
       0,
       _.random(16, 20, true),
       _.sample(availableCharges),
-      particles
+      particles,
+      particleColors,
+      particlePositions,
+      particleVelocities,
+      particleForces,
+      particleMasses,
+      totalMass,
+      particleCharges,
+      scene,
+      arrowVelocities,
+      arrowForces,
+      trajectoryLines
     );
   }
   particles.colors = particleColors;
