@@ -15,6 +15,10 @@ Clone this repo. In a terminal, run `python -m http.server --directory .`. Go to
 
 Run `index.html`. Best viewed on a smartphone with a Google Cardboard.
 
+## Development
+
+I'm migrating this to TypeScript. Run `tsc` to compile. It reads `tsconfig.json`, which specifies that it should compile things in `src/` to `built/`, with symbols exported in the ES2020 syntax. The `index.html` will then import those modules using the ES2020 syntax.
+
 ## Plan
 
 - [ ] Start with a Three.js-based molecule viewer.

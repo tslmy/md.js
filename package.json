@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "three": "^0.144.0"
+  },
+  "devDependencies": {
+    "@types/jquery": "^3.5.14"
+  }
+}
