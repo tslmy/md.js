@@ -402,13 +402,13 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
   // update velocities according to force:
   thisVelocity.addScaledVector(particleForces[i], dt / particleMasses[i]); // v = v + f/m·dt
   const thisSpeed = thisVelocity.length(); // vector -> scalar
-  if (
+  const ifThisParticleEscaped =
     if_use_periodic_boundary_condition &&
     thisSpeed > escapeSpeed &&
     (Math.abs(thisPosition.x) >= 0.9 * spaceBoundaryX ||
       Math.abs(thisPosition.y) >= 0.9 * spaceBoundaryY ||
-      Math.abs(thisPosition.z) >= 0.9 * spaceBoundaryZ)
-  ) {
+      Math.abs(thisPosition.z) >= 0.9 * spaceBoundaryZ);
+  if (ifThisParticleEscaped) {
     console.log("Particle ", i, " escaped with speed", thisSpeed, ".");
     // remove this particle from all lists:
     particleCount -= 1;
@@ -417,9 +417,7 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
     _.forEach(particleProperties, function (array) {
       _.pullAt(array, i);
     });
-    ifThisParticleEscaped = true;
   } else {
-    ifThisParticleEscaped = false;
     // update positions according to velocity:
     thisPosition.addScaledVector(thisVelocity, dt); // x = x + v·dt
     // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
