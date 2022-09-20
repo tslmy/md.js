@@ -3,8 +3,9 @@ env:
   es2021: true
   jquery: true
 extends:
-  - "standard"
+  - "standard-ts"
 parserOptions:
   sourceType: module
 rules:
   no-multi-str: off
+  '@typescript-eslint/strict-boolean-expressions': off

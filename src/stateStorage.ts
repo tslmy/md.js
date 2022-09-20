@@ -1,4 +1,4 @@
-function dump (state) {
+function dump (state): void {
   // TODO. Not used yet.
   const textToSave = JSON.stringify(state, null, '\t')
   const hiddenElement = document.createElement('a')
@@ -10,15 +10,15 @@ function dump (state) {
 }
 
 // local storage functions:
-function save (name, obj) {
+function save (name, obj): void {
   localStorage.setItem(name, JSON.stringify(obj))
 }
 
-function saveState (state) {
+function saveState (state): void {
   save('mdJsState', state)
 }
 
-function clearState () {
+function clearState (): void {
   localStorage.removeItem('mdJsState')
   window.onbeforeunload = null
   location.reload()
@@ -37,7 +37,7 @@ let previousState = {
 }
 
 // Create the vertices and add them to the particles geometry
-function loadState () {
+function loadState (): boolean {
   console.log('Loading mdJsState...')
   const previousStateLoadedAsString = localStorage.getItem('mdJsState')
   if (previousStateLoadedAsString === undefined) {
@@ -50,7 +50,7 @@ function loadState () {
     return false
   }
   previousState = previousStateLoaded
-  console.log('Successfully loaded.')
+  console.log('Successfully loaded:', previousState)
   return true
 }
 export { dump, clearState, loadState, saveState, previousState }

@@ -45,7 +45,7 @@ function loadState () {
     return false
   }
   previousState = previousStateLoaded
-  console.log('Successfully loaded.')
+  console.log('Successfully loaded:', previousState)
   return true
 }
 export { dump, clearState, loadState, saveState, previousState }

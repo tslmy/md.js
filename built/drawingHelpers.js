@@ -1,11 +1,10 @@
 'use strict'
-
 import * as THREE from 'three'
 /**
  * Draw a circle in the center of the canvas.
  * Credit: http://jsfiddle.net/7yDGy/1/
  */
-function generateTexture (size = 32, fillStyle = '#fff'): HTMLElement {
+function generateTexture (size = 32, fillStyle = '#fff') {
   // create canvas
   const canvas = document.createElement('canvas')
   canvas.width = size
@@ -22,13 +21,8 @@ function generateTexture (size = 32, fillStyle = '#fff'): HTMLElement {
   context.fill()
   return canvas
 }
-
-function drawBox (spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, scene): THREE.Mesh {
-  const boxGeometry = new THREE.BoxGeometry(
-    2 * spaceBoundaryX,
-    2 * spaceBoundaryY,
-    2 * spaceBoundaryZ
-  )
+function drawBox (spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, scene) {
+  const boxGeometry = new THREE.BoxGeometry(2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ)
   const boxMaterial = new THREE.MeshBasicMaterial({
     color: 0xaaaaaa,
     wireframe: true,
@@ -39,5 +33,4 @@ function drawBox (spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, scene): THREE.
   scene.add(boxMesh)
   return boxMesh
 }
-
 export { generateTexture, drawBox }

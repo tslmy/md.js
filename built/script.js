@@ -1,5 +1,5 @@
 import { settings, originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ } from './settings.js'
-import { drawBox } from './drawing_helpers.js'
+import { drawBox } from './drawingHelpers.js'
 import { saveState, clearState } from './stateStorage.js'
 import _ from 'lodash'
 import * as THREE from 'three'
