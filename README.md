@@ -1,13 +1,43 @@
-# MD.js
+# MolacularDynamics.js
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+![ts](https://badgen.net/badge/-/TypeScript/blue?icon=typescript&label)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
-A JavaScript [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) simulator.
+A toy [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) simulator in the browser.
 
-Now in 3D.
-
-## Screenshots
+## Demo
 
 ![](https://media0.giphy.com/media/boyW0pDMJDWqyLv96Z/giphy.gif)
+
+You may soon realize that some particles are opaque, while some are semi-transparent. The opaque particles are the "real" entities, while the semi-transparent ones are "images" of their opaque counterparts when PBCs are enabled. They serve for illustrative purposes only.
+
+There is a particle lying at the center of the space that never moves. I call this **the "sun"**, and it may represent the nuclear of the molecule you are looking at. It appears fixed only because the camera moves along with it. To see how it may move in the space under the influence of its "satellites", turn off "Center the sun" under "Plotting" in the control pane. To kick it up a notch, you can even disable this "sun" and see just those smaller particles evolving into chaos.
+
+As particles approach and leave each other, you'll see arrows sticking out of each. That's the combined force that the particles are feeling from all the other particles. Configurations for them are under "Arrows for forces and velocities" pane.
+
+
+## Features
+
+Simulates the interactions between several points of mass.
+
+You can choose to apply a number of **forcefields**:
+* [LJ potential](https://en.wikipedia.org/wiki/Lennard-Jones_potential)
+* [Gravitation](https://en.wikipedia.org/wiki/Gravity)
+* [Coulomb (electrostatic) force](https://en.wikipedia.org/wiki/Coulomb%27s_law)
+
+[**Periodic boundary conditions** (PBCs)](https://en.wikipedia.org/wiki/Periodic_boundary_conditions) are also supported. You can customize the size of the "universe" in all 3 dimensions (deliminated with a grey wireframe box). You can also choose to disable PBCs, in which case you will almost immediately notice particles fleeing the boundary.
+
+Disabled by default, you can choose to maintain the world at a **constant temperature**.
+
+The simulation is very **tweakable** -- even basic physical constants (G, K, delta, epsilon, etc.) are tweakable, making this tool a great toy to fiddle with. See the screenshot below for parameters that you can turn in real time:
+
+<img width="206" alt="image" src="https://user-images.githubusercontent.com/594058/191142550-9e44a37a-c0bf-4cad-b59b-2cdf1497315e.png">
+
+### Controlling the camera
+
+Drag long to rotate your camera. If you run this in a VR headset -- for example, a Google Cardboard, which I used years ago when I first added this feature -- just move your head.
+
+Scroll to zoom. Use arrow keys to pan.
 
 ## Usage
 
