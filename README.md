@@ -43,8 +43,6 @@ Scroll to zoom. Use arrow keys to pan.
 
 ## Usage
 
-This app itself does not use a package manager to work -- All the dependencies are imported using the [ECMAScript Module](https://hacks.mozilla.org/2018/03/es-modules-a-cartoon-deep-dive/) approach. However, it does require an actual server instead of using the `files://` protocol, for the same reason.
-
 You can play with it immediately by going to [mdjs.netlify.app](https://mdjs.netlify.app/).
 
 Alternatively, you can run it locally:
@@ -57,11 +55,15 @@ Best viewed on a smartphone with a Google Cardboard.
 
 ## Development
 
+### Package Management
+
 I'm migrating this to TypeScript. Run `tsc` to compile. It reads `tsconfig.json`, which specifies that it should compile things in `src/` to `built/`, with symbols exported in the ES2020 syntax. The `index.html` will then import those modules using the ES2020 syntax.
 
+The `package.json` -- used by the [NodeJS Package Manager](https://docs.npmjs.com/cli/v8/configuring-npm/package-json) -- is only for the TypeScript compiler to be able to resolve types from dependencies. This app itself does not use a package manager to work -- All the dependencies are imported using the [ECMAScript Module](https://hacks.mozilla.org/2018/03/es-modules-a-cartoon-deep-dive/) approach. However, it does require an actual server instead of using the `files://` protocol, for the same reason.
 
+### Pre-commit hooks
 
-The 
+This repo uses pre-commit hooks to automate several house-keeping chores.
 
 ## Plan
 
