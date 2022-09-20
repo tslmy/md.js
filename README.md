@@ -3,6 +3,7 @@
 ![ts](https://badgen.net/badge/-/TypeScript/blue?icon=typescript&label)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/tslmy/md.js/main.svg)](https://results.pre-commit.ci/latest/github/tslmy/md.js/main)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/4b928847-32c8-456a-912d-f502d3e3c2c0/deploy-status)](https://app.netlify.com/sites/mdjs/deploys)
 
 A toy [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) simulator in the browser.
 
@@ -42,13 +43,25 @@ Scroll to zoom. Use arrow keys to pan.
 
 ## Usage
 
-Clone this repo. In a terminal, run `python -m http.server --directory .`. Go to `http://127.0.0.1:8000/`.
+This app itself does not use a package manager to work -- All the dependencies are imported using the [ECMAScript Module](https://hacks.mozilla.org/2018/03/es-modules-a-cartoon-deep-dive/) approach. However, it does require an actual server instead of using the `files://` protocol, for the same reason.
 
-Run `index.html`. Best viewed on a smartphone with a Google Cardboard.
+You can play with it immediately by going to [mdjs.netlify.app](https://mdjs.netlify.app/).
+
+Alternatively, you can run it locally:
+
+1. Clone this repo.
+2. In a terminal, run `python -m http.server --directory .`.
+3. Go to `http://127.0.0.1:8000/`.
+
+Best viewed on a smartphone with a Google Cardboard.
 
 ## Development
 
 I'm migrating this to TypeScript. Run `tsc` to compile. It reads `tsconfig.json`, which specifies that it should compile things in `src/` to `built/`, with symbols exported in the ES2020 syntax. The `index.html` will then import those modules using the ES2020 syntax.
+
+
+
+The 
 
 ## Plan
 
