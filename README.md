@@ -2,6 +2,7 @@
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 ![ts](https://badgen.net/badge/-/TypeScript/blue?icon=typescript&label)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/tslmy/md.js/main.svg)](https://results.pre-commit.ci/latest/github/tslmy/md.js/main)
 
 A toy [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) simulator in the browser.
 
