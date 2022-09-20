@@ -14,6 +14,7 @@ const particleMaterialForClones = new THREE.PointsMaterial({
   size: 0.3,
   vertexColors: true
 })
+const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength']
 function addParticle (color, position, velocity, force, thisMass, thisCharge, particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, shouldShowTrajectory, trajectoryLines, maxTrajectoryLength, trajectoryGeometries) {
   // Create the vertex
   particlePositions.push(position)
@@ -57,54 +58,41 @@ function addParticle (color, position, velocity, force, thisMass, thisCharge, pa
   chargeColumn.classList.add('mass')
   chargeColumn.innerText = `${Math.round(thisCharge * 10) / 10}`
   tableRow.appendChild(chargeColumn)
-  const speedColumn = document.createElement('td')
-  speedColumn.classList.add('speed')
-  tableRow.appendChild(speedColumn)
-  const kineticEnergyColumn = document.createElement('td')
-  kineticEnergyColumn.classList.add('kineticEnergy')
-  tableRow.appendChild(kineticEnergyColumn)
-  const LJForceStrengthColumn = document.createElement('td')
-  LJForceStrengthColumn.classList.add('LJForceStrength')
-  tableRow.appendChild(LJForceStrengthColumn)
-  const GravitationForceStrengthColumn = document.createElement('td')
-  GravitationForceStrengthColumn.classList.add('GravitationForceStrength')
-  tableRow.appendChild(GravitationForceStrengthColumn)
-  const CoulombForceStrengthColumn = document.createElement('td')
-  CoulombForceStrengthColumn.classList.add('CoulombForceStrength')
-  tableRow.appendChild(CoulombForceStrengthColumn)
-  const TotalForceStrengthColumn = document.createElement('td')
-  TotalForceStrengthColumn.classList.add('TotalForceStrength')
-  tableRow.appendChild(TotalForceStrengthColumn)
+  for (const columnName of columnNames) {
+    const column = document.createElement('td')
+    column.classList.add(columnName)
+    tableRow.appendChild(column)
+  }
   $('#tabularInfo > tbody').append(tableRow)
 }
-function makeClonePositionsList (spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ) {
+function makeClonePositionsList (x, y, z) {
   return [
-    [2 * spaceBoundaryX, 0, 0],
-    [-2 * spaceBoundaryX, 0, 0],
-    [0, 2 * spaceBoundaryY, 0],
-    [0, -2 * spaceBoundaryY, 0],
-    [0, 0, 2 * spaceBoundaryZ],
-    [0, 0, -2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
-    [0, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [0, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [0, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [0, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
-    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
-    [2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
-    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
-    [2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ]
+    [2 * x, 0, 0],
+    [-2 * x, 0, 0],
+    [0, 2 * y, 0],
+    [0, -2 * y, 0],
+    [0, 0, 2 * z],
+    [0, 0, -2 * z],
+    [2 * x, 0, 2 * z],
+    [-2 * x, 0, 2 * z],
+    [2 * x, 0, -2 * z],
+    [-2 * x, 0, -2 * z],
+    [0, 2 * y, 2 * z],
+    [0, -2 * y, 2 * z],
+    [0, 2 * y, -2 * z],
+    [0, -2 * y, -2 * z],
+    [2 * x, 2 * y, 0],
+    [-2 * x, 2 * y, 0],
+    [2 * x, -2 * y, 0],
+    [-2 * x, -2 * y, 0],
+    [2 * x, 2 * y, 2 * z],
+    [-2 * x, 2 * y, 2 * z],
+    [2 * x, -2 * y, 2 * z],
+    [-2 * x, -2 * y, 2 * z],
+    [2 * x, 2 * y, -2 * z],
+    [-2 * x, 2 * y, -2 * z],
+    [2 * x, -2 * y, -2 * z],
+    [-2 * x, -2 * y, -2 * z]
   ]
 }
 /**

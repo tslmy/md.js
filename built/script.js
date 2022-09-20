@@ -1,29 +1,18 @@
-import { settings, originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ } from './settings.js'
-import { drawBox } from './drawingHelpers.js'
-import { saveState, clearState } from './stateStorage.js'
+import { settings } from './settings.js'
+import { init, ifMobileDevice } from './init.js'
 import _ from 'lodash'
 import * as THREE from 'three'
-import { OrbitControls } from 'OrbitControls'
-import { DeviceOrientationControls } from 'DeviceOrientationControls'
-import Stats from 'Stats'
-import { StereoEffect } from 'StereoEffect'
-import * as dat from 'dat.gui'
-import { createParticleSystem, makeClonePositionsList, particleMaterialForClones } from './particleSystem.js'
+import { makeClonePositionsList } from './particleSystem.js'
 // global variables
 let camera
 let scene
 let renderer
 let effect
 let controls
-let element
-let container
 let temperaturePanel
 let stats
-let boxMesh
 let maxTemperature = 0
 let particleSystem
-const ifMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-let particles = []
 const particlePositions = []
 const particleForces = []
 const particleVelocities = []
@@ -46,194 +35,11 @@ const particleProperties = [
 ]
 let time = 0
 let lastSnapshotTime = 0
-const snapshotDuration = settings.dt
 /**
  * el: the DOM element you'd like to test for visibility.
  */
 function isVisible (el) {
   return el.offsetParent !== null
-}
-function updateClonesPositions (spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, group) {
-  const clonePositions = makeClonePositionsList(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ)
-  for (let i = 0; i < 26; i++) {
-    group.children[i + 1].position.set(clonePositions[i][0], clonePositions[i][1], clonePositions[i][2])
-  }
-}
-function initializeGuiControls (settings, group) {
-  // Enable the GUI Controls powered by "dat.gui.min.js":
-  const gui = new dat.GUI()
-  const guiFolderWorld = gui.addFolder('World building')
-  guiFolderWorld.add(settings, 'if_constant_temperature').name('Constant T')
-  guiFolderWorld.add(settings, 'targetTemperature').name('Target temp.')
-  const guiFolderParameters = guiFolderWorld.addFolder('Parameters') // toggles for parameters:
-  guiFolderParameters.add(settings, 'particleCount')
-  guiFolderParameters.add(settings, 'dt')
-  const guiFolderConstants = guiFolderWorld.addFolder('Physical Constants') // physical constants -- be the god!
-  guiFolderConstants.add(settings, 'EPSILON')
-  guiFolderConstants.add(settings, 'DELTA')
-  guiFolderConstants.add(settings, 'G')
-  guiFolderConstants.add(settings, 'K')
-  const guiFolderBoundary = guiFolderWorld.addFolder('Universe boundary')
-  guiFolderBoundary.add(settings, 'if_showUniverseBoundary')
-  guiFolderBoundary
-    .add(settings, 'if_use_periodic_boundary_condition')
-    .name('Use PBC')
-    .onChange((value) => {
-      particleMaterialForClones.visible = value
-    })
-  const guiFolderSize = guiFolderBoundary.addFolder('Custom size')
-  guiFolderSize
-    .add(settings, 'spaceBoundaryX')
-    .name('Size, X')
-    .onChange(function (value) {
-      if (boxMesh) {
-        boxMesh.scale.x = settings.spaceBoundaryX / originalSpaceBoundaryX
-      }
-      updateClonesPositions(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ, group)
-    })
-  guiFolderSize
-    .add(settings, 'spaceBoundaryY')
-    .name('Size, Y')
-    .onChange(function (value) {
-      if (boxMesh) {
-        boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY
-      }
-      updateClonesPositions(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ, group)
-    })
-  guiFolderSize
-    .add(settings, 'spaceBoundaryZ')
-    .name('Size, Z')
-    .onChange(function (value) {
-      if (boxMesh) {
-        boxMesh.scale.z = settings.spaceBoundaryZ / originalSpaceBoundaryZ
-      }
-      updateClonesPositions(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ, group)
-    })
-  const guiFolderForces = guiFolderWorld.addFolder('Forcefields to apply')
-  guiFolderForces.add(settings, 'if_apply_LJpotential').name('LJ potential')
-  guiFolderForces.add(settings, 'if_apply_gravitation').name('Gravitation')
-  guiFolderForces.add(settings, 'if_apply_coulombForce').name('Coulomb Force')
-  guiFolderWorld.open()
-  const guiFolderPlotting = gui.addFolder('Plotting') // toggles for Plotting:
-  // guiFolderPlotting.add(settings, "if_override_particleCount_setting_with_lastState").name("");
-  guiFolderPlotting
-    .add(settings, 'if_ReferenceFrame_movesWithSun')
-    .name('Center the sun')
-    // guiFolderPlotting.add(settings, "if_makeSun");
-    // guiFolderPlotting.add(settings, "if_useFog");
-  const guiFolderTrajectories = guiFolderPlotting.addFolder('Particle trajectories')
-  guiFolderTrajectories.add(settings, 'if_showTrajectory').name('Trace')
-  guiFolderTrajectories
-    .add(settings, 'maxTrajectoryLength')
-    .name('Length')
-    .onChange(function (value) { }) // TODO
-  const guiFolderArrows = guiFolderPlotting.addFolder('Arrows for forces and velocities')
-  guiFolderArrows
-    .add(settings, 'if_showArrows')
-    .name('Show arrows')
-    .onChange(function (value) {
-      _.each(arrowForces, function (a) {
-        a.visible = value
-      })
-      _.each(arrowVelocities, function (a) {
-        a.visible = value
-      })
-    })
-  guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length')
-  guiFolderArrows.add(settings, 'maxArrowLength').name('Max length')
-  guiFolderArrows.add(settings, 'unitArrowLength').name('Unit length')
-  guiFolderArrows
-    .add(settings, 'if_showMapscale')
-    .name('Show scales')
-    .onChange(function (value) {
-      $('.mapscale').toggle()
-    })
-  guiFolderArrows
-    .add(settings, 'if_proportionate_arrows_with_vectors')
-    .name('Proportionate arrows with vectors')
-  guiFolderPlotting.open()
-  const guiFolderCommands = gui.addFolder('Commands') // controls, buttons
-  guiFolderCommands.add(commands, 'clearState').name('New world')
-  guiFolderCommands.add(commands, 'stop').name('Halt')
-  gui.add(commands, 'toggleHUD').name('Show Detail HUD')
-  guiFolderCommands.open()
-  gui.remember(this)
-  gui.close()
-}
-const commands = {
-  stop: () => {
-    settings.ifRun = false
-  },
-  toggleHUD: function () {
-    $('#hud').toggle()
-  },
-  clearState
-}
-function init (settings) {
-  // initialize the scene
-  scene = new THREE.Scene()
-  //    configure the scene:
-  if (settings.if_useFog) {
-    scene.fog = new THREE.Fog(0xffffff, 0, 20)
-  }
-  //    define objects:
-  if (settings.if_showUniverseBoundary) {
-    boxMesh = drawBox(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ, scene)
-  }
-  const group = new THREE.Object3D()
-  particleSystem = createParticleSystem(group, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime, settings)
-  particles = particleSystem.geometry
-  scene.add(group)
-  // enable settings
-  initializeGuiControls(settings, group)
-  // initialize the camera
-  camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 1000000)
-  camera.position.set(0, 2, 10)
-  scene.add(camera)
-  // initialize renderer
-  renderer = new THREE.WebGLRenderer({
-    alpha: true
-  })
-  renderer.setSize(window.innerWidth, window.innerHeight)
-  renderer.setPixelRatio(4) // enhance resolution
-  if (ifMobileDevice) { effect = new StereoEffect(renderer) }
-  element = renderer.domElement
-  container = document.body
-  container.appendChild(element)
-  // activate plugins:
-  controls = new OrbitControls(camera, element) // this is for non-VR devices
-  function setOrientationControls (e) {
-    if (!e.alpha) {
-      return
-    }
-    controls = new DeviceOrientationControls(camera, true)
-    controls.connect()
-    controls.update()
-    element.addEventListener('click', fullscreen, false)
-    window.removeEventListener('deviceorientation', setOrientationControls, true)
-  }
-  window.addEventListener('deviceorientation', setOrientationControls, true)
-  // add stat
-  stats = new Stats()
-  temperaturePanel = stats.addPanel(new Stats.Panel('Temp.', '#ff8', '#221'))
-  stats.showPanel(2)
-  container.append(stats.domElement)
-  // add event listeners
-  window.addEventListener('resize', resize, false)
-  setTimeout(resize, 1)
-  window.onbeforeunload = () => {
-    saveState({
-      particleCount: settings.particleCount,
-      particleColors: particles.getAttribute('color').array,
-      particlePositions: particles.getAttribute('position').array,
-      particleForces,
-      particleVelocities,
-      particleMasses,
-      particleCharges,
-      time,
-      lastSnapshotTime
-    })
-  }
 }
 function applyForce (i, j, func) {
   const thisPosition = particlePositions[i]
@@ -359,15 +165,15 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
     console.log('Particle ', i, ' escaped with speed', thisSpeed, '.')
     // remove this particle from all lists:
     settings.particleCount -= 1
-    particles.attributes.color.setXYZ(i, 0, 0, 0)
-    particles.attributes.color.needsUpdate = true
+    particleSystem.geometry.attributes.color.setXYZ(i, 0, 0, 0)
+    particleSystem.geometry.attributes.color.needsUpdate = true
     _.forEach(particleProperties, function (array) {
       _.pullAt(array, i)
     })
   } else {
     // update positions according to velocity:
     thisPosition.addScaledVector(thisVelocity, settings.dt) // x = x + v·dt
-    particles.attributes.position.setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z)
+    particleSystem.geometry.attributes.position.setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z)
     const trajectoryPositions = settings.if_showTrajectory
       ? trajectoryLines[i].geometry.attributes.position
       : null
@@ -394,7 +200,7 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
     }
     // update trajectories:
     if (settings.if_showTrajectory) {
-      if (time - lastSnapshotTime > settings.snapshotDuration) {
+      if (time - lastSnapshotTime > settings.dt) {
         for (let j = 0; j < settings.maxTrajectoryLength - 1; j++) {
           trajectoryPositions.copyAt(j, trajectoryPositions, j + 1)
         }
@@ -483,7 +289,7 @@ function animate () {
     animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities)
   }
   if (settings.if_showTrajectory &&
-        time - lastSnapshotTime > snapshotDuration) {
+        time - lastSnapshotTime > settings.dt) {
     lastSnapshotTime = time
   }
   if (settings.if_ReferenceFrame_movesWithSun) {
@@ -495,7 +301,7 @@ function animate () {
   // flag to the particle system that we've changed its vertices.
   particleSystem.geometry.attributes.position.needsUpdate = true
   // draw this frame
-  statistics()
+  statistics(temperaturePanel, maxTemperature)
   update()
   render()
   // set up the next call
@@ -503,14 +309,6 @@ function animate () {
     requestAnimationFrame(animate)
   }
   stats.update()
-}
-function resize () {
-  const width = container.offsetWidth
-  const height = container.offsetHeight
-  camera.aspect = width / height
-  camera.updateProjectionMatrix()
-  renderer.setSize(width, height)
-  if (ifMobileDevice) { effect.setSize(width, height) }
 }
 function calculateTemperature () {
   let temperature = 0
@@ -526,7 +324,7 @@ function calculateTemperature () {
   }
   return temperature
 }
-function statistics () {
+function statistics (temperaturePanel, maxTemperature) {
   const temperature = calculateTemperature()
   temperaturePanel.update(temperature, maxTemperature)
 }
@@ -542,21 +340,17 @@ function render () {
     renderer.render(scene, camera)
   }
 }
-function fullscreen () {
-  if (container.requestFullscreen) {
-    container.requestFullscreen()
-  } else if (container.msRequestFullscreen) {
-    container.msRequestFullscreen()
-  } else if (container.mozRequestFullScreen) {
-    container.mozRequestFullScreen()
-  } else if (container.webkitRequestFullscreen) {
-    container.webkitRequestFullscreen()
-  }
-}
 // when document is ready:
 $(() => {
   console.log('Ready.')
-  init(settings)
+  const values = init(settings, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime)
+  scene = values[0]
+  particleSystem = values[1]
+  camera = values[2]
+  renderer = values[3]
+  controls = values[4]
+  stats = values[5]
+  temperaturePanel = values[6]
   animate()
   // bind keyboard event:
   document.onkeydown = (e) => {

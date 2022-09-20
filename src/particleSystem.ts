@@ -15,14 +15,16 @@ const particleMaterialForClones = new THREE.PointsMaterial({
   vertexColors: true
 })
 
+const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength']
+
 function addParticle (
   color: THREE.Color,
   position: THREE.Vector3,
   velocity: THREE.Vector3,
   force: THREE.Vector3,
-  thisMass,
-  thisCharge,
-  particles,
+  thisMass: number,
+  thisCharge: number,
+  particles: THREE.BufferGeometry,
   particlePositions,
   particleVelocities,
   particleForces,
@@ -33,7 +35,7 @@ function addParticle (
   arrowForces,
   shouldShowTrajectory,
   trajectoryLines,
-  maxTrajectoryLength,
+  maxTrajectoryLength: number,
   trajectoryGeometries
 ): void {
   // Create the vertex
@@ -102,59 +104,46 @@ function addParticle (
   chargeColumn.classList.add('mass')
   chargeColumn.innerText = `${Math.round(thisCharge * 10) / 10}`
   tableRow.appendChild(chargeColumn)
-  const speedColumn = document.createElement('td')
-  speedColumn.classList.add('speed')
-  tableRow.appendChild(speedColumn)
-  const kineticEnergyColumn = document.createElement('td')
-  kineticEnergyColumn.classList.add('kineticEnergy')
-  tableRow.appendChild(kineticEnergyColumn)
-  const LJForceStrengthColumn = document.createElement('td')
-  LJForceStrengthColumn.classList.add('LJForceStrength')
-  tableRow.appendChild(LJForceStrengthColumn)
-  const GravitationForceStrengthColumn = document.createElement('td')
-  GravitationForceStrengthColumn.classList.add('GravitationForceStrength')
-  tableRow.appendChild(GravitationForceStrengthColumn)
-  const CoulombForceStrengthColumn = document.createElement('td')
-  CoulombForceStrengthColumn.classList.add('CoulombForceStrength')
-  tableRow.appendChild(CoulombForceStrengthColumn)
-  const TotalForceStrengthColumn = document.createElement('td')
-  TotalForceStrengthColumn.classList.add('TotalForceStrength')
-  tableRow.appendChild(TotalForceStrengthColumn)
+  for (const columnName of columnNames) {
+    const column = document.createElement('td')
+    column.classList.add(columnName)
+    tableRow.appendChild(column)
+  }
   $('#tabularInfo > tbody').append(tableRow)
 }
 
 function makeClonePositionsList (
-  spaceBoundaryX,
-  spaceBoundaryY,
-  spaceBoundaryZ
+  x,
+  y,
+  z
 ): number[][] {
   return [
-    [2 * spaceBoundaryX, 0, 0],
-    [-2 * spaceBoundaryX, 0, 0],
-    [0, 2 * spaceBoundaryY, 0],
-    [0, -2 * spaceBoundaryY, 0],
-    [0, 0, 2 * spaceBoundaryZ],
-    [0, 0, -2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 0, 2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 0, -2 * spaceBoundaryZ],
-    [0, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [0, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [0, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [0, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
-    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 0],
-    [2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
-    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 0],
-    [2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, 2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, 2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ],
-    [-2 * spaceBoundaryX, -2 * spaceBoundaryY, -2 * spaceBoundaryZ]
+    [2 * x, 0, 0],
+    [-2 * x, 0, 0],
+    [0, 2 * y, 0],
+    [0, -2 * y, 0],
+    [0, 0, 2 * z],
+    [0, 0, -2 * z],
+    [2 * x, 0, 2 * z],
+    [-2 * x, 0, 2 * z],
+    [2 * x, 0, -2 * z],
+    [-2 * x, 0, -2 * z],
+    [0, 2 * y, 2 * z],
+    [0, -2 * y, 2 * z],
+    [0, 2 * y, -2 * z],
+    [0, -2 * y, -2 * z],
+    [2 * x, 2 * y, 0],
+    [-2 * x, 2 * y, 0],
+    [2 * x, -2 * y, 0],
+    [-2 * x, -2 * y, 0],
+    [2 * x, 2 * y, 2 * z],
+    [-2 * x, 2 * y, 2 * z],
+    [2 * x, -2 * y, 2 * z],
+    [-2 * x, -2 * y, 2 * z],
+    [2 * x, 2 * y, -2 * z],
+    [-2 * x, 2 * y, -2 * z],
+    [2 * x, -2 * y, -2 * z],
+    [-2 * x, -2 * y, -2 * z]
   ]
 }
 
@@ -163,10 +152,10 @@ function makeClonePositionsList (
  * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
  */
 function makeTrajectory (
-  thisColor,
-  thisPosition,
-  maxTrajectoryLength,
-  trajectoryGeometries
+  thisColor: THREE.Color,
+  thisPosition: THREE.Vector3,
+  maxTrajectoryLength: number,
+  trajectoryGeometries: THREE.BufferGeometry[]
 ): THREE.Line {
   const thisGeometry = new THREE.BufferGeometry()
   const white = new THREE.Color('#FFFFFF')
