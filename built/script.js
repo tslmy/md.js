@@ -204,7 +204,7 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
         for (let j = 0; j < settings.maxTrajectoryLength - 1; j++) {
           trajectoryPositions.copyAt(j, trajectoryPositions, j + 1)
         }
-        trajectoryPositions.setXYZ(i, particlePositions[i].x, particlePositions[i].y, particlePositions[i].z)
+        trajectoryPositions.setXYZ(settings.maxTrajectoryLength - 1, particlePositions[i].x, particlePositions[i].y, particlePositions[i].z)
         trajectoryPositions.needsUpdate = true
       }
     }
