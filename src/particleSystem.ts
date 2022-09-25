@@ -138,6 +138,7 @@ function addParticle (
     forceArrow,
     thisTrajectory
   )
+  particles.push(particle)
 
   // Make the HUD table.
   const tableRow = document.createElement('tr')

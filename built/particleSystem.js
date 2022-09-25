@@ -58,6 +58,7 @@ function addParticle (color, position, velocity, force, thisMass, thisCharge, pa
     scene.add(thisTrajectory)
   }
   const particle = new Particle(color, position, force, velocity, thisMass, thisCharge, velocityArrow, forceArrow, thisTrajectory)
+  particles.push(particle)
   // Make the HUD table.
   const tableRow = document.createElement('tr')
   const particleColumn = document.createElement('td')

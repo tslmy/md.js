@@ -37,6 +37,7 @@ function init (settings, particles, particlePositions, particleVelocities, parti
   const particleSystem = createParticleSystem(group, particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime, settings)
   const particlesGeometry = particleSystem.geometry
   scene.add(group)
+  console.log(particles)
   // enable settings
   initializeGuiControls(settings, group)
   // initialize the camera

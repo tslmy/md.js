@@ -83,7 +83,7 @@ function init (settings,
   )
   const particlesGeometry = particleSystem.geometry
   scene.add(group)
-
+  console.log(particles)
   // enable settings
   initializeGuiControls(settings, group)
   // initialize the camera

@@ -24,6 +24,7 @@ const arrowForces = []
 const trajectoryGeometries = []
 const trajectoryLines = []
 const particleProperties = [
+  particles,
   particlePositions,
   particleVelocities,
   particleForces,
@@ -42,9 +43,9 @@ let lastSnapshotTime = 0
 function isVisible (el) {
   return el.offsetParent !== null
 }
-function applyForce (i, j, func) {
-  const thisPosition = particlePositions[i]
-  const thatPosition = particlePositions[j]
+function applyForce (particles, i, j, func) {
+  const thisPosition = particles[i].position
+  const thatPosition = particles[j].position
   const rOriginal = new THREE.Vector3().subVectors(thisPosition, thatPosition) // relative displacement
   let r
   let clonePositions
@@ -67,13 +68,13 @@ function applyForce (i, j, func) {
     const d = r.length() // calculate distance between particles i and j (with j may being a clone)
     if (d < settings.cutoffDistance) {
       r.setLength(func(i, j, d)) // use calculated "force strength" as vector length
-      particleForces[i].sub(r)
-      particleForces[j].add(r)
+      particles[i].force.sub(r)
+      particles[j].force.add(r)
     }
   }
   return r // return the calculated force for further investigation.
 }
-function computeForces (particleForces, particleCount = 8, shouldUpdateHud = false) {
+function computeForces (particles, particleCount = 8, shouldUpdateHud = false) {
   // remove all forces first.
   particleForces.forEach((particleForce) => particleForce.set(0, 0, 0))
   for (let i = 0; i < particleCount; i++) {
@@ -88,7 +89,7 @@ function computeForces (particleForces, particleCount = 8, shouldUpdateHud = fal
         // Use Lennard-Jones potential
         // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
         // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
-        const thisLJForce = applyForce(i, j, (i, j, d) => {
+        const thisLJForce = applyForce(particles, i, j, (i, j, d) => {
           let d6 = settings.DELTA / d
           if (d6 < 0.5) {
             d6 = 0.5 // what kind of socery is this??
@@ -102,28 +103,28 @@ function computeForces (particleForces, particleCount = 8, shouldUpdateHud = fal
       if (settings.if_apply_gravitation) {
         // Use gravitational potential
         // -> F = GMm/(d*d) r/|r|
-        const thisGravitationForce = applyForce(i, j, (i, j, d) => {
+        const thisGravitationForce = applyForce(particles, i, j, (i, j, d) => {
           // Use d_min to prevent high potential when particles are close
           // to avoid super high accelerations in poor time resolution
           if (d < settings.d_min) {
             console.log('particle', i, ',', j, 'too near for gravitation.')
             d = settings.d_min
           }
-          return (settings.G * particleMasses[i] * particleMasses[j]) / (d * d)
+          return (settings.G * particles[i].mass * particles[j].mass) / (d * d)
         })
         thisGravitationForceStrength += thisGravitationForce.length()
       }
       if (settings.if_apply_coulombForce) {
         // Use gravitational potential
         // -> F = GMm/(d*d) r/|r|
-        const thisCoulombForce = applyForce(i, j, (i, j, d) => {
+        const thisCoulombForce = applyForce(particles, i, j, (i, j, d) => {
           // Use d_min to prevent high potential when particles are close
           // to avoid super high accelerations in poor time resolution
           if (d < settings.d_min) {
             console.log('particle', i, ',', j, 'too near for coulomb force.')
             d = settings.d_min
           }
-          return ((-settings.K * particleCharges[i] * particleCharges[j]) / (d * d))
+          return ((-settings.K * particles[i].charge * particles[j].charge) / (d * d))
         })
         thisCoulombForceStrength += thisCoulombForce.length()
       }
@@ -150,12 +151,12 @@ function rescaleVelocityScaleBar (particleVelocities) {
 }
 function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
   // shorthands
-  const thisPosition = particlePositions[i]
-  const thisVelocity = particleVelocities[i]
-  const thisMass = particleMasses[i]
+  const thisPosition = particles[i].position
+  const thisVelocity = particles[i].velocity
+  const thisMass = particles[i].mass
   // ======================== now update eveything user could see ========================
   // update velocities according to force:
-  thisVelocity.addScaledVector(particleForces[i], settings.dt / particleMasses[i]) // v = v + f/m·dt
+  thisVelocity.addScaledVector(particles[i].force, settings.dt / particles[i].mass) // v = v + f/m·dt
   const thisSpeed = thisVelocity.length() // vector -> scalar
   const ifThisParticleEscaped = settings.if_use_periodic_boundary_condition &&
         thisSpeed > settings.escapeSpeed &&
@@ -196,8 +197,8 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
       arrow.setDirection(new THREE.Vector3().copy(vector).normalize())
     }
     if (settings.if_showArrows) {
-      updateArrow(arrowVelocities[i], particlePositions[i], particleVelocities[i], arrowScaleForForces)
-      updateArrow(arrowForces[i], particlePositions[i], particleForces[i], arrowScaleForVelocities)
+      updateArrow(particles[i].velocityArrow, particles[i].position, particles[i].velocity, arrowScaleForForces)
+      updateArrow(particles[i].forceArrow, particles[i].position, particles[i].force, arrowScaleForVelocities)
     }
     // update trajectories:
     if (settings.if_showTrajectory) {
@@ -205,7 +206,7 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
         for (let j = 0; j < settings.maxTrajectoryLength - 1; j++) {
           trajectoryPositions.copyAt(j, trajectoryPositions, j + 1)
         }
-        trajectoryPositions.setXYZ(settings.maxTrajectoryLength - 1, particlePositions[i].x, particlePositions[i].y, particlePositions[i].z)
+        trajectoryPositions.setXYZ(settings.maxTrajectoryLength - 1, particles[i].position.x, particles[i].position.y, particles[i].position.z)
         trajectoryPositions.needsUpdate = true
       }
     }
@@ -215,8 +216,8 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
     const $thisRow = $('#tabularInfo > tbody > tr:nth-child(' + (i + 1) + ')')
     $('.speed', $thisRow).text(Math.round(thisSpeed * 100) / 100)
     $('.kineticEnergy', $thisRow).text(Math.round(thisSpeed * thisSpeed * thisMass * 50) / 100)
-    $('.TotalForceStrength', $thisRow).text(particleForces[i]
-      ? Math.round(particleForces[i].length() * 100) / 100
+    $('.TotalForceStrength', $thisRow).text(particles[i].force
+      ? Math.round(particles[i].force.length() * 100) / 100
       : '0')
   }
   if (settings.if_constant_temperature) {
@@ -283,7 +284,7 @@ function applyPbc (thisPosition, trajectoryPositions, maxTrajectoryLength, space
 }
 function animate () {
   time += settings.dt
-  computeForces(particleForces, settings.particleCount, isVisible($('#hud')))
+  computeForces(particles, settings.particleCount, isVisible($('#hud')))
   const arrowScaleForForces = rescaleForceScaleBar(particleForces)
   const arrowScaleForVelocities = rescaleVelocityScaleBar(particleVelocities)
   for (let i = 0; i < settings.particleCount; i++) {
@@ -295,7 +296,7 @@ function animate () {
   }
   if (settings.if_ReferenceFrame_movesWithSun) {
     for (const i in particlePositions) {
-      particlePositions[i].sub(particlePositions[0])
+      particles[i].position.sub(particles[0].position)
     }
   }
   // =============================== now the rendering ==================================
@@ -315,9 +316,9 @@ function calculateTemperature () {
   let temperature = 0
   for (let i = 0; i < settings.particleCount; i++) {
     temperature +=
-            particleMasses[i] *
-                particleVelocities[i].length() *
-                particleVelocities[i].length()
+            particles[i].mass *
+                particles[i].velocity.length() *
+                particles[i].velocity.length()
   }
   temperature *= 1 / settings.kB / (3 * settings.particleCount - 3)
   if (temperature > maxTemperature) {
