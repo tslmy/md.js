@@ -21,7 +21,7 @@ function fullscreen () {
   }
 }
 let effect
-function init (settings, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime) {
+function init (settings, particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime) {
   // initialize the scene
   const scene = new THREE.Scene()
   //    configure the scene:
@@ -34,8 +34,8 @@ function init (settings, particlePositions, particleVelocities, particleForces, 
     boxMesh = drawBox(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ, scene)
   }
   const group = new THREE.Object3D()
-  const particleSystem = createParticleSystem(group, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime, settings)
-  const particles = particleSystem.geometry
+  const particleSystem = createParticleSystem(group, particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime, settings)
+  const particlesGeometry = particleSystem.geometry
   scene.add(group)
   // enable settings
   initializeGuiControls(settings, group)
@@ -78,8 +78,8 @@ function init (settings, particlePositions, particleVelocities, particleForces, 
   window.onbeforeunload = () => {
     saveState({
       particleCount: settings.particleCount,
-      particleColors: particles.getAttribute('color').array,
-      particlePositions: particles.getAttribute('position').array,
+      particleColors: particlesGeometry.getAttribute('color').array,
+      particlePositions: particlesGeometry.getAttribute('position').array,
       particleForces,
       particleVelocities,
       particleMasses,

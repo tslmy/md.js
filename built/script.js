@@ -13,6 +13,7 @@ let temperaturePanel
 let stats
 let maxTemperature = 0
 let particleSystem
+const particles = []
 const particlePositions = []
 const particleForces = []
 const particleVelocities = []
@@ -343,7 +344,7 @@ function render () {
 // when document is ready:
 $(() => {
   console.log('Ready.')
-  const values = init(settings, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime)
+  const values = init(settings, particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime)
   scene = values[0]
   particleSystem = values[1]
   camera = values[2]

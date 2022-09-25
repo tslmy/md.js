@@ -5,7 +5,7 @@ import { init, ifMobileDevice } from './init.js'
 import _ from 'lodash'
 import * as THREE from 'three'
 import {
-  makeClonePositionsList
+  makeClonePositionsList, Particle
 } from './particleSystem.js'
 // global variables
 let camera
@@ -18,6 +18,7 @@ let stats
 let maxTemperature = 0
 let particleSystem
 
+const particles: Particle[] = []
 const particlePositions = []
 const particleForces = []
 const particleVelocities = []
@@ -40,6 +41,7 @@ const particleProperties = [
 ]
 let time = 0
 let lastSnapshotTime = 0
+
 /**
  * el: the DOM element you'd like to test for visibility.
  */
@@ -449,7 +451,9 @@ function render () {
 $(() => {
   console.log('Ready.')
 
-  const values = init(settings, particlePositions,
+  const values = init(settings,
+    particles,
+    particlePositions,
     particleVelocities,
     particleForces,
     particleMasses,

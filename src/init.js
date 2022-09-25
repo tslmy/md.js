@@ -34,7 +34,9 @@ function fullscreen () {
   }
 }
 let effect
-function init (settings, particlePositions,
+function init (settings,
+  particles,
+  particlePositions,
   particleVelocities,
   particleForces,
   particleMasses,
@@ -64,6 +66,7 @@ function init (settings, particlePositions,
   const group = new THREE.Object3D()
   const particleSystem = createParticleSystem(
     group,
+    particles,
     particlePositions,
     particleVelocities,
     particleForces,
@@ -78,7 +81,7 @@ function init (settings, particlePositions,
     lastSnapshotTime,
     settings
   )
-  const particles = particleSystem.geometry
+  const particlesGeometry = particleSystem.geometry
   scene.add(group)
 
   // enable settings
@@ -131,8 +134,8 @@ function init (settings, particlePositions,
   window.onbeforeunload = () => {
     saveState({
       particleCount: settings.particleCount,
-      particleColors: particles.getAttribute('color').array,
-      particlePositions: particles.getAttribute('position').array,
+      particleColors: particlesGeometry.getAttribute('color').array,
+      particlePositions: particlesGeometry.getAttribute('position').array,
       particleForces,
       particleVelocities,
       particleMasses,

@@ -15,12 +15,25 @@ const particleMaterialForClones = new THREE.PointsMaterial({
   vertexColors: true
 })
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength']
-function addParticle (color, position, velocity, force, thisMass, thisCharge, particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, shouldShowTrajectory, trajectoryLines, maxTrajectoryLength, trajectoryGeometries) {
+class Particle {
+  constructor (color, position, force, velocity, mass, charge, velocityArrow, forceArrow, trajectory) {
+    this.color = color
+    this.position = position
+    this.force = force
+    this.velocity = velocity
+    this.mass = mass
+    this.charge = charge
+    this.velocityArrow = velocityArrow
+    this.forceArrow = forceArrow
+    this.trajectory = trajectory
+  }
+}
+function addParticle (color, position, velocity, force, thisMass, thisCharge, particles, particlesGeometry, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, shouldShowTrajectory, trajectoryLines, maxTrajectoryLength, trajectoryGeometries) {
   // Create the vertex
   particlePositions.push(position)
   // Add the vertex to the geometry
-  particles.attributes.position.setXYZ(particlePositions.length - 1, position.x, position.y, position.z)
-  particles.attributes.color.setXYZ(particlePositions.length - 1, color.r, color.g, color.b)
+  particlesGeometry.attributes.position.setXYZ(particlePositions.length - 1, position.x, position.y, position.z)
+  particlesGeometry.attributes.color.setXYZ(particlePositions.length - 1, color.r, color.g, color.b)
   // make velocity
   particleVelocities.push(velocity)
   // make force
@@ -30,19 +43,21 @@ function addParticle (color, position, velocity, force, thisMass, thisCharge, pa
   // charge
   particleCharges.push(thisCharge)
   // add two arrows
-  const arrow1 = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa)
-  scene.add(arrow1)
-  arrowVelocities.push(arrow1)
-  const arrow2 = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x555555)
-  scene.add(arrow2)
-  arrowForces.push(arrow2)
+  const velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa)
+  scene.add(velocityArrow)
+  arrowVelocities.push(velocityArrow)
+  const forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x555555)
+  scene.add(forceArrow)
+  arrowForces.push(forceArrow)
   // add trajectories.
+  let thisTrajectory = null
   if (shouldShowTrajectory) {
     // make colors (http://jsfiddle.net/J7zp4/200/)
-    const thisTrajectory = makeTrajectory(color, position, maxTrajectoryLength, trajectoryGeometries)
+    thisTrajectory = makeTrajectory(color, position, maxTrajectoryLength, trajectoryGeometries)
     trajectoryLines.push(thisTrajectory)
     scene.add(thisTrajectory)
   }
+  const particle = new Particle(color, position, force, velocity, thisMass, thisCharge, velocityArrow, forceArrow, thisTrajectory)
   // Make the HUD table.
   const tableRow = document.createElement('tr')
   const particleColumn = document.createElement('td')
@@ -129,15 +144,15 @@ function makeTrajectory (thisColor, thisPosition, maxTrajectoryLength, trajector
 function objectToVector (obj) {
   return new THREE.Vector3(obj.x, obj.y, obj.z)
 }
-function createParticleSystem (group, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime, settings) {
+function createParticleSystem (group, particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, trajectoryLines, trajectoryGeometries, time, lastSnapshotTime, settings) {
   // Particles are just individual vertices in a geometry
   // Create the geometry that will hold all of the vertices
-  const particles = new THREE.BufferGeometry()
+  const particlesGeometry = new THREE.BufferGeometry()
   // https://stackoverflow.com/a/31411794/1147061
   const positions = new Float32Array(settings.particleCount * 3) // 3 vertices per point
-  particles.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   const colors = new Float32Array(settings.particleCount * 3) // 3 vertices per point
-  particles.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   const particleMaterial = new THREE.PointsMaterial({
     // http://jsfiddle.net/7yDGy/1/
     map: texture,
@@ -162,7 +177,7 @@ function createParticleSystem (group, particlePositions, particleVelocities, par
     }
     for (let i = 0; i < particleCountToRead; i++) {
       const color = new THREE.Color(previousState.particleColors[3 * i], previousState.particleColors[3 * i + 1], previousState.particleColors[3 * i + 2])
-      addParticle(color, new THREE.Vector3().fromArray(previousState.particlePositions, 3 * i), objectToVector(previousState.particleVelocities[i]), objectToVector(previousState.particleForces[i]), previousState.particleMasses[i], previousState.particleCharges[i], particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, settings.if_showTrajectory, trajectoryLines, settings.maxTrajectoryLength, trajectoryGeometries)
+      addParticle(color, new THREE.Vector3().fromArray(previousState.particlePositions, 3 * i), objectToVector(previousState.particleVelocities[i]), objectToVector(previousState.particleForces[i]), previousState.particleMasses[i], previousState.particleCharges[i], particles, particlesGeometry, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, settings.if_showTrajectory, trajectoryLines, settings.maxTrajectoryLength, trajectoryGeometries)
     }
     particleCountToAdd = settings.particleCount - previousState.particleCount
     if (particleCountToAdd < 0) {
@@ -177,7 +192,7 @@ function createParticleSystem (group, particlePositions, particleVelocities, par
     console.log('md.js will be creating all', settings.particleCount, 'particles from scratch.')
     // create a sun:
     if (settings.if_makeSun) {
-      addParticle(new THREE.Color(0, 0, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0), settings.sunMass, 0, particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, settings.if_showTrajectory, trajectoryLines, settings.maxTrajectoryLength, trajectoryGeometries)
+      addParticle(new THREE.Color(0, 0, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0), settings.sunMass, 0, particles, particlesGeometry, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, settings.if_showTrajectory, trajectoryLines, settings.maxTrajectoryLength, trajectoryGeometries)
     } // always make the sun the first particle, please.
   }
   // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
@@ -205,11 +220,11 @@ function createParticleSystem (group, particlePositions, particleVelocities, par
       r = Math.sqrt(x * x + y * y + z * z)
       vy = 0
     }
-    addParticle(new THREE.Color(Math.random(), Math.random(), Math.random()), new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz), new THREE.Vector3(0, 0, 0), _.random(16, 20, true), _.sample(settings.availableCharges), particles, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, settings.if_showTrajectory, trajectoryLines, settings.maxTrajectoryLength, trajectoryGeometries)
+    addParticle(new THREE.Color(Math.random(), Math.random(), Math.random()), new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz), new THREE.Vector3(0, 0, 0), _.random(16, 20, true), _.sample(settings.availableCharges), particles, particlesGeometry, particlePositions, particleVelocities, particleForces, particleMasses, particleCharges, scene, arrowVelocities, arrowForces, settings.if_showTrajectory, trajectoryLines, settings.maxTrajectoryLength, trajectoryGeometries)
   }
   // Create the material that will be used to render each vertex of the geometry
   // Create the particle system
-  const particleSystem = new THREE.Points(particles, particleMaterial)
+  const particleSystem = new THREE.Points(particlesGeometry, particleMaterial)
   particleSystem.position.set(0, 0, 0)
   group.add(particleSystem)
   let clone
@@ -223,4 +238,4 @@ function createParticleSystem (group, particlePositions, particleVelocities, par
   })
   return particleSystem
 }
-export { createParticleSystem, makeClonePositionsList, particleMaterialForClones }
+export { createParticleSystem, makeClonePositionsList, particleMaterialForClones, Particle }
