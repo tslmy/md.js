@@ -36,15 +36,6 @@ function fullscreen () {
 let effect
 function init (settings,
   particles,
-  particlePositions,
-  particleVelocities,
-  particleForces,
-  particleMasses,
-  particleCharges,
-  arrowVelocities,
-  arrowForces,
-  trajectoryLines,
-  trajectoryGeometries,
   time,
   lastSnapshotTime) {
   // initialize the scene
@@ -67,16 +58,7 @@ function init (settings,
   const particleSystem = createParticleSystem(
     group,
     particles,
-    particlePositions,
-    particleVelocities,
-    particleForces,
-    particleMasses,
-    particleCharges,
     scene,
-    arrowVelocities,
-    arrowForces,
-    trajectoryLines,
-    trajectoryGeometries,
     time,
     lastSnapshotTime,
     settings
@@ -134,12 +116,6 @@ function init (settings,
   window.onbeforeunload = () => {
     saveState({
       particleCount: settings.particleCount,
-      particleColors: particlesGeometry.getAttribute('color').array,
-      particlePositions: particlesGeometry.getAttribute('position').array,
-      particleForces,
-      particleVelocities,
-      particleMasses,
-      particleCharges,
       time,
       lastSnapshotTime
     })

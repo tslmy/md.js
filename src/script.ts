@@ -19,27 +19,6 @@ let maxTemperature = 0
 let particleSystem
 
 const particles: Particle[] = []
-const particlePositions = []
-const particleForces = []
-const particleVelocities = []
-const particleMasses = []
-const particleCharges = []
-const arrowVelocities = []
-const arrowForces = []
-const trajectoryGeometries = []
-const trajectoryLines = []
-const particleProperties = [
-  particles,
-  particlePositions,
-  particleVelocities,
-  particleForces,
-  particleMasses,
-  particleCharges,
-  arrowVelocities,
-  arrowForces,
-  trajectoryGeometries,
-  trajectoryLines
-]
 let time = 0
 let lastSnapshotTime = 0
 
@@ -92,7 +71,7 @@ function computeForces (
   shouldUpdateHud = false
 ) {
   // remove all forces first.
-  particleForces.forEach((particleForce) => particleForce.set(0, 0, 0))
+  particles.forEach((particle) => particle.force.set(0, 0, 0))
   for (let i = 0; i < particleCount; i++) {
     // initialize total force counters:
     let thisLJForceStrength = 0
@@ -164,18 +143,18 @@ function computeForces (
   }
 }
 
-function rescaleForceScaleBar (particleForces) {
+function rescaleForceScaleBar (particles) {
   const highestForcePresent = _.max(
-    _.map(particleForces, (vector) => vector.length())
+    _.map(particles, (particle) => particle.force.length())
   )
   const arrowScaleForForces = settings.unitArrowLength / highestForcePresent
   $('.mapscale#force').width(arrowScaleForForces * 1000000)
   return arrowScaleForForces
 }
 
-function rescaleVelocityScaleBar (particleVelocities) {
+function rescaleVelocityScaleBar (particles) {
   const highestVelocityPresent = _.max(
-    _.map(particleVelocities, (vector) => vector.length())
+    _.map(particles, (particle) => particle.velocity.length())
   )
   const arrowScaleForVelocities =
     settings.unitArrowLength / highestVelocityPresent
@@ -207,9 +186,7 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
     settings.particleCount -= 1
     particleSystem.geometry.attributes.color.setXYZ(i, 0, 0, 0)
     particleSystem.geometry.attributes.color.needsUpdate = true
-    _.forEach(particleProperties, function (array) {
-      _.pullAt(array, i)
-    })
+    _.pullAt(particles, i)
   } else {
     // update positions according to velocity:
     thisPosition.addScaledVector(thisVelocity, settings.dt) // x = x + v·dt
@@ -220,7 +197,7 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
       thisPosition.z
     )
     const trajectoryPositions: THREE.BufferAttribute = settings.if_showTrajectory
-      ? trajectoryLines[i].geometry.attributes.position
+      ? particles[i].trajectory.geometry.attributes.position
       : null
     // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
     if (settings.if_use_periodic_boundary_condition) {
@@ -296,8 +273,8 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
     const scaleFactor = Math.sqrt(
       settings.targetTemperature / currentTemperature
     )
-    _.forEach(particleVelocities, function (velocity) {
-      velocity.multiplyScalar(scaleFactor)
+    _.forEach(particles, function (particle) {
+      particle.velocity.multiplyScalar(scaleFactor)
     })
   }
 }
@@ -385,8 +362,8 @@ function applyPbc (
 function animate () {
   time += settings.dt
   computeForces(particles, settings.particleCount, isVisible($('#hud')))
-  const arrowScaleForForces = rescaleForceScaleBar(particleForces)
-  const arrowScaleForVelocities = rescaleVelocityScaleBar(particleVelocities)
+  const arrowScaleForForces = rescaleForceScaleBar(particles)
+  const arrowScaleForVelocities = rescaleVelocityScaleBar(particles)
   for (let i = 0; i < settings.particleCount; i++) {
     animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities)
   }
@@ -397,7 +374,7 @@ function animate () {
     lastSnapshotTime = time
   }
   if (settings.if_ReferenceFrame_movesWithSun) {
-    for (const i in particlePositions) {
+    for (const i in particles) {
       particles[i].position.sub(particles[0].position)
     }
   }
@@ -454,15 +431,6 @@ $(() => {
 
   const values = init(settings,
     particles,
-    particlePositions,
-    particleVelocities,
-    particleForces,
-    particleMasses,
-    particleCharges,
-    arrowVelocities,
-    arrowForces,
-    trajectoryLines,
-    trajectoryGeometries,
     time,
     lastSnapshotTime)
 

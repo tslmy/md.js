@@ -60,40 +60,22 @@ function addParticle (
   thisCharge: number,
   particles: Particle[],
   particlesGeometry: THREE.BufferGeometry,
-  particlePositions,
-  particleVelocities,
-  particleForces,
-  particleMasses,
-  particleCharges,
   scene,
-  arrowVelocities,
-  arrowForces,
   shouldShowTrajectory,
-  trajectoryLines,
-  maxTrajectoryLength: number,
-  trajectoryGeometries
+  maxTrajectoryLength: number
 ): void {
   // Create the vertex
-  particlePositions.push(position)
   // Add the vertex to the geometry
   particlesGeometry.attributes.position.setXYZ(
-    particlePositions.length - 1,
+    particles.length - 1,
     position.x,
     position.y,
     position.z
   )
   particlesGeometry.attributes.color.setXYZ(
-    particlePositions.length - 1,
+    particles.length - 1,
     color.r, color.g, color.b
   )
-  // make velocity
-  particleVelocities.push(velocity)
-  // make force
-  particleForces.push(force)
-  // mass
-  particleMasses.push(thisMass)
-  // charge
-  particleCharges.push(thisCharge)
   // add two arrows
   const velocityArrow = new THREE.ArrowHelper(
     new THREE.Vector3(),
@@ -102,7 +84,6 @@ function addParticle (
     0x0055aa
   )
   scene.add(velocityArrow)
-  arrowVelocities.push(velocityArrow)
   const forceArrow = new THREE.ArrowHelper(
     new THREE.Vector3(),
     new THREE.Vector3(),
@@ -110,7 +91,6 @@ function addParticle (
     0x555555
   )
   scene.add(forceArrow)
-  arrowForces.push(forceArrow)
 
   // add trajectories.
 
@@ -120,10 +100,8 @@ function addParticle (
     thisTrajectory = makeTrajectory(
       color,
       position,
-      maxTrajectoryLength,
-      trajectoryGeometries
+      maxTrajectoryLength
     )
-    trajectoryLines.push(thisTrajectory)
     scene.add(thisTrajectory)
   }
 
@@ -205,8 +183,7 @@ function makeClonePositionsList (
 function makeTrajectory (
   thisColor: THREE.Color,
   thisPosition: THREE.Vector3,
-  maxTrajectoryLength: number,
-  trajectoryGeometries: THREE.BufferGeometry[]
+  maxTrajectoryLength: number
 ): THREE.Line {
   const thisGeometry = new THREE.BufferGeometry()
   const white = new THREE.Color('#FFFFFF')
@@ -236,7 +213,6 @@ function makeTrajectory (
       thisPosition.z
     )
   }
-  trajectoryGeometries.push(thisGeometry)
   // finished preparing the geometry for this trajectory
   const thisTrajectoryMaterial = new THREE.LineBasicMaterial({
     linewidth: 0.5,
@@ -251,16 +227,7 @@ function objectToVector (obj): THREE.Vector3 {
 function createParticleSystem (
   group,
   particles: Particle[],
-  particlePositions,
-  particleVelocities,
-  particleForces,
-  particleMasses,
-  particleCharges,
   scene,
-  arrowVelocities,
-  arrowForces,
-  trajectoryLines,
-  trajectoryGeometries,
   time,
   lastSnapshotTime,
   settings
@@ -285,7 +252,7 @@ function createParticleSystem (
   })
   let particleCountToAdd
   // Create the vertices and add them to the particles geometry
-  if (loadState()) {
+  if (loadState() && false) {
     console.log('State from previous session loaded.')
     // Initialize the particleSystem with the info stored from localStorage.
     let particleCountToRead = 0
@@ -311,18 +278,9 @@ function createParticleSystem (
         previousState.particleCharges[i],
         particles,
         particlesGeometry,
-        particlePositions,
-        particleVelocities,
-        particleForces,
-        particleMasses,
-        particleCharges,
         scene,
-        arrowVelocities,
-        arrowForces,
         settings.if_showTrajectory,
-        trajectoryLines,
-        settings.maxTrajectoryLength,
-        trajectoryGeometries
+        settings.maxTrajectoryLength
       )
     }
     particleCountToAdd = settings.particleCount - previousState.particleCount
@@ -363,23 +321,14 @@ function createParticleSystem (
         0,
         particles,
         particlesGeometry,
-        particlePositions,
-        particleVelocities,
-        particleForces,
-        particleMasses,
-        particleCharges,
         scene,
-        arrowVelocities,
-        arrowForces,
         settings.if_showTrajectory,
-        trajectoryLines,
-        settings.maxTrajectoryLength,
-        trajectoryGeometries
+        settings.maxTrajectoryLength
       )
     } // always make the sun the first particle, please.
   }
   // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
-  for (let i = particlePositions.length; i < settings.particleCount; i++) {
+  for (let i = particles.length; i < settings.particleCount; i++) {
     let x
     let y
     let z
@@ -392,7 +341,7 @@ function createParticleSystem (
       y = 0
       z = _.random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ, true)
       r = Math.sqrt(x * x + y * y + z * z)
-      vy = Math.sqrt((settings.G * particleMasses[0]) / r)
+      vy = Math.sqrt((settings.G * particles[0].mass) / r)
       if (i % 2 === 0) {
         vy *= -1
       }
@@ -415,18 +364,9 @@ function createParticleSystem (
       _.sample(settings.availableCharges),
       particles,
       particlesGeometry,
-      particlePositions,
-      particleVelocities,
-      particleForces,
-      particleMasses,
-      particleCharges,
       scene,
-      arrowVelocities,
-      arrowForces,
       settings.if_showTrajectory,
-      trajectoryLines,
-      settings.maxTrajectoryLength,
-      trajectoryGeometries
+      settings.maxTrajectoryLength
     )
   }
   // Create the material that will be used to render each vertex of the geometry
