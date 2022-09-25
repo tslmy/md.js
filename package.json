@@ -1,9 +1,24 @@
 {
+  "bugs": {
+    "url": "https://github.com/tslmy/md.js/issues"
+  },
   "dependencies": {
     "lodash": "^4.17.21",
     "three": "^0.144.0"
   },
+  "description": "A toy molecular dynamics simulator in the browser.",
   "devDependencies": {
     "@types/jquery": "^3.5.14"
-  }
+  },
+  "homepage": "https://github.com/tslmy/md.js#readme",
+  "license": "ISC",
+  "name": "md.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tslmy/md.js.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.0"
 }
