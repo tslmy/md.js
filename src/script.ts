@@ -174,85 +174,70 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
     settings.dt / particles[i].mass
   ) // v = v + f/m·dt
   const thisSpeed = thisVelocity.length() // vector -> scalar
-  const ifThisParticleEscaped =
-    settings.if_use_periodic_boundary_condition &&
-    thisSpeed > settings.escapeSpeed &&
-    (Math.abs(thisPosition.x) >= 0.9 * settings.spaceBoundaryX ||
-      Math.abs(thisPosition.y) >= 0.9 * settings.spaceBoundaryY ||
-      Math.abs(thisPosition.z) >= 0.9 * settings.spaceBoundaryZ)
-  if (ifThisParticleEscaped) {
-    console.log('Particle ', i, ' escaped with speed', thisSpeed, '.')
-    // remove this particle from all lists:
-    settings.particleCount -= 1
-    particleSystem.geometry.attributes.color.setXYZ(i, 0, 0, 0)
-    particleSystem.geometry.attributes.color.needsUpdate = true
-    _.pullAt(particles, i)
-  } else {
-    // update positions according to velocity:
-    thisPosition.addScaledVector(thisVelocity, settings.dt) // x = x + v·dt
-    particleSystem.geometry.attributes.position.setXYZ(
-      i,
-      thisPosition.x,
-      thisPosition.y,
-      thisPosition.z
+  // update positions according to velocity:
+  thisPosition.addScaledVector(thisVelocity, settings.dt) // x = x + v·dt
+  particleSystem.geometry.attributes.position.setXYZ(
+    i,
+    thisPosition.x,
+    thisPosition.y,
+    thisPosition.z
+  )
+  const trajectoryPositions: THREE.BufferAttribute = settings.if_showTrajectory
+    ? particles[i].trajectory.geometry.attributes.position
+    : null
+  // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
+  if (settings.if_use_periodic_boundary_condition) {
+    applyPbc(
+      thisPosition,
+      trajectoryPositions,
+      settings.maxTrajectoryLength,
+      settings.spaceBoundaryX,
+      settings.spaceBoundaryY,
+      settings.spaceBoundaryZ
     )
-    const trajectoryPositions: THREE.BufferAttribute = settings.if_showTrajectory
-      ? particles[i].trajectory.geometry.attributes.position
-      : null
-    // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
-    if (settings.if_use_periodic_boundary_condition) {
-      applyPbc(
-        thisPosition,
-        trajectoryPositions,
-        settings.maxTrajectoryLength,
-        settings.spaceBoundaryX,
-        settings.spaceBoundaryY,
-        settings.spaceBoundaryZ
-      )
-    }
-    // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user
-    // update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-    function updateArrow (arrow, from, vector, scale) {
-      const lengthToScale = settings.if_proportionate_arrows_with_vectors
-        ? vector.length() * scale
-        : settings.unitArrowLength
-      arrow.setLength(
-        settings.if_limitArrowsMaxLength &&
-          lengthToScale > settings.maxArrowLength
-          ? settings.maxArrowLength
-          : lengthToScale
-      )
-      arrow.position.copy(from)
-      arrow.setDirection(new THREE.Vector3().copy(vector).normalize())
-    }
-    if (settings.if_showArrows) {
-      updateArrow(
-        particles[i].velocityArrow,
-        particles[i].position,
-        particles[i].velocity,
-        arrowScaleForForces
-      )
-      updateArrow(
-        particles[i].forceArrow,
-        particles[i].position,
-        particles[i].force,
-        arrowScaleForVelocities
-      )
-    }
-    // update trajectories:
-    if (settings.if_showTrajectory) {
-      if (time - lastSnapshotTime > settings.dt) {
-        for (let j = 0; j < settings.maxTrajectoryLength - 1; j++) {
-          trajectoryPositions.copyAt(j, trajectoryPositions, j + 1)
-        }
-        trajectoryPositions.setXYZ(
-          settings.maxTrajectoryLength - 1,
-          particles[i].position.x,
-          particles[i].position.y,
-          particles[i].position.z
-        )
-        trajectoryPositions.needsUpdate = true
+  }
+  // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user
+  // update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
+  function updateArrow (arrow, from, vector, scale) {
+    const lengthToScale = settings.if_proportionate_arrows_with_vectors
+      ? vector.length() * scale
+      : settings.unitArrowLength
+    arrow.setLength(
+      settings.if_limitArrowsMaxLength &&
+        lengthToScale > settings.maxArrowLength
+        ? settings.maxArrowLength
+        : lengthToScale
+    )
+    arrow.position.copy(from)
+    arrow.setDirection(new THREE.Vector3().copy(vector).normalize())
+  }
+  if (settings.if_showArrows) {
+    updateArrow(
+      particles[i].velocityArrow,
+      particles[i].position,
+      particles[i].velocity,
+      arrowScaleForForces
+    )
+    updateArrow(
+      particles[i].forceArrow,
+      particles[i].position,
+      particles[i].force,
+      arrowScaleForVelocities
+    )
+  }
+  // update trajectories:
+  if (settings.if_showTrajectory) {
+    if (time - lastSnapshotTime > settings.dt) {
+      for (let j = 0; j < settings.maxTrajectoryLength - 1; j++) {
+        trajectoryPositions.copyAt(j, trajectoryPositions, j + 1)
       }
+      trajectoryPositions.setXYZ(
+        settings.maxTrajectoryLength - 1,
+        particles[i].position.x,
+        particles[i].position.y,
+        particles[i].position.z
+      )
+      trajectoryPositions.needsUpdate = true
     }
   }
   // update HUD, if visible:
@@ -276,6 +261,20 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
     _.forEach(particles, function (particle) {
       particle.velocity.multiplyScalar(scaleFactor)
     })
+  }
+  const ifThisParticleEscaped =
+    settings.if_use_periodic_boundary_condition &&
+    thisSpeed > settings.escapeSpeed &&
+    (Math.abs(thisPosition.x) >= 0.9 * settings.spaceBoundaryX ||
+      Math.abs(thisPosition.y) >= 0.9 * settings.spaceBoundaryY ||
+      Math.abs(thisPosition.z) >= 0.9 * settings.spaceBoundaryZ)
+  if (ifThisParticleEscaped) {
+    console.log('Particle ', i, ' escaped with speed', thisSpeed, '.')
+    // remove this particle from all lists:
+    settings.particleCount -= 1
+    particleSystem.geometry.attributes.color.setXYZ(i, 0, 0, 0)
+    particleSystem.geometry.attributes.color.needsUpdate = true
+    _.pullAt(particles, i)
   }
 }
 
