@@ -25,11 +25,11 @@ let lastSnapshotTime = 0
 /**
  * el: the DOM element you'd like to test for visibility.
  */
-function isVisible (el) {
+function isVisible (el: HTMLElement): boolean {
   return el.offsetParent !== null
 }
 
-function applyForce (particles, i, j, func) {
+function applyForce (particles: Particle[], i: number, j: number, func: (i: number, j: number, d: number) => number): THREE.Vector3 {
   const thisPosition = particles[i].position
   const thatPosition = particles[j].position
   const rOriginal = new THREE.Vector3().subVectors(thisPosition, thatPosition) // relative displacement
@@ -66,17 +66,17 @@ function applyForce (particles, i, j, func) {
 }
 
 function computeForces (
-  particles,
-  particleCount = 8,
-  shouldUpdateHud = false
-) {
+  particles: Particle[],
+  particleCount: number = 8,
+  shouldUpdateHud: boolean = false
+): void {
   // remove all forces first.
   particles.forEach((particle) => particle.force.set(0, 0, 0))
   for (let i = 0; i < particleCount; i++) {
     // initialize total force counters:
-    let thisLJForceStrength = 0
-    let thisGravitationForceStrength = 0
-    let thisCoulombForceStrength = 0
+    let thisLJForceStrength: number = 0
+    let thisGravitationForceStrength: number = 0
+    let thisCoulombForceStrength: number = 0
     // process interactions:
     for (let j = i + 1; j < particleCount; j++) {
       // generate all forces:
@@ -84,7 +84,7 @@ function computeForces (
         // Use Lennard-Jones potential
         // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
         // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
-        const thisLJForce = applyForce(particles, i, j, (i, j, d) => {
+        const thisLJForce: THREE.Vector3 = applyForce(particles, i, j, (i, j, d) => {
           let d6 = settings.DELTA / d
           if (d6 < 0.5) {
             d6 = 0.5 // what kind of socery is this??
@@ -93,7 +93,7 @@ function computeForces (
           d6 = d6 * d6
           return 4 * settings.EPSILON * (6 / d) * (-2 * d6 * d6 + d6)
         })
-        thisLJForceStrength += thisLJForce.length()
+        thisLJForceStrength += thisLJForce.length() as number
       }
       if (settings.if_apply_gravitation) {
         // Use gravitational potential
@@ -107,7 +107,7 @@ function computeForces (
           }
           return (settings.G * particles[i].mass * particles[j].mass) / (d * d)
         })
-        thisGravitationForceStrength += thisGravitationForce.length()
+        thisGravitationForceStrength += thisGravitationForce.length() as number
       }
       if (settings.if_apply_coulombForce) {
         // Use gravitational potential
@@ -123,12 +123,12 @@ function computeForces (
             (-settings.K * particles[i].charge * particles[j].charge) / (d * d)
           )
         })
-        thisCoulombForceStrength += thisCoulombForce.length()
+        thisCoulombForceStrength += thisCoulombForce.length() as number
       }
     }
     if (shouldUpdateHud) {
       const $thisRow = $(
-        '#tabularInfo > tbody > tr:nth-child(' + (i + 1) + ')'
+        `#tabularInfo > tbody > tr:nth-child(${i + 1})`
       )
       $('.LJForceStrength', $thisRow).text(
         Math.round(thisLJForceStrength * 100) / 100
@@ -143,7 +143,7 @@ function computeForces (
   }
 }
 
-function rescaleForceScaleBar (particles) {
+function rescaleForceScaleBar (particles: Particle[]): number {
   const highestForcePresent = _.max(
     _.map(particles, (particle) => particle.force.length())
   )
@@ -152,7 +152,7 @@ function rescaleForceScaleBar (particles) {
   return arrowScaleForForces
 }
 
-function rescaleVelocityScaleBar (particles) {
+function rescaleVelocityScaleBar (particles: Particle[]): number {
   const highestVelocityPresent = _.max(
     _.map(particles, (particle) => particle.velocity.length())
   )
@@ -162,7 +162,7 @@ function rescaleVelocityScaleBar (particles) {
   return arrowScaleForVelocities
 }
 
-function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
+function animateOneParticle (i: number, arrowScaleForForces: number, arrowScaleForVelocities: number): void {
   // shorthands
   const thisPosition = particles[i].position
   const thisVelocity = particles[i].velocity
@@ -196,22 +196,22 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
       settings.spaceBoundaryZ
     )
   }
-  // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user
-  // update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-  function updateArrow (arrow, from, vector, scale) {
-    const lengthToScale = settings.if_proportionate_arrows_with_vectors
-      ? vector.length() * scale
-      : settings.unitArrowLength
-    arrow.setLength(
-      settings.if_limitArrowsMaxLength &&
-        lengthToScale > settings.maxArrowLength
-        ? settings.maxArrowLength
-        : lengthToScale
-    )
-    arrow.position.copy(from)
-    arrow.setDirection(new THREE.Vector3().copy(vector).normalize())
-  }
   if (settings.if_showArrows) {
+    // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user
+    // update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
+    function updateArrow (arrow, from, vector, scale): void {
+      const lengthToScale = settings.if_proportionate_arrows_with_vectors
+        ? vector.length() * scale
+        : settings.unitArrowLength
+      arrow.setLength(
+        settings.if_limitArrowsMaxLength &&
+          lengthToScale > settings.maxArrowLength
+          ? settings.maxArrowLength
+          : lengthToScale
+      )
+      arrow.position.copy(from)
+      arrow.setDirection(new THREE.Vector3().copy(vector).normalize())
+    }
     updateArrow(
       particles[i].velocityArrow,
       particles[i].position,
@@ -241,8 +241,8 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
     }
   }
   // update HUD, if visible:
-  if (isVisible($('#hud'))) {
-    const $thisRow = $('#tabularInfo > tbody > tr:nth-child(' + (i + 1) + ')')
+  if (isVisible(document.querySelector('#hud'))) {
+    const $thisRow = $(`#tabularInfo > tbody > tr:nth-child(${i + 1})`)
     $('.speed', $thisRow).text(Math.round(thisSpeed * 100) / 100)
     $('.kineticEnergy', $thisRow).text(
       Math.round(thisSpeed * thisSpeed * thisMass * 50) / 100
@@ -279,76 +279,76 @@ function animateOneParticle (i, arrowScaleForForces, arrowScaleForVelocities) {
 }
 
 function applyPbc (
-  thisPosition,
-  trajectoryPositions,
-  maxTrajectoryLength,
-  spaceBoundaryX,
-  spaceBoundaryY,
-  spaceBoundaryZ
-) {
-  while (thisPosition.x < -spaceBoundaryX) {
-    thisPosition.x += 2 * spaceBoundaryX
+  thisPosition: THREE.Vector3,
+  trajectoryPositions: THREE.BufferAttribute,
+  maxTrajectoryLength: number,
+  spaceBoundaryX: number,
+  spaceBoundaryY: number,
+  spaceBoundaryZ: number
+): void {
+  while (thisPosition.x as number < -spaceBoundaryX) {
+    (thisPosition.x as number) += 2 * spaceBoundaryX
     if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         trajectoryPositions.setX(
           j,
-          trajectoryPositions.getX(j) + 2 * spaceBoundaryX
+          (trajectoryPositions.getX(j) as number) + 2 * spaceBoundaryX
         )
       }
     }
   }
   while (thisPosition.x > spaceBoundaryX) {
-    thisPosition.x -= 2 * spaceBoundaryX
+    (thisPosition.x as number) -= 2 * spaceBoundaryX
     if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         trajectoryPositions.setX(
           j,
-          trajectoryPositions.getX(j) - 2 * spaceBoundaryX
+          (trajectoryPositions.getX(j) as number) - 2 * spaceBoundaryX
         )
       }
     }
   }
   while (thisPosition.y < -spaceBoundaryY) {
-    thisPosition.y += 2 * spaceBoundaryY
+    (thisPosition.y as number) += 2 * spaceBoundaryY
     if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         trajectoryPositions.setY(
           j,
-          trajectoryPositions.getY(j) + 2 * spaceBoundaryY
+          (trajectoryPositions.getY(j) as number) + 2 * spaceBoundaryY
         )
       }
     }
   }
   while (thisPosition.y > spaceBoundaryY) {
-    thisPosition.y -= 2 * spaceBoundaryY
+    (thisPosition.y as number) -= 2 * spaceBoundaryY
     if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         trajectoryPositions.setY(
           j,
-          trajectoryPositions.getY(j) - 2 * spaceBoundaryY
+          (trajectoryPositions.getY(j) as number) - 2 * spaceBoundaryY
         )
       }
     }
   }
   while (thisPosition.z < -spaceBoundaryZ) {
-    thisPosition.z += 2 * spaceBoundaryZ
+    (thisPosition.z as number) += 2 * spaceBoundaryZ
     if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         trajectoryPositions.setZ(
           j,
-          trajectoryPositions.getZ(j) + 2 * spaceBoundaryZ
+          (trajectoryPositions.getZ(j) as number) + 2 * spaceBoundaryZ
         )
       }
       trajectoryPositions.needsUpdate = true
     }
   }
   while (thisPosition.z > spaceBoundaryZ) {
-    thisPosition.z -= 2 * spaceBoundaryZ
+    (thisPosition.z as number) -= 2 * spaceBoundaryZ
     if (trajectoryPositions !== null) {
       for (let j = 0; j < maxTrajectoryLength; j++) {
         trajectoryPositions.setZ(
           j,
-          trajectoryPositions.getZ(j) - 2 * spaceBoundaryZ
+          (trajectoryPositions.getZ(j) as number) - 2 * spaceBoundaryZ
         )
       }
     }
@@ -358,9 +358,9 @@ function applyPbc (
   }
 }
 
-function animate () {
+function animate (): void {
   time += settings.dt
-  computeForces(particles, settings.particleCount, isVisible($('#hud')))
+  computeForces(particles, settings.particleCount, isVisible(document.querySelector('#hud')))
   const arrowScaleForForces = rescaleForceScaleBar(particles)
   const arrowScaleForVelocities = rescaleVelocityScaleBar(particles)
   for (let i = 0; i < settings.particleCount; i++) {
@@ -373,9 +373,7 @@ function animate () {
     lastSnapshotTime = time
   }
   if (settings.if_ReferenceFrame_movesWithSun) {
-    for (const i in particles) {
-      particles[i].position.sub(particles[0].position)
-    }
+    particles.forEach(i => i.position.sub(particles[0].position))
   }
   // =============================== now the rendering ==================================
   // flag to the particle system that we've changed its vertices.
@@ -390,7 +388,7 @@ function animate () {
   }
   stats.update()
 }
-function calculateTemperature () {
+function calculateTemperature (): number {
   let temperature = 0
   for (let i = 0; i < settings.particleCount; i++) {
     temperature +=
@@ -405,18 +403,18 @@ function calculateTemperature () {
   return temperature
 }
 
-function statistics (temperaturePanel, maxTemperature) {
+function statistics (temperaturePanel, maxTemperature): void {
   const temperature = calculateTemperature()
   temperaturePanel.update(temperature, maxTemperature)
 }
 
-function update () {
+function update (): void {
   // resize();
   camera.updateProjectionMatrix()
   controls.update()
 }
 
-function render () {
+function render (): void {
   if (ifMobileDevice) {
     effect.render(scene, camera)
   } else {
