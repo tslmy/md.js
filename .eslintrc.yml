@@ -9,3 +9,5 @@ parserOptions:
 rules:
   no-multi-str: off
   '@typescript-eslint/strict-boolean-expressions': off
+ignorePatterns:
+  - built/
