@@ -47,7 +47,7 @@ function applyForce (particles: Particle[], i: number, j: number, func: (i: numb
   }
   // ==================================================
   // force due to j in this cell:
-  for (const thatPositionDisplacement of clonePositions) {
+  clonePositions.forEach(thatPositionDisplacement => {
     // (don't use "for-in" loops!)
     r = rOriginal.clone()
     // (possibly) displace shift the end of this vector from particle j to one of its clones:
@@ -60,7 +60,7 @@ function applyForce (particles: Particle[], i: number, j: number, func: (i: numb
       particles[i].force.sub(r)
       particles[j].force.add(r)
     }
-  }
+  })
   return r // return the calculated force for further investigation.
 }
 
@@ -269,7 +269,8 @@ function animateOneParticle (i: number, arrowScaleForForces: number, arrowScaleF
     settings.particleCount -= 1
     particleSystem.geometry.attributes.color.setXYZ(i, 0, 0, 0)
     particleSystem.geometry.attributes.color.needsUpdate = true
-    delete particles[i]
+    // Remove i-th item
+    particles.splice(i, 1)
   }
 }
 
@@ -358,6 +359,7 @@ function animate (): void {
   computeForces(particles, settings.particleCount, isVisible(document.querySelector('#hud')))
   const arrowScaleForForces = rescaleForceScaleBar(particles)
   const arrowScaleForVelocities = rescaleVelocityScaleBar(particles)
+  
   for (let i = 0; i < settings.particleCount; i++) {
     animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities)
   }

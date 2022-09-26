@@ -201,7 +201,8 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
         settings.particleCount -= 1;
         particleSystem.geometry.attributes.color.setXYZ(i, 0, 0, 0);
         particleSystem.geometry.attributes.color.needsUpdate = true;
-        delete particles[i];
+        // Remove i-th item
+        particles.splice(i, 1);
     }
 }
 function applyPbc(thisPosition, trajectoryPositions, maxTrajectoryLength, spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ) {
