@@ -1,4 +1,3 @@
-import _ from 'lodash'
 import * as THREE from 'three'
 import { generateTexture } from './drawingHelpers.js'
 import { loadState, previousState } from './stateStorage.js'
@@ -337,18 +336,18 @@ function createParticleSystem (
     let vy
     const vz = 0
     if (settings.if_makeSun) {
-      x = _.random(-settings.spaceBoundaryX, settings.spaceBoundaryX, true)
+      x = random(-settings.spaceBoundaryX, settings.spaceBoundaryX)
       y = 0
-      z = _.random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ, true)
+      z = random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
       r = Math.sqrt(x * x + y * y + z * z)
       vy = Math.sqrt((settings.G * particles[0].mass) / r)
       if (i % 2 === 0) {
         vy *= -1
       }
     } else {
-      x = _.random(-settings.spaceBoundaryX, settings.spaceBoundaryX, true)
-      y = _.random(-settings.spaceBoundaryY, settings.spaceBoundaryY, true)
-      z = _.random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ, true)
+      x = random(-settings.spaceBoundaryX, settings.spaceBoundaryX)
+      y = random(-settings.spaceBoundaryY, settings.spaceBoundaryY)
+      z = random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
       r = Math.sqrt(x * x + y * y + z * z)
       vy = 0
     }
@@ -360,8 +359,8 @@ function createParticleSystem (
       new THREE.Vector3(x, y, z),
       new THREE.Vector3(vx, vy, vz),
       new THREE.Vector3(0, 0, 0),
-      _.random(16, 20, true),
-      _.sample(settings.availableCharges),
+      random(16, 20),
+      sample<number>(settings.availableCharges),
       particles,
       particlesGeometry,
       scene,
@@ -389,6 +388,14 @@ function createParticleSystem (
     group.add(clone)
   })
   return particleSystem
+}
+
+function random (min: number, max: number): number {
+  return Math.random() * (max - min) + min
+}
+
+function sample<Type> (l: Type[]): Type {
+  return l[~~(Math.random() * l.length)]
 }
 
 export {

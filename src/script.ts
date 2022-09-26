@@ -2,7 +2,6 @@ import {
   settings
 } from './settings.js'
 import { init, ifMobileDevice } from './init.js'
-import _ from 'lodash'
 import * as THREE from 'three'
 import {
   makeClonePositionsList, Particle
@@ -144,20 +143,18 @@ function computeForces (
 }
 
 function rescaleForceScaleBar (particles: Particle[]): number {
-  const highestForcePresent = _.max(
-    _.map(particles, (particle) => particle.force.length())
-  )
-  const arrowScaleForForces = settings.unitArrowLength / highestForcePresent
+  const forceStrengths: number[] = particles.map(particle => particle.force.length())
+  const highestForceStrengthPresent = Math.max(...forceStrengths)
+  const arrowScaleForForces = settings.unitArrowLength / highestForceStrengthPresent
   $('.mapscale#force').width(arrowScaleForForces * 1000000)
   return arrowScaleForForces
 }
 
 function rescaleVelocityScaleBar (particles: Particle[]): number {
-  const highestVelocityPresent = _.max(
-    _.map(particles, (particle) => particle.velocity.length())
-  )
+  const speeds: number[] = particles.map(particle => particle.velocity.length())
+  const highestSpeedPresent = Math.max(...speeds)
   const arrowScaleForVelocities =
-    settings.unitArrowLength / highestVelocityPresent
+    settings.unitArrowLength / highestSpeedPresent
   $('.mapscale#velocity').width(arrowScaleForVelocities * 10000)
   return arrowScaleForVelocities
 }
@@ -258,9 +255,7 @@ function animateOneParticle (i: number, arrowScaleForForces: number, arrowScaleF
     const scaleFactor = Math.sqrt(
       settings.targetTemperature / currentTemperature
     )
-    _.forEach(particles, function (particle) {
-      particle.velocity.multiplyScalar(scaleFactor)
-    })
+    particles.forEach(particle => particle.velocity.multiplyScalar(scaleFactor))
   }
   const ifThisParticleEscaped =
     settings.if_use_periodic_boundary_condition &&
@@ -274,7 +269,7 @@ function animateOneParticle (i: number, arrowScaleForForces: number, arrowScaleF
     settings.particleCount -= 1
     particleSystem.geometry.attributes.color.setXYZ(i, 0, 0, 0)
     particleSystem.geometry.attributes.color.needsUpdate = true
-    _.pullAt(particles, i)
+    delete particles[i]
   }
 }
 

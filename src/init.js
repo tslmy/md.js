@@ -255,12 +255,8 @@ function initializeGuiControls (settings, group) {
     .add(settings, 'if_showArrows')
     .name('Show arrows')
     .onChange(function (value) {
-      _.each(arrowForces, function (a) {
-        a.visible = value
-      })
-      _.each(arrowVelocities, function (a) {
-        a.visible = value
-      })
+      arrowForces.forEach(a => a.visible = value)
+      arrowVelocities.forEach(a => a.visible = value)
     })
   guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length')
   guiFolderArrows.add(settings, 'maxArrowLength').name('Max length')

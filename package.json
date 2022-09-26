@@ -3,7 +3,6 @@
     "url": "https://github.com/tslmy/md.js/issues"
   },
   "dependencies": {
-    "lodash": "^4.17.21",
     "three": "^0.144.0"
   },
   "description": "A toy molecular dynamics simulator in the browser.",
