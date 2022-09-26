@@ -11,11 +11,13 @@ import {
 } from './settings.js'
 import { drawBox } from './drawingHelpers.js'
 import { saveState, clearState } from './stateStorage.js'
-
-import * as dat from 'dat.gui'
 import {
+  makeClonePositionsList
+  ,
   createParticleSystem, particleMaterialForClones
 } from './particleSystem.js'
+
+import * as dat from 'dat.gui'
 
 const ifMobileDevice =
 /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -63,11 +65,10 @@ function init (settings,
     lastSnapshotTime,
     settings
   )
-  const particlesGeometry = particleSystem.geometry
   scene.add(group)
   console.log(particles)
   // enable settings
-  initializeGuiControls(settings, group, boxMesh)
+  initializeGuiControls(settings, group, boxMesh, particles)
   // initialize the camera
   const camera = new THREE.PerspectiveCamera(
     90,
@@ -152,7 +153,7 @@ function resize (camera, effect, renderer) {
   if (ifMobileDevice) effect.setSize(width, height)
 }
 
-function initializeGuiControls (settings, group, boxMesh) {
+function initializeGuiControls (settings, group, boxMesh, particles) {
 // Enable the GUI Controls powered by "dat.gui.min.js":
   const gui = new dat.GUI()
 
@@ -255,8 +256,10 @@ function initializeGuiControls (settings, group, boxMesh) {
     .add(settings, 'if_showArrows')
     .name('Show arrows')
     .onChange(function (value) {
-      arrowForces.forEach(a => a.visible = value)
-      arrowVelocities.forEach(a => a.visible = value)
+      particles.forEach(particle => {
+        particle.forceArrow.visible = value
+        particle.velocityArrow.visible = value
+      })
     })
   guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length')
   guiFolderArrows.add(settings, 'maxArrowLength').name('Max length')
@@ -273,6 +276,15 @@ function initializeGuiControls (settings, group, boxMesh) {
 
   guiFolderPlotting.open()
 
+  const commands = {
+    stop: () => {
+      settings.ifRun = false
+    },
+    toggleHUD: function () {
+      $('#hud').toggle()
+    },
+    clearState
+  }
   const guiFolderCommands = gui.addFolder('Commands') // controls, buttons
   guiFolderCommands.add(commands, 'clearState').name('New world')
   guiFolderCommands.add(commands, 'stop').name('Halt')
@@ -281,14 +293,5 @@ function initializeGuiControls (settings, group, boxMesh) {
 
   gui.remember(this)
   gui.close()
-}
-const commands = {
-  stop: () => {
-    settings.ifRun = false
-  },
-  toggleHUD: function () {
-    $('#hud').toggle()
-  },
-  clearState
 }
 export { init, ifMobileDevice }
