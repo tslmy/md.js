@@ -67,7 +67,7 @@ function init (settings,
   scene.add(group)
   console.log(particles)
   // enable settings
-  initializeGuiControls(settings, group)
+  initializeGuiControls(settings, group, boxMesh)
   // initialize the camera
   const camera = new THREE.PerspectiveCamera(
     90,
@@ -152,7 +152,7 @@ function resize (camera, effect, renderer) {
   if (ifMobileDevice) effect.setSize(width, height)
 }
 
-function initializeGuiControls (settings, group) {
+function initializeGuiControls (settings, group, boxMesh) {
 // Enable the GUI Controls powered by "dat.gui.min.js":
   const gui = new dat.GUI()
 
