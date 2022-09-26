@@ -385,12 +385,11 @@ function animate (): void {
 }
 function calculateTemperature (): number {
   let temperature = 0
-  for (let i = 0; i < settings.particleCount; i++) {
+  particles.forEach(particle => {
     temperature +=
-      particles[i].mass *
-      particles[i].velocity.length() *
-      particles[i].velocity.length()
-  }
+      particle.mass *
+      particle.velocity.length() ** 2
+  })
   temperature *= 1 / settings.kB / (3 * settings.particleCount - 3)
   if (temperature > maxTemperature) {
     maxTemperature = temperature
