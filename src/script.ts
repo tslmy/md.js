@@ -25,7 +25,7 @@ let lastSnapshotTime = 0
  * el: the DOM element you'd like to test for visibility.
  */
 function isVisible (el: HTMLElement): boolean {
-  return el.offsetParent !== null
+  return window.getComputedStyle(el).display !== 'none'
 }
 
 function applyForce (particles: Particle[], i: number, j: number, func: (i: number, j: number, d: number) => number): THREE.Vector3 {
@@ -271,6 +271,9 @@ function animateOneParticle (i: number, arrowScaleForForces: number, arrowScaleF
     particleSystem.geometry.attributes.color.needsUpdate = true
     // Remove i-th item
     particles.splice(i, 1)
+    $(
+        `#tabularInfo > tbody > tr:nth-child(${i + 1})`
+    ).remove()
   }
 }
 
@@ -359,7 +362,7 @@ function animate (): void {
   computeForces(particles, settings.particleCount, isVisible(document.querySelector('#hud')))
   const arrowScaleForForces = rescaleForceScaleBar(particles)
   const arrowScaleForVelocities = rescaleVelocityScaleBar(particles)
-  
+
   for (let i = 0; i < settings.particleCount; i++) {
     animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities)
   }

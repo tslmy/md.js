@@ -19,7 +19,7 @@ let lastSnapshotTime = 0;
  * el: the DOM element you'd like to test for visibility.
  */
 function isVisible(el) {
-    return el.offsetParent !== null;
+    return window.getComputedStyle(el).display !== 'none';
 }
 function applyForce(particles, i, j, func) {
     const thisPosition = particles[i].position;
@@ -37,7 +37,7 @@ function applyForce(particles, i, j, func) {
     }
     // ==================================================
     // force due to j in this cell:
-    for (const thatPositionDisplacement of clonePositions) {
+    clonePositions.forEach(thatPositionDisplacement => {
         // (don't use "for-in" loops!)
         r = rOriginal.clone();
         // (possibly) displace shift the end of this vector from particle j to one of its clones:
@@ -50,7 +50,7 @@ function applyForce(particles, i, j, func) {
             particles[i].force.sub(r);
             particles[j].force.add(r);
         }
-    }
+    });
     return r; // return the calculated force for further investigation.
 }
 function computeForces(particles, particleCount = 8, shouldUpdateHud = false) {
@@ -203,6 +203,7 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
         particleSystem.geometry.attributes.color.needsUpdate = true;
         // Remove i-th item
         particles.splice(i, 1);
+        $(`#tabularInfo > tbody > tr:nth-child(${i + 1})`).remove();
     }
 }
 function applyPbc(thisPosition, trajectoryPositions, maxTrajectoryLength, spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ) {
