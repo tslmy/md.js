@@ -109,10 +109,13 @@ function computeForces(particles, particleCount = 8, shouldUpdateHud = false) {
             }
         }
         if (shouldUpdateHud) {
-            const $thisRow = $(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
-            $('.LJForceStrength', $thisRow).text(Math.round(thisLJForceStrength * 100) / 100);
-            $('.GravitationForceStrength', $thisRow).text(Math.round(thisGravitationForceStrength * 100) / 100);
-            $('.CoulombForceStrength', $thisRow).text(Math.round(thisCoulombForceStrength * 100) / 100);
+            const $thisRow = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
+            const $LJForceStrength = $thisRow.querySelector('.LJForceStrength');
+            $LJForceStrength.textContent = `${Math.round(thisLJForceStrength * 100) / 100}`;
+            const $GravitationForceStrength = $thisRow.querySelector('.GravitationForceStrength');
+            $GravitationForceStrength.textContent = `${Math.round(thisGravitationForceStrength * 100) / 100}`;
+            const $CoulombForceStrength = $thisRow.querySelector('.CoulombForceStrength');
+            $CoulombForceStrength.textContent = `${Math.round(thisCoulombForceStrength * 100) / 100}`;
         }
     }
 }
@@ -120,14 +123,14 @@ function rescaleForceScaleBar(particles) {
     const forceStrengths = particles.map(particle => particle.force.length());
     const highestForceStrengthPresent = Math.max(...forceStrengths);
     const arrowScaleForForces = settings.unitArrowLength / highestForceStrengthPresent;
-    $('.mapscale#force').width(arrowScaleForForces * 1000000);
+    document.getElementById('force').style.width = `${arrowScaleForForces * 1000000}px`;
     return arrowScaleForForces;
 }
 function rescaleVelocityScaleBar(particles) {
     const speeds = particles.map(particle => particle.velocity.length());
     const highestSpeedPresent = Math.max(...speeds);
     const arrowScaleForVelocities = settings.unitArrowLength / highestSpeedPresent;
-    $('.mapscale#velocity').width(arrowScaleForVelocities * 10000);
+    document.getElementById('velocity').style.width = `${arrowScaleForVelocities * 1000000}px`;
     return arrowScaleForVelocities;
 }
 function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
@@ -178,12 +181,10 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
     }
     // update HUD, if visible:
     if (isVisible(document.querySelector('#hud'))) {
-        const $thisRow = $(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
-        $('.speed', $thisRow).text(Math.round(thisSpeed * 100) / 100);
-        $('.kineticEnergy', $thisRow).text(Math.round(thisSpeed * thisSpeed * thisMass * 50) / 100);
-        $('.TotalForceStrength', $thisRow).text(particles[i].force
-            ? Math.round(particles[i].force.length() * 100) / 100
-            : '0');
+        const $thisRow = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
+        $thisRow.querySelector('.speed').textContent = `${Math.round(thisSpeed * 100) / 100}`;
+        $thisRow.querySelector('.kineticEnergy').textContent = `${Math.round(thisSpeed * thisSpeed * thisMass * 50) / 100}`;
+        $thisRow.querySelector('.TotalForceStrength').textContent = `${particles[i].force ? Math.round(particles[i].force.length() * 100) / 100 : '0'}`;
     }
     if (settings.if_constant_temperature) {
         const currentTemperature = calculateTemperature();
@@ -203,7 +204,7 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
         particleSystem.geometry.attributes.color.needsUpdate = true;
         // Remove i-th item
         particles.splice(i, 1);
-        $(`#tabularInfo > tbody > tr:nth-child(${i + 1})`).remove();
+        document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`).remove();
     }
 }
 function applyPbc(thisPosition, trajectoryPositions, maxTrajectoryLength, spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ) {
@@ -319,7 +320,18 @@ function render() {
     }
 }
 // when document is ready:
-$(() => {
+// Source: https://stackoverflow.com/a/9899701/1147061
+function docReady(fn) {
+    // see if DOM is already available
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+        // call on next available tick
+        setTimeout(fn, 1);
+    }
+    else {
+        document.addEventListener("DOMContentLoaded", fn);
+    }
+}
+docReady(() => {
     console.log('Ready.');
     const values = init(settings, particles, time, lastSnapshotTime);
     scene = values[0];
@@ -334,7 +346,13 @@ $(() => {
     document.onkeydown = (e) => {
         switch (e.keyCode) {
             case 9:
-                $('#hud').toggle();
+                const $hud = document.getElementById("hud");
+                if ($hud.style.display === "none") {
+                    $hud.style.display = "block";
+                }
+                else {
+                    $hud.style.display = "none";
+                }
                 break;
         }
     };
