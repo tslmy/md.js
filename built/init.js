@@ -51,7 +51,6 @@ function init(settings, particles, time, lastSnapshotTime) {
         alpha: true
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(4); // enhance resolution
     if (ifMobileDevice) {
         effect = new StereoEffect(renderer);
     }
