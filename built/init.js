@@ -186,8 +186,8 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     guiFolderArrows
         .add(settings, 'if_showMapscale')
         .name('Show scales')
-        .onChange(function (value) {
-        $('.mapscale').toggle();
+        .onChange((value) => {
+        toggle('.mapscale');
     });
     guiFolderArrows
         .add(settings, 'if_proportionate_arrows_with_vectors')
@@ -197,8 +197,8 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
         stop: () => {
             settings.ifRun = false;
         },
-        toggleHUD: function () {
-            $('#hud').toggle();
+        toggleHUD: () => {
+            toggle('#hud');
         },
         clearState
     };
@@ -210,4 +210,13 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     gui.remember(this);
     gui.close();
 }
-export { init, ifMobileDevice };
+function toggle(selector) {
+    const element = document.querySelector(selector);
+    if (element.style.display === 'none') {
+        element.style.display = 'block';
+    }
+    else {
+        element.style.display = 'none';
+    }
+}
+export { init, ifMobileDevice, toggle };

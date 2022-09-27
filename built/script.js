@@ -1,5 +1,5 @@
 import { settings } from './settings.js';
-import { init, ifMobileDevice } from './init.js';
+import { init, ifMobileDevice, toggle } from './init.js';
 import * as THREE from 'three';
 import { makeClonePositionsList } from './particleSystem.js';
 // global variables
@@ -323,12 +323,12 @@ function render() {
 // Source: https://stackoverflow.com/a/9899701/1147061
 function docReady(fn) {
     // see if DOM is already available
-    if (document.readyState === "complete" || document.readyState === "interactive") {
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
         // call on next available tick
         setTimeout(fn, 1);
     }
     else {
-        document.addEventListener("DOMContentLoaded", fn);
+        document.addEventListener('DOMContentLoaded', fn);
     }
 }
 docReady(() => {
@@ -346,13 +346,7 @@ docReady(() => {
     document.onkeydown = (e) => {
         switch (e.keyCode) {
             case 9:
-                const $hud = document.getElementById("hud");
-                if ($hud.style.display === "none") {
-                    $hud.style.display = "block";
-                }
-                else {
-                    $hud.style.display = "none";
-                }
+                toggle('#hud');
                 break;
         }
     };

@@ -1,7 +1,7 @@
 import {
   settings
 } from './settings.js'
-import { init, ifMobileDevice } from './init.js'
+import { init, ifMobileDevice, toggle } from './init.js'
 import * as THREE from 'three'
 import {
   makeClonePositionsList, Particle
@@ -444,12 +444,7 @@ docReady(() => {
   document.onkeydown = (e) => {
     switch (e.keyCode) {
       case 9:
-        const $hud = document.getElementById('hud')
-        if ($hud.style.display === 'none') {
-          $hud.style.display = 'block'
-        } else {
-          $hud.style.display = 'none'
-        }
+        toggle('#hud')
         break
     }
   }
