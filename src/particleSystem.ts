@@ -137,7 +137,7 @@ function addParticle (
     column.classList.add(columnName)
     tableRow.appendChild(column)
   }
-  $('#tabularInfo > tbody').append(tableRow)
+  document.querySelector('#tabularInfo > tbody').appendChild(tableRow)
 }
 
 function makeClonePositionsList (

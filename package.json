@@ -7,7 +7,6 @@
   },
   "description": "A toy molecular dynamics simulator in the browser.",
   "devDependencies": {
-    "@types/jquery": "^3.5.14",
     "nodemon": "^2.0.20"
   },
   "homepage": "https://github.com/tslmy/md.js#readme",
