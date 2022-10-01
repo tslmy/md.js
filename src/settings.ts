@@ -7,7 +7,7 @@ const originalSpaceBoundaryZ = _spaceBoundary
 const dt = 0.01
 const settings = {
   // ===============options and settings:
-  particleCount: 8,
+  particleCount: 20,
   maxTrajectoryLength: 200,
   unitArrowLength: 0.1,
   maxArrowLength: 2,
@@ -15,6 +15,8 @@ const settings = {
   spaceBoundaryY: originalSpaceBoundaryY,
   spaceBoundaryZ: originalSpaceBoundaryZ,
   cutoffDistance: _spaceBoundary * 2,
+  massLowerBound: 16,
+  massUpperBound: 20,
   availableCharges: [-3, -2, -1, 0, 1, 2, 3],
   d_min: 0,
   dt,
@@ -33,7 +35,7 @@ const settings = {
   if_showTrajectory: true,
   if_showArrows: true,
   if_showMapscale: true,
-  if_useFog: false,
+  if_useFog: true,
   if_proportionate_arrows_with_vectors: true,
   if_limitArrowsMaxLength: true,
   if_constant_temperature: false,

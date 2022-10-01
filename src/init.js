@@ -65,6 +65,7 @@ function init (settings,
     lastSnapshotTime,
     settings
   )
+  console.log("3D object 'group' created: ", group)
   scene.add(group)
   console.log(particles)
   // enable settings
@@ -136,9 +137,9 @@ function updateClonesPositions (
   )
   for (let i = 0; i < 26; i++) {
     group.children[i + 1].position.set(
-      clonePositions[i][0],
-      clonePositions[i][1],
-      clonePositions[i][2]
+      clonePositions[i].x,
+      clonePositions[i].y,
+      clonePositions[i].z
     )
   }
 }

@@ -38,6 +38,7 @@ function init(settings, particles, time, lastSnapshotTime) {
     }
     const group = new THREE.Object3D();
     const particleSystem = createParticleSystem(group, particles, scene, time, lastSnapshotTime, settings);
+    console.log("3D object 'group' created: ", group);
     scene.add(group);
     console.log(particles);
     // enable settings
@@ -89,7 +90,7 @@ function init(settings, particles, time, lastSnapshotTime) {
 function updateClonesPositions(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, group) {
     const clonePositions = makeClonePositionsList(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ);
     for (let i = 0; i < 26; i++) {
-        group.children[i + 1].position.set(clonePositions[i][0], clonePositions[i][1], clonePositions[i][2]);
+        group.children[i + 1].position.set(clonePositions[i].x, clonePositions[i].y, clonePositions[i].z);
     }
 }
 function resize(camera, effect, renderer) {

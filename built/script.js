@@ -25,44 +25,48 @@ function applyForce(particles, i, j, func) {
     const thisPosition = particles[i].position;
     const thatPosition = particles[j].position;
     const rOriginal = new THREE.Vector3().subVectors(thisPosition, thatPosition); // relative displacement
-    let r;
     let clonePositions;
     // ====== populate the array "particleJClones" ======
     if (settings.if_use_periodic_boundary_condition) {
         clonePositions = makeClonePositionsList(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
-        clonePositions.push([0, 0, 0]);
+        clonePositions.push(new THREE.Vector3(0, 0, 0));
     }
     else {
-        clonePositions = [[0, 0, 0]];
+        clonePositions = [new THREE.Vector3(0, 0, 0)];
     }
-    // ==================================================
-    // force due to j in this cell:
+    // `forceFromAllClones` accumulates force that i feels from all clones of j.
+    const forceFromAllClones = new THREE.Vector3(0, 0, 0);
     clonePositions.forEach(thatPositionDisplacement => {
-        // (don't use "for-in" loops!)
-        r = rOriginal.clone();
         // (possibly) displace shift the end of this vector from particle j to one of its clones:
-        r.x -= thatPositionDisplacement[0];
-        r.y -= thatPositionDisplacement[1];
-        r.z -= thatPositionDisplacement[2];
-        const d = r.length(); // calculate distance between particles i and j (with j may being a clone)
+        let rEffective = new THREE.Vector3().subVectors(rOriginal, thatPositionDisplacement);
+        const d = rEffective.length(); // calculate distance between particles i and j (with j may being a clone)
         if (d < settings.cutoffDistance) {
-            r.setLength(func(i, j, d)); // use calculated "force strength" as vector length
-            particles[i].force.sub(r);
-            particles[j].force.add(r);
+            const forceStrengthFromThisClone = func(i, j, d);
+            const forceFromThisClone = rEffective.clone().setLength(forceStrengthFromThisClone);
+            particles[i].force.sub(forceFromThisClone);
+            particles[j].force.add(forceFromThisClone);
+            forceFromAllClones.add(forceFromThisClone);
         }
     });
-    return r; // return the calculated force for further investigation.
+    return forceFromAllClones;
 }
 function computeForces(particles, particleCount = 8, shouldUpdateHud = false) {
     // remove all forces first.
-    particles.forEach((particle) => particle.force.set(0, 0, 0));
+    particles.filter(particle => !particle.isEscaped)
+        .forEach((particle) => particle.force.set(0, 0, 0));
     for (let i = 0; i < particleCount; i++) {
+        if (particles[i].isEscaped) {
+            continue;
+        }
         // initialize total force counters:
         let thisLJForceStrength = 0;
         let thisGravitationForceStrength = 0;
         let thisCoulombForceStrength = 0;
         // process interactions:
         for (let j = i + 1; j < particleCount; j++) {
+            if (particles[j].isEscaped) {
+                continue;
+            }
             // generate all forces:
             if (settings.if_apply_LJpotential) {
                 // Use Lennard-Jones potential
@@ -120,37 +124,36 @@ function computeForces(particles, particleCount = 8, shouldUpdateHud = false) {
     }
 }
 function rescaleForceScaleBar(particles) {
-    const forceStrengths = particles.map(particle => particle.force.length());
+    const forceStrengths = particles.filter(particle => !particle.isEscaped).map(particle => particle.force.length());
     const highestForceStrengthPresent = Math.max(...forceStrengths);
     const arrowScaleForForces = settings.unitArrowLength / highestForceStrengthPresent;
     document.getElementById('force').style.width = `${arrowScaleForForces * 1000000}px`;
     return arrowScaleForForces;
 }
 function rescaleVelocityScaleBar(particles) {
-    const speeds = particles.map(particle => particle.velocity.length());
+    const speeds = particles.filter(particle => !particle.isEscaped).map(particle => particle.velocity.length());
     const highestSpeedPresent = Math.max(...speeds);
     const arrowScaleForVelocities = settings.unitArrowLength / highestSpeedPresent;
     document.getElementById('velocity').style.width = `${arrowScaleForVelocities * 1000000}px`;
     return arrowScaleForVelocities;
 }
 function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
-    // shorthands
-    const thisPosition = particles[i].position;
-    const thisVelocity = particles[i].velocity;
-    const thisMass = particles[i].mass;
+    if (particles[i].isEscaped) {
+        return;
+    }
     // ======================== now update eveything user could see ========================
     // update velocities according to force:
-    thisVelocity.addScaledVector(particles[i].force, settings.dt / particles[i].mass); // v = v + f/m·dt
-    const thisSpeed = thisVelocity.length(); // vector -> scalar
+    particles[i].velocity.addScaledVector(particles[i].force, settings.dt / particles[i].mass); // v = v + f/m·dt
+    const thisSpeed = particles[i].velocity.length(); // vector -> scalar
     // update positions according to velocity:
-    thisPosition.addScaledVector(thisVelocity, settings.dt); // x = x + v·dt
-    particleSystem.geometry.attributes.position.setXYZ(i, thisPosition.x, thisPosition.y, thisPosition.z);
+    particles[i].position.addScaledVector(particles[i].velocity, settings.dt); // x = x + v·dt
+    particleSystem.geometry.attributes.position.setXYZ(i, particles[i].position.x, particles[i].position.y, particles[i].position.z);
     const trajectoryPositions = settings.if_showTrajectory
         ? particles[i].trajectory.geometry.attributes.position
         : null;
     // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
     if (settings.if_use_periodic_boundary_condition) {
-        applyPbc(thisPosition, trajectoryPositions, settings.maxTrajectoryLength, settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
+        applyPbc(particles[i].position, trajectoryPositions, settings.maxTrajectoryLength, settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
     }
     if (settings.if_showArrows) {
         // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user
@@ -183,28 +186,22 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
     if (isVisible(document.querySelector('#hud'))) {
         const $thisRow = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
         $thisRow.querySelector('.speed').textContent = `${Math.round(thisSpeed * 100) / 100}`;
-        $thisRow.querySelector('.kineticEnergy').textContent = `${Math.round(thisSpeed * thisSpeed * thisMass * 50) / 100}`;
+        $thisRow.querySelector('.kineticEnergy').textContent = `${Math.round(thisSpeed * thisSpeed * particles[i].mass * 50) / 100}`;
         $thisRow.querySelector('.TotalForceStrength').textContent = `${particles[i].force ? Math.round(particles[i].force.length() * 100) / 100 : '0'}`;
     }
     if (settings.if_constant_temperature) {
         const currentTemperature = calculateTemperature();
         const scaleFactor = Math.sqrt(settings.targetTemperature / currentTemperature);
-        particles.forEach(particle => particle.velocity.multiplyScalar(scaleFactor));
+        particles.filter(particle => !particle.isEscaped).forEach(particle => particle.velocity.multiplyScalar(scaleFactor));
     }
-    const ifThisParticleEscaped = settings.if_use_periodic_boundary_condition &&
+    const hasThisParticleEscaped = settings.if_use_periodic_boundary_condition &&
         thisSpeed > settings.escapeSpeed &&
-        (Math.abs(thisPosition.x) >= 0.9 * settings.spaceBoundaryX ||
-            Math.abs(thisPosition.y) >= 0.9 * settings.spaceBoundaryY ||
-            Math.abs(thisPosition.z) >= 0.9 * settings.spaceBoundaryZ);
-    if (ifThisParticleEscaped) {
-        console.log('Particle ', i, ' escaped with speed', thisSpeed, '.');
-        // remove this particle from all lists:
-        settings.particleCount -= 1;
-        particleSystem.geometry.attributes.color.setXYZ(i, 0, 0, 0);
-        particleSystem.geometry.attributes.color.needsUpdate = true;
-        // Remove i-th item
-        particles.splice(i, 1);
-        document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`).remove();
+        (Math.abs(particles[i].position.x) >= 0.9 * settings.spaceBoundaryX ||
+            Math.abs(particles[i].position.y) >= 0.9 * settings.spaceBoundaryY ||
+            Math.abs(particles[i].position.z) >= 0.9 * settings.spaceBoundaryZ);
+    if (hasThisParticleEscaped) {
+        console.log('Particle', i, 'escaped with speed', thisSpeed, '.');
+        particles[i].isEscaped = true;
     }
 }
 function applyPbc(thisPosition, trajectoryPositions, maxTrajectoryLength, spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ) {
@@ -291,7 +288,7 @@ function animate() {
 }
 function calculateTemperature() {
     let temperature = 0;
-    particles.forEach(particle => {
+    particles.filter(particle => !particle.isEscaped).forEach(particle => {
         temperature +=
             particle.mass *
                 particle.velocity.length() ** 2;

@@ -15,28 +15,26 @@ const particleMaterialForClones = new THREE.PointsMaterial({
 });
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength'];
 class Particle {
-    constructor(color, position, force, velocity, mass, charge, velocityArrow, forceArrow, trajectory) {
+    constructor(color, position, force, velocity, mass, charge, trajectory) {
+        this.isEscaped = false;
         this.color = color;
         this.position = position;
         this.force = force;
         this.velocity = velocity;
         this.mass = mass;
         this.charge = charge;
-        this.velocityArrow = velocityArrow;
-        this.forceArrow = forceArrow;
         this.trajectory = trajectory;
+        this.isEscaped = false;
+        // Add arrows.
+        this.velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa);
+        this.forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0xaa5555);
     }
 }
 function addParticle(color, position, velocity, force, thisMass, thisCharge, particles, particlesGeometry, scene, shouldShowTrajectory, maxTrajectoryLength) {
     // Create the vertex
     // Add the vertex to the geometry
-    particlesGeometry.attributes.position.setXYZ(particles.length - 1, position.x, position.y, position.z);
-    particlesGeometry.attributes.color.setXYZ(particles.length - 1, color.r, color.g, color.b);
-    // add two arrows
-    const velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa);
-    scene.add(velocityArrow);
-    const forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x555555);
-    scene.add(forceArrow);
+    particlesGeometry.attributes.position.setXYZ(particles.length, position.x, position.y, position.z);
+    particlesGeometry.attributes.color.setXYZ(particles.length, color.r, color.g, color.b);
     // add trajectories.
     let thisTrajectory = null;
     if (shouldShowTrajectory) {
@@ -44,8 +42,10 @@ function addParticle(color, position, velocity, force, thisMass, thisCharge, par
         thisTrajectory = makeTrajectory(color, position, maxTrajectoryLength);
         scene.add(thisTrajectory);
     }
-    const particle = new Particle(color, position, force, velocity, thisMass, thisCharge, velocityArrow, forceArrow, thisTrajectory);
+    const particle = new Particle(color, position, force, velocity, thisMass, thisCharge, thisTrajectory);
     particles.push(particle);
+    scene.add(particle.velocityArrow);
+    scene.add(particle.forceArrow);
     // Make the HUD table.
     const tableRow = document.createElement('tr');
     const particleColumn = document.createElement('td');
@@ -70,32 +70,32 @@ function addParticle(color, position, velocity, force, thisMass, thisCharge, par
 }
 function makeClonePositionsList(x, y, z) {
     return [
-        [2 * x, 0, 0],
-        [-2 * x, 0, 0],
-        [0, 2 * y, 0],
-        [0, -2 * y, 0],
-        [0, 0, 2 * z],
-        [0, 0, -2 * z],
-        [2 * x, 0, 2 * z],
-        [-2 * x, 0, 2 * z],
-        [2 * x, 0, -2 * z],
-        [-2 * x, 0, -2 * z],
-        [0, 2 * y, 2 * z],
-        [0, -2 * y, 2 * z],
-        [0, 2 * y, -2 * z],
-        [0, -2 * y, -2 * z],
-        [2 * x, 2 * y, 0],
-        [-2 * x, 2 * y, 0],
-        [2 * x, -2 * y, 0],
-        [-2 * x, -2 * y, 0],
-        [2 * x, 2 * y, 2 * z],
-        [-2 * x, 2 * y, 2 * z],
-        [2 * x, -2 * y, 2 * z],
-        [-2 * x, -2 * y, 2 * z],
-        [2 * x, 2 * y, -2 * z],
-        [-2 * x, 2 * y, -2 * z],
-        [2 * x, -2 * y, -2 * z],
-        [-2 * x, -2 * y, -2 * z]
+        new THREE.Vector3(2 * x, 0, 0),
+        new THREE.Vector3(-2 * x, 0, 0),
+        new THREE.Vector3(0, 2 * y, 0),
+        new THREE.Vector3(0, -2 * y, 0),
+        new THREE.Vector3(0, 0, 2 * z),
+        new THREE.Vector3(0, 0, -2 * z),
+        new THREE.Vector3(2 * x, 0, 2 * z),
+        new THREE.Vector3(-2 * x, 0, 2 * z),
+        new THREE.Vector3(2 * x, 0, -2 * z),
+        new THREE.Vector3(-2 * x, 0, -2 * z),
+        new THREE.Vector3(0, 2 * y, 2 * z),
+        new THREE.Vector3(0, -2 * y, 2 * z),
+        new THREE.Vector3(0, 2 * y, -2 * z),
+        new THREE.Vector3(0, -2 * y, -2 * z),
+        new THREE.Vector3(2 * x, 2 * y, 0),
+        new THREE.Vector3(-2 * x, 2 * y, 0),
+        new THREE.Vector3(2 * x, -2 * y, 0),
+        new THREE.Vector3(-2 * x, -2 * y, 0),
+        new THREE.Vector3(2 * x, 2 * y, 2 * z),
+        new THREE.Vector3(-2 * x, 2 * y, 2 * z),
+        new THREE.Vector3(2 * x, -2 * y, 2 * z),
+        new THREE.Vector3(-2 * x, -2 * y, 2 * z),
+        new THREE.Vector3(2 * x, 2 * y, -2 * z),
+        new THREE.Vector3(-2 * x, 2 * y, -2 * z),
+        new THREE.Vector3(2 * x, -2 * y, -2 * z),
+        new THREE.Vector3(-2 * x, -2 * y, -2 * z),
     ];
 }
 /**
@@ -123,7 +123,7 @@ function makeTrajectory(thisColor, thisPosition, maxTrajectoryLength) {
     }
     // finished preparing the geometry for this trajectory
     const thisTrajectoryMaterial = new THREE.LineBasicMaterial({
-        linewidth: 0.5,
+        linewidth: 1,
         vertexColors: true
     });
     return new THREE.Line(thisGeometry, thisTrajectoryMaterial);
@@ -187,44 +187,44 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
     }
     // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
     for (let i = particles.length; i < settings.particleCount; i++) {
-        let x;
-        let y;
-        let z;
         let r;
-        const vx = 0;
-        let vy;
-        const vz = 0;
+        let position;
+        let velocity;
         if (settings.if_makeSun) {
-            x = random(-settings.spaceBoundaryX, settings.spaceBoundaryX);
-            y = 0;
-            z = random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ);
-            r = Math.sqrt(x * x + y * y + z * z);
-            vy = Math.sqrt((settings.G * particles[0].mass) / r);
+            // In the case that we want a sun at the center, let's initialize our "planets" on the same horizontal surface. This is done by ensuring that y = 0 for all.
+            position = new THREE.Vector3(random(-settings.spaceBoundaryX, settings.spaceBoundaryX), 0, random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ));
+            r = position.length();
+            // The speed in the vertical direction should be the orbital speed.
+            // See https://www.physicsclassroom.com/class/circles/Lesson-4/Mathematics-of-Satellite-Motion.
+            let vy = Math.sqrt((settings.G * particles[0].mass) / r);
+            velocity = new THREE.Vector3(0, vy, 0);
+            // Let's also round-robin the orientation of the orbiting motions with each "planet". It's more fun.
             if (i % 2 === 0) {
-                vy *= -1;
+                velocity.negate();
             }
         }
         else {
-            x = random(-settings.spaceBoundaryX, settings.spaceBoundaryX);
-            y = random(-settings.spaceBoundaryY, settings.spaceBoundaryY);
-            z = random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ);
-            r = Math.sqrt(x * x + y * y + z * z);
-            vy = 0;
+            position = new THREE.Vector3(random(-settings.spaceBoundaryX, settings.spaceBoundaryX), random(-settings.spaceBoundaryY, settings.spaceBoundaryY), random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ));
+            r = position.length();
+            velocity = new THREE.Vector3(0, 0, 0);
         }
-        addParticle(new THREE.Color(Math.random(), Math.random(), Math.random()), new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz), new THREE.Vector3(0, 0, 0), random(16, 20), sample(settings.availableCharges), particles, particlesGeometry, scene, settings.if_showTrajectory, settings.maxTrajectoryLength);
+        // Force should always be initialized to zero. It will be computed properly upon first refresh.
+        // Don't share this object across particles, though -- The values of their components will vary across particles during simulation.
+        const force = new THREE.Vector3(0, 0, 0);
+        addParticle(new THREE.Color(Math.random(), Math.random(), Math.random()), position, velocity, force, random(settings.massLowerBound, settings.massUpperBound), sample(settings.availableCharges), particles, particlesGeometry, scene, settings.if_showTrajectory, settings.maxTrajectoryLength);
     }
     // Create the material that will be used to render each vertex of the geometry
     // Create the particle system
     const particleSystem = new THREE.Points(particlesGeometry, particleMaterial);
     particleSystem.position.set(0, 0, 0);
     group.add(particleSystem);
-    let clone;
+    console.log("Particle System created:", particleSystem);
     const clonePositions = makeClonePositionsList(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
     const cloneTemplate = particleSystem.clone();
     cloneTemplate.material = particleMaterialForClones;
     clonePositions.forEach((clonePosition) => {
-        clone = cloneTemplate.clone();
-        clone.position.set(clonePosition[0], clonePosition[1], clonePosition[2]);
+        const clone = cloneTemplate.clone();
+        clone.position.set(clonePosition.x, clonePosition.y, clonePosition.z);
         group.add(clone);
     });
     return particleSystem;
