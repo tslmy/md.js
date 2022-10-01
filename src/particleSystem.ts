@@ -6,11 +6,8 @@ texture.needsUpdate = true // important
 const particleMaterialForClones = new THREE.PointsMaterial({
   // http://jsfiddle.net/7yDGy/1/
   map: texture,
-  blending: THREE.NormalBlending, // required
-  depthTest: false, // required
-  transparent: true,
-  opacity: 0.3,
-  size: 0.3,
+  size: 0.2,
+  alphaTest: 0.5,
   vertexColors: true
 })
 
@@ -239,7 +236,7 @@ function createParticleSystem (
     // http://jsfiddle.net/7yDGy/1/
     map: texture,
     blending: THREE.NormalBlending, // required
-    depthTest: false, // required
+    depthTest: true,
     transparent: true,
     // opacity: 0.9,
     size: 0.3,

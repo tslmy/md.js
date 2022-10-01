@@ -38,7 +38,7 @@ function applyForce(particles, i, j, func) {
     const forceFromAllClones = new THREE.Vector3(0, 0, 0);
     clonePositions.forEach(thatPositionDisplacement => {
         // (possibly) displace shift the end of this vector from particle j to one of its clones:
-        let rEffective = new THREE.Vector3().subVectors(rOriginal, thatPositionDisplacement);
+        const rEffective = new THREE.Vector3().subVectors(rOriginal, thatPositionDisplacement);
         const d = rEffective.length(); // calculate distance between particles i and j (with j may being a clone)
         if (d < settings.cutoffDistance) {
             const forceStrengthFromThisClone = func(i, j, d);

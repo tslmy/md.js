@@ -6,11 +6,8 @@ texture.needsUpdate = true; // important
 const particleMaterialForClones = new THREE.PointsMaterial({
     // http://jsfiddle.net/7yDGy/1/
     map: texture,
-    blending: THREE.NormalBlending,
-    depthTest: false,
-    transparent: true,
-    opacity: 0.3,
-    size: 0.3,
+    size: .2,
+    alphaTest: 0.5,
     vertexColors: true
 });
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength'];
@@ -95,7 +92,7 @@ function makeClonePositionsList(x, y, z) {
         new THREE.Vector3(2 * x, 2 * y, -2 * z),
         new THREE.Vector3(-2 * x, 2 * y, -2 * z),
         new THREE.Vector3(2 * x, -2 * y, -2 * z),
-        new THREE.Vector3(-2 * x, -2 * y, -2 * z),
+        new THREE.Vector3(-2 * x, -2 * y, -2 * z)
     ];
 }
 /**
@@ -144,7 +141,7 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
         // http://jsfiddle.net/7yDGy/1/
         map: texture,
         blending: THREE.NormalBlending,
-        depthTest: false,
+        depthTest: true,
         transparent: true,
         // opacity: 0.9,
         size: 0.3,
@@ -196,7 +193,7 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
             r = position.length();
             // The speed in the vertical direction should be the orbital speed.
             // See https://www.physicsclassroom.com/class/circles/Lesson-4/Mathematics-of-Satellite-Motion.
-            let vy = Math.sqrt((settings.G * particles[0].mass) / r);
+            const vy = Math.sqrt((settings.G * particles[0].mass) / r);
             velocity = new THREE.Vector3(0, vy, 0);
             // Let's also round-robin the orientation of the orbiting motions with each "planet". It's more fun.
             if (i % 2 === 0) {
@@ -218,7 +215,7 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
     const particleSystem = new THREE.Points(particlesGeometry, particleMaterial);
     particleSystem.position.set(0, 0, 0);
     group.add(particleSystem);
-    console.log("Particle System created:", particleSystem);
+    console.log('Particle System created:', particleSystem);
     const clonePositions = makeClonePositionsList(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
     const cloneTemplate = particleSystem.clone();
     cloneTemplate.material = particleMaterialForClones;
