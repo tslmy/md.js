@@ -367,7 +367,7 @@ function animate (): void {
   // draw this frame
   statistics(temperaturePanel, maxTemperature)
   update()
-  render()
+  render(renderer, effect)
   // set up the next call
   if (settings.ifRun) {
     requestAnimationFrame(animate)
@@ -399,7 +399,7 @@ function update (): void {
   controls.update()
 }
 
-function render (): void {
+function render (renderer, effect): void {
   if (ifMobileDevice) {
     effect.render(scene, camera)
   } else {
@@ -433,6 +433,7 @@ docReady(() => {
   controls = values[4]
   stats = values[5]
   temperaturePanel = values[6]
+  effect = values[7]
 
   animate()
   // bind keyboard event:

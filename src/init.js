@@ -35,7 +35,6 @@ function fullscreen () {
     document.body.webkitRequestFullscreen()
   }
 }
-let effect
 function init (settings,
   particles,
   time,
@@ -84,6 +83,7 @@ function init (settings,
     alpha: true
   })
   renderer.setSize(window.innerWidth, window.innerHeight)
+  let effect
   if (ifMobileDevice) {
     effect = new StereoEffect(renderer)
   }
@@ -121,7 +121,7 @@ function init (settings,
       lastSnapshotTime
     })
   }
-  return [scene, particleSystem, camera, renderer, controls, stats, temperaturePanel]
+  return [scene, particleSystem, camera, renderer, controls, stats, temperaturePanel, effect]
 }
 
 function updateClonesPositions (

@@ -23,7 +23,6 @@ function fullscreen() {
         document.body.webkitRequestFullscreen();
     }
 }
-let effect;
 function init(settings, particles, time, lastSnapshotTime) {
     // initialize the scene
     const scene = new THREE.Scene();
@@ -52,6 +51,7 @@ function init(settings, particles, time, lastSnapshotTime) {
         alpha: true
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    let effect;
     if (ifMobileDevice) {
         effect = new StereoEffect(renderer);
     }
@@ -85,7 +85,7 @@ function init(settings, particles, time, lastSnapshotTime) {
             lastSnapshotTime
         });
     };
-    return [scene, particleSystem, camera, renderer, controls, stats, temperaturePanel];
+    return [scene, particleSystem, camera, renderer, controls, stats, temperaturePanel, effect];
 }
 function updateClonesPositions(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, group) {
     const clonePositions = makeClonePositionsList(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ);

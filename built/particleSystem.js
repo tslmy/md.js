@@ -6,7 +6,7 @@ texture.needsUpdate = true; // important
 const particleMaterialForClones = new THREE.PointsMaterial({
     // http://jsfiddle.net/7yDGy/1/
     map: texture,
-    size: .2,
+    size: 0.2,
     alphaTest: 0.5,
     vertexColors: true
 });

@@ -279,7 +279,7 @@ function animate() {
     // draw this frame
     statistics(temperaturePanel, maxTemperature);
     update();
-    render();
+    render(renderer, effect);
     // set up the next call
     if (settings.ifRun) {
         requestAnimationFrame(animate);
@@ -308,7 +308,7 @@ function update() {
     camera.updateProjectionMatrix();
     controls.update();
 }
-function render() {
+function render(renderer, effect) {
     if (ifMobileDevice) {
         effect.render(scene, camera);
     }
@@ -338,6 +338,7 @@ docReady(() => {
     controls = values[4];
     stats = values[5];
     temperaturePanel = values[6];
+    effect = values[7];
     animate();
     // bind keyboard event:
     document.onkeydown = (e) => {
