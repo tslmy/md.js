@@ -18,8 +18,6 @@ class Particle {
   readonly index: number
   color: THREE.Color
   position: THREE.Vector3 // cached position for Three helpers (updated from SoA each frame)
-  velocityArrow: THREE.ArrowHelper
-  forceArrow: THREE.ArrowHelper
   trajectory: THREE.Line | null
   isEscaped = false
   constructor(index: number, color: THREE.Color, initialPosition: THREE.Vector3, trajectory: THREE.Line | null) {
@@ -27,8 +25,6 @@ class Particle {
     this.color = color
     this.position = initialPosition.clone()
     this.trajectory = trajectory
-    this.velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa)
-    this.forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0xaa5555)
   }
 }
 
@@ -73,8 +69,7 @@ function addParticle(opts: AddParticleOpts): void {
   }
   const particle = new Particle(idx, color, position, trajectory)
   particles.push(particle)
-  scene.add(particle.velocityArrow)
-  scene.add(particle.forceArrow)
+  // Per-particle ArrowHelpers removed (now using instanced arrows in rendering layer)
   // HUD row
   const row = document.createElement('tr')
   const particleCol = document.createElement('td')

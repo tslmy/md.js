@@ -4,6 +4,7 @@ import { saveState } from './stateStorage.js'
 import type { SavedState } from './stateStorage.js'
 import * as THREE from 'three'
 import { Particle } from './particleSystem.js'
+import { InstancedArrows } from './view/three/InstancedArrows.js'
 // New SoA simulation core imports
 import { createState, type SimulationState } from './core/simulation/state.js'
 import { Simulation } from './core/simulation/Simulation.js'
@@ -26,9 +27,15 @@ let temperaturePanel: TemperaturePanelLike
 let stats: StatsLike
 let maxTemperature = 0
 let particleSystem: THREE.Points | undefined
+let velocityArrows: InstancedArrows | undefined
+let forceArrows: InstancedArrows | undefined
 // New SoA simulation objects
 let simulation: Simulation | undefined
 let simState: SimulationState | undefined
+
+// Distinct per-type colors (velocity vs force)
+const VELOCITY_ARROW_COLOR = 0x1e90ff // DodgerBlue
+const FORCE_ARROW_COLOR = 0xff5a2a // Vibrant orange-red
 
 const particles: Particle[] = []
 let time = 0
@@ -66,7 +73,13 @@ function rescaleForceScaleBarFromState(state: SimulationState | undefined): numb
   if (maxMag === 0) maxMag = 1
   const scale = settings.unitArrowLength / maxMag
   const forceEl = document.getElementById('force')
-  if (forceEl) forceEl.style.width = `${scale * 1000000}px`
+  if (forceEl) {
+    forceEl.style.width = `${scale * 1000000}px`
+    forceEl.style.backgroundColor = `#${FORCE_ARROW_COLOR.toString(16).padStart(6, '0')}`
+    forceEl.style.borderColor = forceEl.style.backgroundColor
+    forceEl.style.color = '#fff'
+  if (!forceEl.textContent || forceEl.textContent.trim() === '') forceEl.textContent = 'Force'
+  }
   return scale
 }
 
@@ -82,22 +95,23 @@ function rescaleVelocityScaleBarFromState(state: SimulationState | undefined): n
   if (maxSpeed === 0) maxSpeed = 1
   const scale = settings.unitArrowLength / maxSpeed
   const velEl = document.getElementById('velocity')
-  if (velEl) velEl.style.width = `${scale * 1000000}px`
+  if (velEl) {
+    velEl.style.width = `${scale * 1000000}px`
+    velEl.style.backgroundColor = `#${VELOCITY_ARROW_COLOR.toString(16).padStart(6, '0')}`
+    velEl.style.borderColor = velEl.style.backgroundColor
+    velEl.style.color = '#fff'
+  if (!velEl.textContent || velEl.textContent.trim() === '') velEl.textContent = 'Speed'
+  }
   return scale
 }
 
 // Helpers to reduce complexity
-function updateArrowHelper(arrow: THREE.ArrowHelper, from: THREE.Vector3, vector: THREE.Vector3, scale: number): void {
-  // Compute raw length (either proportional to magnitude or fixed unit length)
-  let lengthToScale = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale * settings.arrowMagnitudeMultiplier : settings.unitArrowLength
-  // Ensure a small minimum so arrows remain visible when forces / velocities are tiny (or zero after reset)
+function computeArrowLength(vector: THREE.Vector3, scale: number): number {
+  let len = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale * settings.arrowMagnitudeMultiplier : settings.unitArrowLength
   const minVisible = 0.2 * settings.unitArrowLength
-  if (lengthToScale < minVisible) lengthToScale = minVisible
-  if (settings.if_limitArrowsMaxLength && lengthToScale > settings.maxArrowLength) lengthToScale = settings.maxArrowLength
-  arrow.setLength(lengthToScale)
-  arrow.position.copy(from)
-  const dir = vector.lengthSq() === 0 ? _unitX : _tmpDir.copy(vector).normalize()
-  arrow.setDirection(dir)
+  if (len < minVisible) len = minVisible
+  if (settings.if_limitArrowsMaxLength && len > settings.maxArrowLength) len = settings.maxArrowLength
+  return len
 }
 
 function updateTrajectoryBuffer(p: Particle, trajectory: THREE.BufferAttribute, maxLen: number): void {
@@ -117,7 +131,6 @@ function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: 
 }
 
 const _tmpDir = new THREE.Vector3()
-const _unitX = new THREE.Vector3(1, 0, 0)
 const _tmpVel = new THREE.Vector3()
 const _tmpForce = new THREE.Vector3()
 const _tmpFrom = new THREE.Vector3()
@@ -155,12 +168,14 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2]
   // Update displayed position only (SoA remains source of truth). Legacy velocity/force mirrors removed.
   p.position.set(px, py, pz)
-  if (settings.if_showArrows) {
+  if (settings.if_showArrows && velocityArrows && forceArrows) {
     _tmpVel.set(vx, vy, vz)
     _tmpForce.set(fx, fy, fz)
     _tmpFrom.set(px, py, pz)
-    updateArrowHelper(p.velocityArrow, _tmpFrom, _tmpVel, arrowScaleForVelocities)
-    updateArrowHelper(p.forceArrow, _tmpFrom, _tmpForce, arrowScaleForForces)
+  const vLen = computeArrowLength(_tmpVel, arrowScaleForVelocities)
+  const fLen = computeArrowLength(_tmpForce, arrowScaleForForces)
+  velocityArrows.update(i, _tmpFrom, _tmpVel, vLen)
+  forceArrows.update(i, _tmpFrom, _tmpForce, fLen)
   }
   if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz })
 }
@@ -192,6 +207,7 @@ function animate(): void {
     : new THREE.Vector3(0, 0, 0)
   updateFromSimulation(arrowScaleForForces, arrowScaleForVelocities, frameOffset)
   if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt) lastSnapshotTime = time
+  if (settings.if_showArrows && velocityArrows && forceArrows) { velocityArrows.commit(); forceArrows.commit() }
   statistics(temperaturePanel, maxTemperature)
   update()
   render(renderer, effect)
@@ -279,6 +295,12 @@ docReady(() => {
   if (settings.if_apply_gravitation) forcePlugins.push(new Gravity({ G: settings.G }))
   if (settings.if_apply_coulombForce) forcePlugins.push(new Coulomb({ K: settings.K }))
   simulation = new Simulation(simState, VelocityVerlet, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance })
+  if (settings.if_showArrows) {
+    velocityArrows = new InstancedArrows(particles.length, { color: VELOCITY_ARROW_COLOR })
+    forceArrows = new InstancedArrows(particles.length, { color: FORCE_ARROW_COLOR })
+    velocityArrows.addTo(scene)
+    forceArrows.addTo(scene)
+  }
 
   animate()
   // Expose handle for automated headless tests
