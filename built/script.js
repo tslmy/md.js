@@ -167,9 +167,26 @@ function animate() {
         simulation.step();
     const arrowScaleForForces = rescaleForceScaleBarFromState(simState);
     const arrowScaleForVelocities = rescaleVelocityScaleBarFromState(simState);
-    const frameOffset = (settings.if_ReferenceFrame_movesWithSun && simState)
-        ? new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
-        : new THREE.Vector3(0, 0, 0);
+    let frameOffset = new THREE.Vector3(0, 0, 0);
+    if (simState) {
+        if (settings.referenceFrameMode === 'sun' && simState.N > 0) {
+            frameOffset = new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2]);
+        }
+        else if (settings.referenceFrameMode === 'com') {
+            const { masses, positions, N } = simState;
+            let mx = 0, my = 0, mz = 0, mTot = 0;
+            for (let i = 0; i < N; i++) {
+                const i3 = 3 * i;
+                const m = masses[i] || 1;
+                mx += m * positions[i3];
+                my += m * positions[i3 + 1];
+                mz += m * positions[i3 + 2];
+                mTot += m;
+            }
+            if (mTot > 0)
+                frameOffset = new THREE.Vector3(mx / mTot, my / mTot, mz / mTot);
+        }
+    }
     updateFromSimulation(arrowScaleForForces, arrowScaleForVelocities, frameOffset);
     if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt)
         lastSnapshotTime = time;

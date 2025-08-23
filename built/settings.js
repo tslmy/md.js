@@ -27,7 +27,8 @@ const settings = {
     if_apply_LJpotential: true,
     if_apply_gravitation: true,
     if_apply_coulombForce: true,
-    if_ReferenceFrame_movesWithSun: true,
+    // referenceFrameMode: 'fixed' | 'sun' | 'com'
+    referenceFrameMode: 'sun',
     if_makeSun: true,
     if_showUniverseBoundary: true,
     if_showTrajectory: true,
