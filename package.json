@@ -25,6 +25,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "centerstest": "node scripts/testCenteredSun.mjs",
     "clean": "rm -rf built/*",
     "coretest": "npm run build && node scripts/testCore.mjs",
     "forcestest": "npm run build && node scripts/testForces.mjs",
