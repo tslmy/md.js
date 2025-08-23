@@ -1,133 +1,185 @@
-# MolacularDynamics.js
+# md.js – Molecular Dynamics in the Browser
+
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 ![ts](https://badgen.net/badge/-/TypeScript/blue?icon=typescript&label)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/tslmy/md.js/main.svg)](https://results.pre-commit.ci/latest/github/tslmy/md.js/main)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/4b928847-32c8-456a-912d-f502d3e3c2c0/deploy-status)](https://app.netlify.com/sites/mdjs/deploys)
 
-A toy [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) simulator in the browser.
+A tiny, hackable [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) playground powered by **TypeScript + Three.js**. Tweak physical constants live, watch particles orbit a heavyweight “sun”, enable / disable force fields, and explore numerical integrators – all in your browser (desktop or mobile / cardboard VR).
 
-## Demo
+## Quick Demo
 
-![](https://media0.giphy.com/media/boyW0pDMJDWqyLv96Z/giphy.gif)
+![Demo animation](https://media0.giphy.com/media/boyW0pDMJDWqyLv96Z/giphy.gif)
 
-You may soon realize that some particles are opaque, while some are semi-transparent. The opaque particles are the "real" entities, while the semi-transparent ones are "images" of their opaque counterparts when PBCs are enabled. They serve for illustrative purposes only.
+Opaque spheres are the “real” particles. Fainter semi‑transparent clones render [periodic boundary condition (PBC)][pbc] images for visual intuition.
 
-There is a particle lying at the center of the space that never moves. I call this **the "sun"**, and it may represent the nuclear of the molecule you are looking at. It appears fixed only because the camera moves along with it. To see how it may move in the space under the influence of its "satellites", turn off "Center the sun" under "Plotting" in the control pane. To kick it up a notch, you can even disable this "sun" and see just those smaller particles evolving into chaos.
+If the central heavy particle (the “sun”) appears fixed it is because the camera reference frame is following it. Disable “Center the sun” to see its recoil motion, or disable the sun entirely and let chaos ensue.
 
-As particles approach and leave each other, you'll see arrows sticking out of each. That's the combined force that the particles are feeling from all the other particles. Configurations for them are under "Arrows for forces and velocities" pane.
+Force / velocity vectors are shown as arrows (scales auto‑normalized per frame). All toggles & numeric inputs live in the on‑screen control pane.
 
+[pbc]: https://en.wikipedia.org/wiki/Periodic_boundary_conditions
+## Feature Highlights
 
-## Features
+* Multiple pairwise force fields (individually toggleable):
+  * Lennard‑Jones (ε, σ)
+  * Newtonian gravitation (G)
+  * Coulomb / electrostatics (K, integer charges)
+* [Periodic boundary conditions][pbc] (wrap in x/y/z) – visualized via ghost copies.
+* Configurable world size, particle count, masses, charges, timestep `dt`, cutoff radius.
+* Optional constant temperature mode (simple velocity rescale, off by default).
+* Trajectories with fading color gradients.
+* “Follow the sun” reference frame toggle.
+* Force & velocity HUD table (speed, KE, total force magnitude per particle).
+* Live arrow scaling & optional capping of maximum arrow length.
+* Local persistence: full snapshot saved to `localStorage` on unload and restored next load.
 
-Simulates the interactions between several points of mass.
+## Architecture Overview
 
-You can choose to apply a number of **forcefields**:
-* [LJ potential](https://en.wikipedia.org/wiki/Lennard-Jones_potential)
-* [Gravitation](https://en.wikipedia.org/wiki/Gravity)
-* [Coulomb (electrostatic) force](https://en.wikipedia.org/wiki/Coulomb%27s_law)
+The code base intentionally separates **simulation core (data + physics)** from **visualization (Three.js scene graph)**.
 
-[**Periodic boundary conditions** (PBCs)](https://en.wikipedia.org/wiki/Periodic_boundary_conditions) are also supported. You can customize the size of the "universe" in all 3 dimensions (deliminated with a grey wireframe box). You can also choose to disable PBCs, in which case you will almost immediately notice particles fleeing the boundary.
+### 1. Simulation Core (Structure‑of‑Arrays)
 
-Disabled by default, you can choose to maintain the world at a **constant temperature**.
+Located under `src/core/simulation` & `src/core/forces`:
 
-The simulation is very **tweakable** -- even basic physical constants (G, K, delta, epsilon, etc.) are tweakable, making this tool a great toy to fiddle with. See the screenshot below for parameters that you can turn in real time:
+* `state.ts` – Structure‑of‑Arrays (`positions`, `velocities`, `forces`, `masses`, `charges`, flags). Functions: `createState`, `zeroForces`.
+* `Simulation.ts` – Orchestrates a timestep: clears forces, applies each `ForceField`, delegates numeric integration.
+* `integrators.ts` – Integrator strategies (currently Explicit Euler & Velocity Verlet). Verlet is the default for better energy behavior.
+* `forces/*.ts` – Individual `ForceField` implementations (Lennard‑Jones, Gravity, Coulomb) composed at runtime. Each uses a naïve O(N²) pair loop with an early distance cutoff. Optimization path: spatial hashing / cell lists / neighbor lists.
+* `serialize.ts` – Serialize / hydrate typed arrays to plain objects (future: use for cross‑tab sharing or worker offloading).
 
-<img width="206" alt="image" src="https://user-images.githubusercontent.com/594058/191142550-9e44a37a-c0bf-4cad-b59b-2cdf1497315e.png">
+### 2. Visualization & UI Layer
 
-### Controlling the camera
+* `particleSystem.ts` – Builds particles, trajectories, ghost clones (for PBC visualization), HUD rows, and mirrors simulation data into Three.js constructs.
+* `script.ts` – Entry point: initializes scene (delegates to `init.js`), seeds SoA state from legacy object instances, configures enabled forces, drives animation loop, rescales arrows & HUD each frame, handles persistence.
+* `settings.ts` – Central tweakable parameters + feature flags; deliberately verbose / “kitchen sink” for experimentation.
+* `stateStorage.ts` – Browser `localStorage` persistence (simple versioned schema checking).
 
-Drag long to rotate your camera. If you run this in a VR headset -- for example, a Google Cardboard, which I used years ago when I first added this feature -- just move your head.
+### 3. Public (Test) Surface
 
-Scroll to zoom. Use arrow keys to pan.
-
-## Usage
-
-You can play with it immediately by going to [mdjs.netlify.app](https://mdjs.netlify.app/).
-
-Alternatively, you can run it locally:
-
-1. Clone this repo.
-2. In a terminal, run `python -m http.server --directory .`.
-3. Go to `http://127.0.0.1:8000/`.
-
-Best viewed on a smartphone with a Google Cardboard.
-
-## Development
-
-### Package Management & TypeScript
-
-TypeScript is managed locally (no global install needed). The browser still loads runtime libs from CDN via `index.html` import map; `package.json` exists for tooling only.
-
-npm run clean      # remove build output
-Common tasks:
-
-```sh
-npm install        # install dev dependencies
-npm run build      # compile src -> built
-npm run watch      # incremental rebuilds
-npm run typecheck  # type-only check (no emit)
-npm run clean      # remove build output
-npm run start      # build then serve via Python simple HTTP server
-```
-
-Notes:
-* Output ES2020 modules to `built/`; `<script type="module">` tags load them directly.
-* Imports in source use `.js` extensions so emitted JS works without rewriting.
-* `allowJs` keeps mixed JS/TS during migration; remove later for pure TS.
-* `strict` + `noEmitOnError` enforce type safety; use `npm run typecheck` in CI.
-* No bundler yet; introduce Vite/esbuild later if needed; keep `tsc --noEmit` for types.
-* Any static server works (module scripts disallow `file://`).
-
-### Pre-commit hooks
-
-This repo uses pre-commit hooks to automate several house-keeping chores.
-
-### Headless smoke test & debugging
-
-An automated headless smoke test validates two core guarantees:
-
-1. Particles actually move after the simulation starts.
-2. State persistence works across a reload (a previous session state is detected & loaded).
-
-Run it locally:
-
-```sh
-npm test        # or: npm run smoke
-```
-
-What it does:
-
-* Builds the TypeScript sources (`npm run build`).
-* Launches a temporary static server (Python `http.server`).
-* Uses Puppeteer to load `index.html` headlessly, captures a few particle positions, waits 500ms, and confirms motion.
-* Reloads the page and confirms the console log `State from previous session loaded.` appears (verifying `localStorage` snapshot replay).
-
-For development & debugging, a lightweight API is exposed on `window.__mdjs` (non‑stable, test/support only):
+When running in a browser the following is exposed for **debug & automated smoke tests only** (not a stable API):
 
 ```js
-window.__mdjs.particles        // live particle objects (Three.js Points children)
-window.__mdjs.settings         // current settings object
+window.__mdjs = {
+  particles,  // legacy OO particle objects (positions, velocities, forces)
+  settings,   // live settings object
+  simState    // SoA arrays (positions, velocities, forces, masses, charges)
+}
 ```
 
-You can experiment in DevTools (e.g. pause the simulation, inspect forces) without adding ad‑hoc globals everywhere. Avoid relying on this in production code; it's intentionally minimal and may change.
+### Simulation Step (Velocity Verlet)
 
-Persistence details:
+1. Zero force accumulator arrays.
+2. For each enabled force, loop unordered pairs (i<j) within the cutoff and accumulate antisymmetric forces.
+3. Integrator first pass: advance positions + half‑step velocities.
+4. Recompute forces at new positions.
+5. Integrator second pass: finish velocity update.
+6. Visualization layer copies the updated SoA arrays into Three.js buffers and rescales arrows.
 
-* On page unload a full snapshot (positions, velocities, forces, etc.) is serialized into `localStorage`.
-* On next load, if a previous snapshot passes validation it is restored and a console line `State from previous session loaded.` is emitted (the smoke test keys off this message).
-* Delete the key from DevTools (`localStorage.removeItem('mdjsSavedState')`) to start fresh.
+## Getting Started
 
-## Plan
+Play instantly at: <https://mdjs.netlify.app/>
 
-* [ ] Start with a Three.js-based molecule viewer.
-  * Candidates include:
-    * [JSmol](https://sourceforge.net/projects/jsmol/) – (Not using WebGL.)
-    * [ngl](https://github.com/arose/ngl)
-    * [GLmol](http://webglmol.osdn.jp/index-en.html) – Perhaps the best choice up to now?
-    * [3Dmol.js](http://bioinformatics.oxfordjournals.org/content/31/8/1322)
-      * 3Dmol.js is a fork of GLmol that boasts a serious boost in performance.
-      * However, they shifted away from Three.js, so it's hard for me to get the VR support right.
-* [ ] Migrate code for VR support.
-* [ ] Migrate code for molecular dynamics.
-* [x] Use a Javascript Package Manager, such as [yarn](https://yarnpkg.com/zh-Hans/docs/install).
+Run locally:
+
+```bash
+git clone https://github.com/tslmy/md.js.git
+cd md.js
+npm install
+npm start   # builds then serves via Python http.server
+# then open http://127.0.0.1:8000/
+```
+
+Any static server works; module scripts require HTTP (not file://). You can also just run:
+
+```bash
+python -m http.server --directory .
+```
+
+### Dev Workflow Commands
+
+```bash
+npm run build       # tsc compile -> built/
+npm run watch       # incremental rebuild
+npm run typecheck   # strict type checking (no emit)
+npm test            # run aggregated test suite
+npm run test:cov    # full test suite + c8 coverage report
+npm run smoke       # quick headless Puppeteer sanity test
+npm run clean       # remove build output
+```
+
+### File Layout (selected)
+
+```text
+src/
+  core/
+    simulation/ (state, integrators, driver, serialization)
+    forces/     (coulomb, gravity, lennardJones, interfaces)
+  particleSystem.ts  (Three.js particle + trajectory construction)
+  script.ts          (runtime wiring & main loop)
+  settings.ts        (central config)
+  stateStorage.ts    (persistence)
+```
+
+## Configuration & Tuning
+
+Key tunables (see `settings.ts`):
+
+* `particleCount` – total particles (including optional sun).
+* `dt` – timestep (simulation stability vs. speed trade‑off).
+* `cutoffDistance` – pair evaluation radius (lower = faster, less accurate for long‑range forces).
+* Force constants: `EPSILON`, `DELTA` (LJ ε & σ), `G` (gravity), `K` (Coulomb), `kB` (Boltzmann constant for temperature estimate).
+* Display flags: `if_showTrajectory`, `if_showArrows`, `if_useFog`, etc.
+* Physics flags: `if_makeSun`, `if_use_periodic_boundary_condition`, `if_constant_temperature`.
+
+Hot‑reloading values via the UI updates behavior immediately; persisted snapshots capture resulting masses/charges/velocities.
+
+## Tests & Quality Gates
+
+Test scripts (see `scripts/`):
+
+* `smoke` – Headless Puppeteer: particles move, persistence log appears.
+* `forcestest` / `force-sym` – Validate force computation, antisymmetry, zero net force.
+* `energy` – Track energy drift (numerical stability sanity check).
+* `pairs` – Pair iteration correctness.
+* `centerstest` & negative variant – Behavior of “center the sun” reference frame.
+* `persist` – Save / restore end‑to‑end.
+* `coretest` – Core simulation unit style checks.
+
+Aggregate runner (`npm test`) executes all and reports PASS/FAIL summary. Coverage (`npm run test:cov`) generates `coverage/lcov-report/`.
+
+## Persistence Details
+
+On `beforeunload` a snapshot of every particle (color, position, velocity, force, mass, charge) and timestamps is stored in `localStorage` under `mdJsState`. On next load, a lightweight validation step guards against malformed data before rehydration; missing or invalid data triggers a fresh universe.
+
+Remove persisted state manually via DevTools:
+
+```js
+localStorage.removeItem('mdJsState')
+```
+
+## Contributing
+
+Ideas / PRs welcome. Low‑friction areas:
+
+* Add new integrators (e.g. leapfrog, RK4 for comparison) – implement the `Integrator` interface.
+* Add additional force fields (e.g. harmonic bonds) – implement `ForceField` and append in `script.ts` when enabled.
+* Performance: introduce cell / neighbor lists replacing O(N²) in `forEachPair`.
+* WebWorker offload for force computation – serialize/hydrate state via `serialize.ts`.
+* UI polish / responsive layout / VR ergonomics.
+* Typing & cleanup: remove legacy OO duplication once SoA path fully drives rendering.
+
+Coding conventions:
+
+* TypeScript strict mode; prefer explicit types for exported APIs.
+* Keep force implementations side‑effect free except for accumulating into `state.forces`.
+* Avoid premature abstractions; small helpers > deep class hierarchies.
+
+## Roadmap Sketch
+
+* Spatial acceleration structure (cell list or Verlet neighbor list).
+* Off‑main‑thread simulation loop (Web Worker + transferable buffers).
+* Configurable thermostat (e.g. Berendsen / Langevin) instead of simple velocity scaling.
+* Basic energy diagnostics panel (potential, kinetic, total vs. time graph).
+* Save / load presets (JSON export + import UI).
+* Optional bundler (Vite / esbuild) if code splitting or asset pipeline grows.
