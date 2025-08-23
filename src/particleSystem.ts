@@ -25,7 +25,7 @@ class Particle {
   trajectory: THREE.Line
   isEscaped: boolean = false
 
-  constructor (
+  constructor(
     color: THREE.Color,
     position: THREE.Vector3,
     force: THREE.Vector3,
@@ -58,7 +58,7 @@ class Particle {
   }
 }
 
-function addParticle (
+function addParticle(
   color: THREE.Color,
   position: THREE.Vector3,
   velocity: THREE.Vector3,
@@ -133,7 +133,7 @@ function addParticle (
   document.querySelector('#tabularInfo > tbody').appendChild(tableRow)
 }
 
-function makeClonePositionsList (
+function makeClonePositionsList(
   x,
   y,
   z
@@ -172,7 +172,7 @@ function makeClonePositionsList (
  *  Make objects that will contain the trajectory points.
  * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
  */
-function makeTrajectory (
+function makeTrajectory(
   thisColor: THREE.Color,
   thisPosition: THREE.Vector3,
   maxTrajectoryLength: number
@@ -212,11 +212,11 @@ function makeTrajectory (
   })
   return new THREE.Line(thisGeometry, thisTrajectoryMaterial)
 }
-function objectToVector (obj): THREE.Vector3 {
+function objectToVector(obj): THREE.Vector3 {
   return new THREE.Vector3(obj.x, obj.y, obj.z)
 }
 
-function createParticleSystem (
+function createParticleSystem(
   group: THREE.Object3D,
   particles: Particle[],
   scene: THREE.Scene,
@@ -244,7 +244,7 @@ function createParticleSystem (
   })
   let particleCountToAdd
   // Create the vertices and add them to the particles geometry
-  if (loadState() && false) {
+  if (loadState()) {
     console.log('State from previous session loaded.')
     // Initialize the particleSystem with the info stored from localStorage.
     let particleCountToRead = 0
@@ -393,11 +393,11 @@ function createParticleSystem (
   return particleSystem
 }
 
-function random (min: number, max: number): number {
+function random(min: number, max: number): number {
   return Math.random() * (max - min) + min
 }
 
-function sample<Type> (l: Type[]): Type {
+function sample<Type>(l: Type[]): Type {
   return l[~~(Math.random() * l.length)]
 }
 

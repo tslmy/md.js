@@ -7,7 +7,10 @@
   },
   "description": "A toy molecular dynamics simulator in the browser.",
   "devDependencies": {
-    "nodemon": "^2.0.20"
+    "@types/node": "^24.3.0",
+    "@types/three": "^0.179.0",
+    "nodemon": "^3.1.10",
+    "typescript": "^5.9.2"
   },
   "homepage": "https://github.com/tslmy/md.js#readme",
   "license": "ISC",
@@ -17,7 +20,12 @@
     "url": "git+https://github.com/tslmy/md.js.git"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "clean": "rm -rf built/*",
+    "start": "npm run build && python -m http.server --directory .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch"
   },
   "version": "1.0.0"
 }

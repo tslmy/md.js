@@ -55,11 +55,29 @@ Best viewed on a smartphone with a Google Cardboard.
 
 ## Development
 
-### Package Management
+### Package Management & TypeScript
 
-I'm migrating this to TypeScript. Run `tsc` to compile. It reads `tsconfig.json`, which specifies that it should compile things in `src/` to `built/`, with symbols exported in the ES2020 syntax. The `index.html` will then import those modules using the ES2020 syntax.
+TypeScript is managed locally (no global install needed). The browser still loads runtime libs from CDN via `index.html` import map; `package.json` exists for tooling only.
 
-The `package.json` -- used by the [NodeJS Package Manager](https://docs.npmjs.com/cli/v8/configuring-npm/package-json) -- is only for the TypeScript compiler to be able to resolve types from dependencies. This app itself does not use a package manager to work -- All the dependencies are imported using the [ECMAScript Module](https://hacks.mozilla.org/2018/03/es-modules-a-cartoon-deep-dive/) approach. However, it does require an actual server instead of using the `files://` protocol, for the same reason.
+npm run clean      # remove build output
+Common tasks:
+
+```sh
+npm install        # install dev dependencies
+npm run build      # compile src -> built
+npm run watch      # incremental rebuilds
+npm run typecheck  # type-only check (no emit)
+npm run clean      # remove build output
+npm run start      # build then serve via Python simple HTTP server
+```
+
+Notes:
+* Output ES2020 modules to `built/`; `<script type="module">` tags load them directly.
+* Imports in source use `.js` extensions so emitted JS works without rewriting.
+* `allowJs` keeps mixed JS/TS during migration; remove later for pure TS.
+* `strict` + `noEmitOnError` enforce type safety; use `npm run typecheck` in CI.
+* No bundler yet; introduce Vite/esbuild later if needed; keep `tsc --noEmit` for types.
+* Any static server works (module scripts disallow `file://`).
 
 ### Pre-commit hooks
 
@@ -67,17 +85,14 @@ This repo uses pre-commit hooks to automate several house-keeping chores.
 
 ## Plan
 
-- [ ] Start with a Three.js-based molecule viewer.
-  Candidates include:
-  - JSmol: https://sourceforge.net/projects/jsmol/
-    - (It's not using WebGL.)
-  - ngl: https://github.com/arose/ngl
-  - GLmol: http://webglmol.osdn.jp/index-en.html
-    - Perhaps the best choice up to now?
-  - 3Dmol.js: http://bioinformatics.oxfordjournals.org/content/31/8/1322
-    - 3Dmol.js is a fork of GLmol that boasts a serious boost in performance.
-    - However, they shifted away from Three.js, so it's hard for me to get the VR support right.
-
-- [ ] Migrate code for VR support.
-- [ ] Migrate code for molecular dynamics.
-- [x] Use a Javascript Package Manager, such as [yarn](https://yarnpkg.com/zh-Hans/docs/install).
+* [ ] Start with a Three.js-based molecule viewer.
+  * Candidates include:
+    * [JSmol](https://sourceforge.net/projects/jsmol/) – (Not using WebGL.)
+    * [ngl](https://github.com/arose/ngl)
+    * [GLmol](http://webglmol.osdn.jp/index-en.html) – Perhaps the best choice up to now?
+    * [3Dmol.js](http://bioinformatics.oxfordjournals.org/content/31/8/1322)
+      * 3Dmol.js is a fork of GLmol that boasts a serious boost in performance.
+      * However, they shifted away from Three.js, so it's hard for me to get the VR support right.
+* [ ] Migrate code for VR support.
+* [ ] Migrate code for molecular dynamics.
+* [x] Use a Javascript Package Manager, such as [yarn](https://yarnpkg.com/zh-Hans/docs/install).

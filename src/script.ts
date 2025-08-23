@@ -179,7 +179,7 @@ function animateOneParticle (i: number, arrowScaleForForces: number, arrowScaleF
     particles[i].position.y,
     particles[i].position.z
   )
-  const trajectoryPositions: THREE.BufferAttribute = settings.if_showTrajectory
+  const trajectoryPositions: any = settings.if_showTrajectory
     ? particles[i].trajectory.geometry.attributes.position
     : null
   // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:

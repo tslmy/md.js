@@ -2,8 +2,15 @@
   "compileOnSave": true,
   "compilerOptions": {
     "allowJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ES2020",
     "moduleResolution": "node",
+    "noEmitOnError": true,
     "outDir": "./built",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
     "target": "ES2020"
   },
   "include": [

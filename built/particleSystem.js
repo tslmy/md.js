@@ -140,7 +140,7 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
     const particleMaterial = new THREE.PointsMaterial({
         // http://jsfiddle.net/7yDGy/1/
         map: texture,
-        blending: THREE.NormalBlending,
+        blending: THREE.NormalBlending, // required
         depthTest: true,
         transparent: true,
         // opacity: 0.9,
@@ -149,7 +149,7 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
     });
     let particleCountToAdd;
     // Create the vertices and add them to the particles geometry
-    if (loadState() && false) {
+    if (loadState()) {
         console.log('State from previous session loaded.');
         // Initialize the particleSystem with the info stored from localStorage.
         let particleCountToRead = 0;
