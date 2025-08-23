@@ -9,6 +9,8 @@ const settings = {
     maxTrajectoryLength: 200,
     unitArrowLength: 0.1,
     maxArrowLength: 2,
+    // Multiplier to scale raw vector magnitudes when rendering arrows for better visibility
+    arrowMagnitudeMultiplier: 3,
     spaceBoundaryX: originalSpaceBoundaryX,
     spaceBoundaryY: originalSpaceBoundaryY,
     spaceBoundaryZ: originalSpaceBoundaryZ,

@@ -12,7 +12,7 @@ const particleMaterialForClones = new THREE.PointsMaterial({
 });
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength'];
 class Particle {
-    constructor(color, position, mass, charge, trajectory, velocity) {
+    constructor(color, position, mass, charge, trajectory) {
         this.isEscaped = false;
         this.color = color;
         this.position = position;
@@ -20,9 +20,6 @@ class Particle {
         this.charge = charge;
         this.trajectory = trajectory;
         this.isEscaped = false;
-        // Initialize with provided velocity and zero force (force will be filled in after first simulation step).
-        this.velocity = velocity.clone();
-        this.force = new THREE.Vector3(0, 0, 0);
         this.velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa);
         this.forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0xaa5555);
     }
@@ -42,7 +39,7 @@ function addParticle(opts) {
         thisTrajectory = makeTrajectory(color, position, maxTrajectoryLength);
         scene.add(thisTrajectory);
     }
-    const particle = new Particle(color, position, mass, charge, thisTrajectory, velocity);
+    const particle = new Particle(color, position, mass, charge, thisTrajectory);
     particles.push(particle);
     // Record initial velocity components for SoA seeding.
     initialVelocities.push(velocity.x, velocity.y, velocity.z);

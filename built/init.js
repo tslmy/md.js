@@ -156,8 +156,6 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     guiFolderPlotting
         .add(settings, 'if_ReferenceFrame_movesWithSun')
         .name('Center the sun');
-    // guiFolderPlotting.add(settings, "if_makeSun");
-    // guiFolderPlotting.add(settings, "if_useFog");
     const guiFolderTrajectories = guiFolderPlotting.addFolder('Particle trajectories');
     guiFolderTrajectories.add(settings, 'if_showTrajectory').name('Trace');
     guiFolderTrajectories
@@ -176,6 +174,7 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     });
     guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length');
     guiFolderArrows.add(settings, 'maxArrowLength').name('Max length');
+    guiFolderArrows.add(settings, 'arrowMagnitudeMultiplier', 0.1, 20, 0.1).name('Mag multiplier');
     guiFolderArrows.add(settings, 'unitArrowLength').name('Unit length');
     guiFolderArrows
         .add(settings, 'if_showMapscale')

@@ -2,6 +2,7 @@ import { settings } from './settings.js';
 import { init, ifMobileDevice, toggle } from './init.js';
 import { saveState } from './stateStorage.js';
 import * as THREE from 'three';
+import { initialVelocities } from './particleSystem.js';
 // New SoA simulation core imports
 import { createState } from './core/simulation/state.js';
 import { Simulation } from './core/simulation/Simulation.js';
@@ -76,10 +77,15 @@ function rescaleVelocityScaleBarFromState(state) {
 }
 // Helpers to reduce complexity
 function updateArrowHelper(arrow, from, vector, scale) {
-    const lengthToScale = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale : settings.unitArrowLength;
-    arrow.setLength(settings.if_limitArrowsMaxLength && lengthToScale > settings.maxArrowLength
-        ? settings.maxArrowLength
-        : lengthToScale);
+    // Compute raw length (either proportional to magnitude or fixed unit length)
+    let lengthToScale = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale * settings.arrowMagnitudeMultiplier : settings.unitArrowLength;
+    // Ensure a small minimum so arrows remain visible when forces / velocities are tiny (or zero after reset)
+    const minVisible = 0.2 * settings.unitArrowLength;
+    if (lengthToScale < minVisible)
+        lengthToScale = minVisible;
+    if (settings.if_limitArrowsMaxLength && lengthToScale > settings.maxArrowLength)
+        lengthToScale = settings.maxArrowLength;
+    arrow.setLength(lengthToScale);
     arrow.position.copy(from);
     const dir = vector.lengthSq() === 0 ? _unitX : _tmpDir.copy(vector).normalize();
     arrow.setDirection(dir);
@@ -271,18 +277,16 @@ docReady(() => {
     // Seed arrays
     for (let i = 0; i < particles.length; i++) {
         const i3 = 3 * i;
-        simState.positions[i3] = particles[i].position.x;
-        simState.positions[i3 + 1] = particles[i].position.y;
-        simState.positions[i3 + 2] = particles[i].position.z;
-        // Velocity may have been initialized when particle was created; copy it if present.
-        if (particles[i].velocity) {
-            const v = particles[i].velocity;
-            simState.velocities[i3] = v.x;
-            simState.velocities[i3 + 1] = v.y;
-            simState.velocities[i3 + 2] = v.z;
-        }
-        simState.masses[i] = particles[i].mass;
-        simState.charges[i] = particles[i].charge;
+        const p = particles[i];
+        simState.positions[i3] = p.position.x;
+        simState.positions[i3 + 1] = p.position.y;
+        simState.positions[i3 + 2] = p.position.z;
+        // Seed velocity from initialVelocities captured during particle creation (fallback zero).
+        simState.velocities[i3] = initialVelocities[i3] ?? 0;
+        simState.velocities[i3 + 1] = initialVelocities[i3 + 1] ?? 0;
+        simState.velocities[i3 + 2] = initialVelocities[i3 + 2] ?? 0;
+        simState.masses[i] = p.mass;
+        simState.charges[i] = p.charge;
     }
     const forcePlugins = [];
     if (settings.if_apply_LJpotential)
