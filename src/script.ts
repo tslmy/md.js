@@ -39,6 +39,11 @@ declare global {
   interface Window { __mdjs?: { particles: Particle[]; settings: typeof settings; simState?: SimulationState } }
 }
 
+// Expose placeholder early so headless smoke test can detect handle before async init completes.
+if (typeof window !== 'undefined') {
+  window.__mdjs = { particles, settings }
+}
+
 /**
  * el: the DOM element you'd like to test for visibility.
  */
@@ -134,7 +139,6 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   let px = positions[i3] - frameOffset.x
   let py = positions[i3 + 1] - frameOffset.y
   let pz = positions[i3 + 2] - frameOffset.z
-  // We'll update p.position after applying frame offset / PBC so tests & UI see displayed coordinates.
   posAttr.setXYZ(i, px, py, pz)
   const trajectoryAttr = (settings.if_showTrajectory && p.trajectory)
     ? p.trajectory.geometry.getAttribute('position') as THREE.BufferAttribute
@@ -148,11 +152,8 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   if (trajectoryAttr && needsTrajectoryShift) updateTrajectoryBuffer({ position: _tmpFrom.set(px, py, pz) } as Particle, trajectoryAttr, settings.maxTrajectoryLength)
   const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2]
   const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2]
-  // Mirror final (display) position back to OO particle
+  // Update displayed position only (SoA remains source of truth). Legacy velocity/force mirrors removed.
   p.position.set(px, py, pz)
-  // Sync legacy object-oriented mirrors for temperature calc & persistence
-  p.velocity.set(vx, vy, vz)
-  p.force.set(fx, fy, fz)
   if (settings.if_showArrows) {
     _tmpVel.set(vx, vy, vz)
     _tmpForce.set(fx, fy, fz)
@@ -197,16 +198,19 @@ function animate(): void {
   stats.update()
 }
 function calculateTemperature(): number {
-  let temperature = 0
-  particles.filter(particle => !particle.isEscaped).forEach(particle => {
-    temperature +=
-      particle.mass *
-      particle.velocity.length() ** 2
-  })
-  temperature *= 1 / settings.kB / (3 * settings.particleCount - 3)
-  if (temperature > maxTemperature) {
-    maxTemperature = temperature
+  if (!simState) return 0
+  const { velocities, masses, N } = simState
+  let sum = 0
+  for (let i = 0; i < N; i++) {
+    const i3 = 3 * i
+    const vx = velocities[i3]
+    const vy = velocities[i3 + 1]
+    const vz = velocities[i3 + 2]
+    const v2 = vx * vx + vy * vy + vz * vz
+    sum += (masses[i] || 1) * v2
   }
+  const temperature = sum / settings.kB / (3 * settings.particleCount - 3)
+  if (temperature > maxTemperature) maxTemperature = temperature
   return temperature
 }
 
@@ -317,23 +321,23 @@ function captureState(): SavedState {
   const particleVelocities: Array<{ x: number, y: number, z: number }> = []
   const particleMasses: number[] = []
   const particleCharges: number[] = []
-  for (const p of particles) {
+  // Use SoA arrays as single source of truth for dynamic quantities.
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i]
     particleColors.push(p.color.r, p.color.g, p.color.b)
     particlePositions.push(p.position.x, p.position.y, p.position.z)
-    particleForces.push({ x: p.force.x, y: p.force.y, z: p.force.z })
-    particleVelocities.push({ x: p.velocity.x, y: p.velocity.y, z: p.velocity.z })
-    particleMasses.push(p.mass)
-    particleCharges.push(p.charge)
+    if (simState) {
+      const i3 = 3 * i
+      particleForces.push({ x: simState.forces[i3], y: simState.forces[i3 + 1], z: simState.forces[i3 + 2] })
+      particleVelocities.push({ x: simState.velocities[i3], y: simState.velocities[i3 + 1], z: simState.velocities[i3 + 2] })
+      particleMasses.push(simState.masses[i])
+      particleCharges.push(simState.charges[i])
+    } else { // fallback (should not happen after init)
+      particleForces.push({ x: 0, y: 0, z: 0 })
+      particleVelocities.push({ x: 0, y: 0, z: 0 })
+      particleMasses.push(p.mass)
+      particleCharges.push(p.charge)
+    }
   }
-  return {
-    particleCount,
-    particleColors,
-    particlePositions,
-    particleForces,
-    particleVelocities,
-    particleMasses,
-    particleCharges,
-    time,
-    lastSnapshotTime
-  }
+  return { particleCount, particleColors, particlePositions, particleForces, particleVelocities, particleMasses, particleCharges, time, lastSnapshotTime }
 }
