@@ -2,7 +2,6 @@ import { settings } from './settings.js';
 import { init, ifMobileDevice, toggle } from './init.js';
 import { saveState } from './stateStorage.js';
 import * as THREE from 'three';
-import { initialVelocities } from './particleSystem.js';
 // New SoA simulation core imports
 import { createState } from './core/simulation/state.js';
 import { Simulation } from './core/simulation/Simulation.js';
@@ -258,7 +257,17 @@ function docReady(fn) {
 }
 docReady(() => {
     console.log('Ready.');
-    const values = init(settings, particles, time, lastSnapshotTime);
+    // Create simulation state up front; particleSystem population will seed it directly.
+    simState = createState({
+        particleCount: settings.particleCount,
+        box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ },
+        dt: settings.dt,
+        cutoff: settings.cutoffDistance
+    });
+    // Expose early (before particle creation) so addParticle can populate.
+    if (typeof window !== 'undefined')
+        window.__mdjs = { particles, settings, simState };
+    const values = init(settings, particles, time, lastSnapshotTime, simState);
     scene = values[0];
     particleSystem = values[1];
     camera = values[2];
@@ -267,27 +276,7 @@ docReady(() => {
     stats = values[5];
     temperaturePanel = values[6];
     effect = values[7];
-    // Build SoA simulation state from existing particle objects
-    simState = createState({
-        particleCount: settings.particleCount,
-        box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ },
-        dt: settings.dt,
-        cutoff: settings.cutoffDistance
-    });
-    // Seed arrays
-    for (let i = 0; i < particles.length; i++) {
-        const i3 = 3 * i;
-        const p = particles[i];
-        simState.positions[i3] = p.position.x;
-        simState.positions[i3 + 1] = p.position.y;
-        simState.positions[i3 + 2] = p.position.z;
-        // Seed velocity from initialVelocities captured during particle creation (fallback zero).
-        simState.velocities[i3] = initialVelocities[i3] ?? 0;
-        simState.velocities[i3 + 1] = initialVelocities[i3 + 1] ?? 0;
-        simState.velocities[i3 + 2] = initialVelocities[i3 + 2] ?? 0;
-        simState.masses[i] = p.mass;
-        simState.charges[i] = p.charge;
-    }
+    // Simulation state already populated during particle creation.
     const forcePlugins = [];
     if (settings.if_apply_LJpotential)
         forcePlugins.push(new LennardJones({ epsilon: settings.EPSILON, sigma: settings.DELTA }));
@@ -342,8 +331,8 @@ function captureState() {
         else { // fallback (should not happen after init)
             particleForces.push({ x: 0, y: 0, z: 0 });
             particleVelocities.push({ x: 0, y: 0, z: 0 });
-            particleMasses.push(p.mass);
-            particleCharges.push(p.charge);
+            particleMasses.push(0);
+            particleCharges.push(0);
         }
     }
     return { particleCount, particleColors, particlePositions, particleForces, particleVelocities, particleMasses, particleCharges, time, lastSnapshotTime };

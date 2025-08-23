@@ -23,7 +23,7 @@ function fullscreen() {
         document.body.webkitRequestFullscreen();
     }
 }
-function init(settings, particles, time, lastSnapshotTime) {
+function init(settings, particles, time, lastSnapshotTime, simState) {
     // initialize the scene
     const scene = new THREE.Scene();
     //    configure the scene:
@@ -36,7 +36,7 @@ function init(settings, particles, time, lastSnapshotTime) {
         boxMesh = drawBox(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ, scene);
     }
     const group = new THREE.Object3D();
-    const particleSystem = createParticleSystem(group, particles, scene, time, lastSnapshotTime, settings);
+    const particleSystem = createParticleSystem(group, particles, scene, time, lastSnapshotTime, settings, simState);
     console.log("3D object 'group' created: ", group);
     scene.add(group);
     console.log(particles);
