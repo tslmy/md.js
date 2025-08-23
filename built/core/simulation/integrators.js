@@ -1,5 +1,11 @@
 import { index3 } from './state.js';
-// Basic (existing) explicit Euler for parity baseline.
+/**
+ * Explicit Euler integrator.
+ * Simple: updates velocity using current force, then position using updated velocity.
+ * Pros: minimal code.
+ * Cons: poor energy conservation & stability; accumulates drift quickly.
+ * We keep this mostly for quick A/B testing and pedagogical clarity.
+ */
 export const EulerIntegrator = {
     step(state, dt) {
         const { N, positions, velocities, forces, masses } = state;
@@ -16,7 +22,15 @@ export const EulerIntegrator = {
         state.time += dt;
     }
 };
-// Fully implemented Velocity Verlet integrator (single call handles both force evaluations via callback)
+/**
+ * Velocity Verlet integrator (a symplectic method) – preferred for MD-like systems.
+ * Conceptual steps:
+ * 1. Use current acceleration to predict new position (full dt) and advance velocity half a step.
+ * 2. Recompute forces (thus new acceleration) at the new position.
+ * 3. Finish the velocity update with the new acceleration half step.
+ * Why better than Euler: time-reversible & symplectic -> significantly improved conservation of invariants (like total energy) for conservative forces, so systems do not "heat up" or "cool down" artificially as fast.
+ * Complexity note: requires a second force computation per step (already encapsulated via callback here).
+ */
 export const VelocityVerlet = {
     step(state, dt, recomputeForces) {
         const { N, positions, velocities, forces, masses } = state;

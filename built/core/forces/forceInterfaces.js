@@ -1,5 +1,9 @@
 import { index3 } from '../simulation/state.js';
-// Naive O(N^2) pair iteration with cutoff (squared) used for initial port.
+/**
+ * Naive O(N^2) pair iterator with distance cutoff.
+ * For each i<j pair inside cutoff^2 calls the handler once.
+ * Future optimization path: replace with cell / neighbor list to cut complexity toward O(N).
+ */
 export function forEachPair(state, cutoff, handler) {
     const { N, positions } = state;
     const cutoff2 = cutoff * cutoff;

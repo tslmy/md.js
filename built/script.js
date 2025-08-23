@@ -31,23 +31,44 @@ function isVisible(el) {
     return !!el && window.getComputedStyle(el).display !== 'none';
 }
 // Legacy force application removed in favor of SoA simulation core.
-function rescaleForceScaleBar(particles) {
-    const forceStrengths = particles.filter(particle => !particle.isEscaped).map(particle => particle.force.length());
-    const highestForceStrengthPresent = Math.max(...forceStrengths);
-    const arrowScaleForForces = settings.unitArrowLength / highestForceStrengthPresent;
+// Derive arrow scaling directly from SoA state (forces & velocities)
+function rescaleForceScaleBarFromState(state) {
+    if (!state)
+        return 1;
+    const { forces, N } = state;
+    let maxMag = 0;
+    for (let i = 0; i < N; i++) {
+        const i3 = 3 * i;
+        const mag = Math.hypot(forces[i3], forces[i3 + 1], forces[i3 + 2]);
+        if (mag > maxMag)
+            maxMag = mag;
+    }
+    if (maxMag === 0)
+        maxMag = 1;
+    const scale = settings.unitArrowLength / maxMag;
     const forceEl = document.getElementById('force');
     if (forceEl)
-        forceEl.style.width = `${arrowScaleForForces * 1000000}px`;
-    return arrowScaleForForces;
+        forceEl.style.width = `${scale * 1000000}px`;
+    return scale;
 }
-function rescaleVelocityScaleBar(particles) {
-    const speeds = particles.filter(particle => !particle.isEscaped).map(particle => particle.velocity.length());
-    const highestSpeedPresent = Math.max(...speeds);
-    const arrowScaleForVelocities = settings.unitArrowLength / highestSpeedPresent;
+function rescaleVelocityScaleBarFromState(state) {
+    if (!state)
+        return 1;
+    const { velocities, N } = state;
+    let maxSpeed = 0;
+    for (let i = 0; i < N; i++) {
+        const i3 = 3 * i;
+        const speed = Math.hypot(velocities[i3], velocities[i3 + 1], velocities[i3 + 2]);
+        if (speed > maxSpeed)
+            maxSpeed = speed;
+    }
+    if (maxSpeed === 0)
+        maxSpeed = 1;
+    const scale = settings.unitArrowLength / maxSpeed;
     const velEl = document.getElementById('velocity');
     if (velEl)
-        velEl.style.width = `${arrowScaleForVelocities * 1000000}px`;
-    return arrowScaleForVelocities;
+        velEl.style.width = `${scale * 1000000}px`;
+    return scale;
 }
 // Helpers to reduce complexity
 function updateArrowHelper(arrow, from, vector, scale) {
@@ -65,59 +86,75 @@ function updateTrajectoryBuffer(p, trajectory, maxLen) {
     trajectory.setXYZ(maxLen - 1, p.position.x, p.position.y, p.position.z);
     trajectory.needsUpdate = true;
 }
-function updateHudRow(i, p) {
-    const thisSpeed = p.velocity.length();
+function updateHudRow(i, d) {
+    const speed = Math.hypot(d.vx, d.vy, d.vz);
+    const forceMag = Math.hypot(d.fx, d.fy, d.fz);
     const row = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
     if (!row)
         return;
     const speedEl = row.querySelector('.speed');
     if (speedEl)
-        speedEl.textContent = `${Math.round(thisSpeed * 100) / 100}`;
+        speedEl.textContent = `${Math.round(speed * 100) / 100}`;
     const keEl = row.querySelector('.kineticEnergy');
     if (keEl)
-        keEl.textContent = `${Math.round(thisSpeed * thisSpeed * p.mass * 50) / 100}`;
+        keEl.textContent = `${Math.round(speed * speed * d.mass * 50) / 100}`;
     const tfEl = row.querySelector('.TotalForceStrength');
     if (tfEl)
-        tfEl.textContent = `${Math.round(p.force.length() * 100) / 100}`;
+        tfEl.textContent = `${Math.round(forceMag * 100) / 100}`;
 }
 const _tmpDir = new THREE.Vector3();
 const _unitX = new THREE.Vector3(1, 0, 0);
+const _tmpVel = new THREE.Vector3();
+const _tmpForce = new THREE.Vector3();
+const _tmpFrom = new THREE.Vector3();
 function updateFromSimulation(arrowScaleForForces, arrowScaleForVelocities, frameOffset) {
     if (!simulation || !simState || !particleSystem)
         return;
-    const { positions, velocities, forces } = simState;
     const hudVisible = isVisible(document.querySelector('#hud'));
     const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt);
-    for (let i = 0; i < particles.length; i++) {
-        applyParticleVisualUpdate(i, positions, velocities, forces, { f: arrowScaleForForces, v: arrowScaleForVelocities }, { hudVisible, needsTrajectoryShift, frameOffset });
-    }
-    particleSystem.geometry.attributes.position.needsUpdate = true;
+    const posAttr = particleSystem.geometry.attributes.position;
+    for (let i = 0; i < particles.length; i++)
+        updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, arrowScaleForForces, arrowScaleForVelocities);
+    posAttr.needsUpdate = true;
 }
-function applyParticleVisualUpdate(i, positions, velocities, forces, scales, ctx) {
+function updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, arrowScaleForForces, arrowScaleForVelocities) {
+    if (!simState)
+        return;
+    const { positions, velocities, forces, masses } = simState;
     const p = particles[i];
     if (p.isEscaped)
         return;
     const i3 = 3 * i;
-    p.position.set(positions[i3] - ctx.frameOffset.x, positions[i3 + 1] - ctx.frameOffset.y, positions[i3 + 2] - ctx.frameOffset.z);
-    p.velocity.set(velocities[i3], velocities[i3 + 1], velocities[i3 + 2]);
-    p.force.set(forces[i3], forces[i3 + 1], forces[i3 + 2]);
-    if (particleSystem)
-        particleSystem.geometry.attributes.position.setXYZ(i, p.position.x, p.position.y, p.position.z);
+    let px = positions[i3] - frameOffset.x;
+    let py = positions[i3 + 1] - frameOffset.y;
+    let pz = positions[i3 + 2] - frameOffset.z;
+    posAttr.setXYZ(i, px, py, pz);
     const trajectoryAttr = (settings.if_showTrajectory && p.trajectory)
         ? p.trajectory.geometry.getAttribute('position')
         : null;
     if (settings.if_use_periodic_boundary_condition) {
-        applyPbc(p.position, trajectoryAttr, settings.maxTrajectoryLength, settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
+        _tmpDir.set(px, py, pz);
+        applyPbc(_tmpDir, trajectoryAttr, settings.maxTrajectoryLength, settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
+        px = _tmpDir.x;
+        py = _tmpDir.y;
+        pz = _tmpDir.z;
+        posAttr.setXYZ(i, px, py, pz);
     }
+    if (trajectoryAttr && needsTrajectoryShift)
+        updateTrajectoryBuffer({ position: _tmpFrom.set(px, py, pz) }, trajectoryAttr, settings.maxTrajectoryLength);
+    const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2];
+    const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2];
     if (settings.if_showArrows) {
-        updateArrowHelper(p.velocityArrow, p.position, p.velocity, scales.f);
-        updateArrowHelper(p.forceArrow, p.position, p.force, scales.v);
+        _tmpVel.set(vx, vy, vz);
+        _tmpForce.set(fx, fy, fz);
+        _tmpFrom.set(px, py, pz);
+        updateArrowHelper(p.velocityArrow, _tmpFrom, _tmpVel, arrowScaleForVelocities);
+        updateArrowHelper(p.forceArrow, _tmpFrom, _tmpForce, arrowScaleForForces);
     }
-    if (trajectoryAttr && ctx.needsTrajectoryShift)
-        updateTrajectoryBuffer(p, trajectoryAttr, settings.maxTrajectoryLength);
-    if (ctx.hudVisible)
-        updateHudRow(i, p);
+    if (hudVisible)
+        updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz });
 }
+// Removed legacy applyParticleVisualUpdate; loop logic in updateFromSimulation now works directly off SoA arrays.
 function applyPbc(pos, trajectory, maxLen, bx, by, bz) {
     const wrapAxis = (axis, boundary, adjust) => {
         while (pos[axis] < -boundary) {
@@ -142,19 +179,16 @@ function applyPbc(pos, trajectory, maxLen, bx, by, bz) {
 }
 function animate() {
     time += settings.dt;
-    // Step SoA simulation
     if (simulation)
         simulation.step();
-    // Copy SoA results back & update visual elements
-    const arrowScaleForForces = rescaleForceScaleBar(particles);
-    const arrowScaleForVelocities = rescaleVelocityScaleBar(particles);
+    const arrowScaleForForces = rescaleForceScaleBarFromState(simState);
+    const arrowScaleForVelocities = rescaleVelocityScaleBarFromState(simState);
     const frameOffset = (settings.if_ReferenceFrame_movesWithSun && simState)
         ? new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
         : new THREE.Vector3(0, 0, 0);
     updateFromSimulation(arrowScaleForForces, arrowScaleForVelocities, frameOffset);
-    if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt) {
+    if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt)
         lastSnapshotTime = time;
-    }
     statistics(temperaturePanel, maxTemperature);
     update();
     render(renderer, effect);
