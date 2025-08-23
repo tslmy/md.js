@@ -91,29 +91,46 @@ function updateTrajectoryBuffer(p: Particle, trajectory: THREE.BufferAttribute, 
   trajectory.needsUpdate = true
 }
 
-function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: number; fx: number; fy: number; fz: number }): void {
-  const speed = Math.hypot(d.vx, d.vy, d.vz)
-  const forceMag = Math.hypot(d.fx, d.fy, d.fz)
+function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: number; fx: number; fy: number; fz: number; perForce?: Record<string, Float32Array> }): void {
   const row = document.querySelector<HTMLElement>(`#tabularInfo > tbody > tr:nth-child(${i + 1})`)
   if (!row) return
-  const speedEl = row.querySelector<HTMLElement>('.speed'); if (speedEl) speedEl.textContent = `${Math.round(speed * 100) / 100}`
-  const keEl = row.querySelector<HTMLElement>('.kineticEnergy'); if (keEl) keEl.textContent = `${Math.round(speed * speed * d.mass * 50) / 100}`
-  const tfEl = row.querySelector<HTMLElement>('.TotalForceStrength'); if (tfEl) tfEl.textContent = `${Math.round(forceMag * 100) / 100}`
+  const rnd = (v: number) => `${Math.round(v * 100) / 100}`
+  const speed2 = d.vx * d.vx + d.vy * d.vy + d.vz * d.vz
+  const speed = Math.sqrt(speed2)
+  const forceMag = Math.hypot(d.fx, d.fy, d.fz)
+  const set = (cls: string, val: string) => { const el = row.querySelector<HTMLElement>(cls); if (el) el.textContent = val }
+  set('.speed', rnd(speed))
+  set('.kineticEnergy', rnd(speed2 * d.mass * 0.5))
+  set('.TotalForceStrength', rnd(forceMag))
+  if (!d.perForce) return
+  const classMap: Record<string, string> = {
+    lennardJones: '.LJForceStrength',
+    gravity: '.GravitationForceStrength',
+    coulomb: '.CoulombForceStrength'
+  }
+  const i3 = 3 * i
+  for (const [name, arr] of Object.entries(d.perForce)) {
+    const cls = classMap[name]
+    if (!cls) continue
+    const mag = Math.hypot(arr[i3], arr[i3 + 1], arr[i3 + 2])
+    set(cls, rnd(mag))
+  }
 }
 
 const _tmpDir = new THREE.Vector3()
 const _tmpFrom = new THREE.Vector3()
 
-function updateFromSimulation(_arrowScaleForForces: number, _arrowScaleForVelocities: number, frameOffset: THREE.Vector3): void {
+function updateFromSimulation(_arrowScaleForces: number, _arrowScaleForVelocities: number, frameOffset: THREE.Vector3): void {
   if (!simulation || !simState || !particleSystem) return
   const hudVisible = isVisible(document.querySelector('#hud'))
   const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt)
   const posAttr = particleSystem.geometry.attributes.position as THREE.BufferAttribute
-  for (let i = 0; i < particles.length; i++) updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset)
+  const perForce = simulation.getPerForceContributions()
+  for (let i = 0; i < particles.length; i++) updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, perForce)
   posAttr.needsUpdate = true
 }
 
-function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3): void {
+function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3, perForce: Record<string, Float32Array>): void {
   if (!simState) return
   const { positions, velocities, forces, masses } = simState
   const p = particles[i]
@@ -138,7 +155,7 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2]
   // Mirror final (display) position for tests & capture
   p.position.set(px, py, pz)
-  if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz })
+  if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz, perForce })
 }
 
 // Removed legacy applyParticleVisualUpdate; loop logic in updateFromSimulation now works directly off SoA arrays.
