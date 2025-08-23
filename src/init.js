@@ -67,8 +67,8 @@ function init (settings,
   console.log("3D object 'group' created: ", group)
   scene.add(group)
   console.log(particles)
-  // enable settings
-  initializeGuiControls(settings, group, boxMesh, particles)
+  // enable settings GUI
+  initializeGuiControls(settings, group, boxMesh)
   // initialize the camera
   const camera = new THREE.PerspectiveCamera(
     90,
@@ -146,8 +146,8 @@ function resize (camera, effect, renderer) {
   renderer.setSize(width, height)
   if (ifMobileDevice) effect.setSize(width, height)
 }
-
-function initializeGuiControls (settings, group, boxMesh, particles) {
+// (initializeGuiControls is invoked inside init())
+function initializeGuiControls (settings, group, boxMesh) {
 // Enable the GUI Controls powered by "dat.gui.min.js":
   const gui = new dat.GUI()
 
@@ -231,8 +231,7 @@ function initializeGuiControls (settings, group, boxMesh, particles) {
     .add(settings, 'if_ReferenceFrame_movesWithSun')
     .name('Center the sun')
 
-  // guiFolderPlotting.add(settings, "if_makeSun");
-  // guiFolderPlotting.add(settings, "if_useFog");
+  // (sun & fog toggles managed elsewhere)
 
   const guiFolderTrajectories = guiFolderPlotting.addFolder(
     'Particle trajectories'
@@ -249,12 +248,7 @@ function initializeGuiControls (settings, group, boxMesh, particles) {
   guiFolderArrows
     .add(settings, 'if_showArrows')
     .name('Show arrows')
-    .onChange(function () {
-      particles.forEach(particle => {
-        particle.forceArrow.visible = settings.if_showArrows
-        particle.velocityArrow.visible = settings.if_showArrows
-      })
-    })
+    .onChange(function () { /* instanced arrows handle visibility externally */ })
   guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length')
   guiFolderArrows.add(settings, 'maxArrowLength').name('Max length')
   guiFolderArrows.add(settings, 'unitArrowLength').name('Unit length')

@@ -29,12 +29,6 @@ class Particle {
   position: THREE.Vector3
   mass: number
   charge: number
-  // Current velocity vector (duplicated from SoA state for convenience / legacy APIs)
-  velocity: THREE.Vector3
-  // Current force accumulator (duplicated from SoA state for convenience / legacy APIs)
-  force: THREE.Vector3
-  velocityArrow: THREE.ArrowHelper
-  forceArrow: THREE.ArrowHelper
   trajectory: THREE.Line | null
   isEscaped: boolean = false
 
@@ -43,8 +37,7 @@ class Particle {
     position: THREE.Vector3,
     mass: number,
     charge: number,
-    trajectory: THREE.Line | null,
-    velocity: THREE.Vector3
+  trajectory: THREE.Line | null
   ) {
     this.color = color
     this.position = position
@@ -52,11 +45,6 @@ class Particle {
     this.charge = charge
     this.trajectory = trajectory
     this.isEscaped = false
-    // Initialize with provided velocity and zero force (force will be filled in after first simulation step).
-    this.velocity = velocity.clone()
-    this.force = new THREE.Vector3(0, 0, 0)
-    this.velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa)
-    this.forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0xaa5555)
   }
 }
 
@@ -103,13 +91,10 @@ function addParticle(opts: AddParticleOpts): void {
     scene.add(thisTrajectory)
   }
 
-  const particle = new Particle(color, position, mass, charge, thisTrajectory, velocity)
+  const particle = new Particle(color, position, mass, charge, thisTrajectory)
   particles.push(particle)
   // Record initial velocity components for SoA seeding.
   initialVelocities.push(velocity.x, velocity.y, velocity.z)
-
-  scene.add(particle.velocityArrow)
-  scene.add(particle.forceArrow)
   // Make the HUD table.
   const tableRow = document.createElement('tr')
   const particleColumn = document.createElement('td')
@@ -255,10 +240,10 @@ function createParticleSystem(
     let position: THREE.Vector3
     let velocity: THREE.Vector3
     if (settings.if_makeSun) {
-      // In the case that we want a sun at the center, let's initialize our "planets" on the same horizontal surface. This is done by ensuring that y = 0 for all.
+      // Previously particles were constrained to y=0 plane; now we randomize full 3D position for variety.
       position = new THREE.Vector3(
         random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
-        0,
+        random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
         random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
       )
       r = position.length()

@@ -12,7 +12,7 @@ const particleMaterialForClones = new THREE.PointsMaterial({
 });
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength'];
 class Particle {
-    constructor(color, position, mass, charge, trajectory, velocity) {
+    constructor(color, position, mass, charge, trajectory) {
         this.isEscaped = false;
         this.color = color;
         this.position = position;
@@ -20,11 +20,6 @@ class Particle {
         this.charge = charge;
         this.trajectory = trajectory;
         this.isEscaped = false;
-        // Initialize with provided velocity and zero force (force will be filled in after first simulation step).
-        this.velocity = velocity.clone();
-        this.force = new THREE.Vector3(0, 0, 0);
-        this.velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa);
-        this.forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0xaa5555);
     }
 }
 // Store initial velocities separately for seeding the SoA simulation state.
@@ -42,12 +37,10 @@ function addParticle(opts) {
         thisTrajectory = makeTrajectory(color, position, maxTrajectoryLength);
         scene.add(thisTrajectory);
     }
-    const particle = new Particle(color, position, mass, charge, thisTrajectory, velocity);
+    const particle = new Particle(color, position, mass, charge, thisTrajectory);
     particles.push(particle);
     // Record initial velocity components for SoA seeding.
     initialVelocities.push(velocity.x, velocity.y, velocity.z);
-    scene.add(particle.velocityArrow);
-    scene.add(particle.forceArrow);
     // Make the HUD table.
     const tableRow = document.createElement('tr');
     const particleColumn = document.createElement('td');
@@ -166,8 +159,8 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
         let position;
         let velocity;
         if (settings.if_makeSun) {
-            // In the case that we want a sun at the center, let's initialize our "planets" on the same horizontal surface. This is done by ensuring that y = 0 for all.
-            position = new THREE.Vector3(random(-settings.spaceBoundaryX, settings.spaceBoundaryX), 0, random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ));
+            // Previously particles were constrained to y=0 plane; now we randomize full 3D position for variety.
+            position = new THREE.Vector3(random(-settings.spaceBoundaryX, settings.spaceBoundaryX), random(-settings.spaceBoundaryY, settings.spaceBoundaryY), random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ));
             r = position.length();
             // The speed in the vertical direction should be the orbital speed.
             // See https://www.physicsclassroom.com/class/circles/Lesson-4/Mathematics-of-Satellite-Motion.

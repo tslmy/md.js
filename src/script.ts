@@ -81,18 +81,7 @@ function rescaleVelocityScaleBarFromState(state: SimulationState | undefined): n
   return scale
 }
 
-// Helpers to reduce complexity
-function updateArrowHelper(arrow: THREE.ArrowHelper, from: THREE.Vector3, vector: THREE.Vector3, scale: number): void {
-  const lengthToScale = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale : settings.unitArrowLength
-  arrow.setLength(
-    settings.if_limitArrowsMaxLength && lengthToScale > settings.maxArrowLength
-      ? settings.maxArrowLength
-      : lengthToScale
-  )
-  arrow.position.copy(from)
-  const dir = vector.lengthSq() === 0 ? _unitX : _tmpDir.copy(vector).normalize()
-  arrow.setDirection(dir)
-}
+// ArrowHelpers removed; future instanced arrow system will centralize vector -> transform logic.
 
 function updateTrajectoryBuffer(p: Particle, trajectory: THREE.BufferAttribute, maxLen: number): void {
   for (let j = 0; j < maxLen - 1; j++) trajectory.copyAt(j, trajectory, j + 1)
@@ -111,21 +100,18 @@ function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: 
 }
 
 const _tmpDir = new THREE.Vector3()
-const _unitX = new THREE.Vector3(1, 0, 0)
-const _tmpVel = new THREE.Vector3()
-const _tmpForce = new THREE.Vector3()
 const _tmpFrom = new THREE.Vector3()
 
-function updateFromSimulation(arrowScaleForForces: number, arrowScaleForVelocities: number, frameOffset: THREE.Vector3): void {
+function updateFromSimulation(_arrowScaleForForces: number, _arrowScaleForVelocities: number, frameOffset: THREE.Vector3): void {
   if (!simulation || !simState || !particleSystem) return
   const hudVisible = isVisible(document.querySelector('#hud'))
   const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt)
   const posAttr = particleSystem.geometry.attributes.position as THREE.BufferAttribute
-  for (let i = 0; i < particles.length; i++) updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, arrowScaleForForces, arrowScaleForVelocities)
+  for (let i = 0; i < particles.length; i++) updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset)
   posAttr.needsUpdate = true
 }
 
-function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3, arrowScaleForForces: number, arrowScaleForVelocities: number): void {
+function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3): void {
   if (!simState) return
   const { positions, velocities, forces, masses } = simState
   const p = particles[i]
@@ -148,18 +134,8 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   if (trajectoryAttr && needsTrajectoryShift) updateTrajectoryBuffer({ position: _tmpFrom.set(px, py, pz) } as Particle, trajectoryAttr, settings.maxTrajectoryLength)
   const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2]
   const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2]
-  // Mirror final (display) position back to OO particle
+  // Mirror final (display) position for tests & capture
   p.position.set(px, py, pz)
-  // Sync legacy object-oriented mirrors for temperature calc & persistence
-  p.velocity.set(vx, vy, vz)
-  p.force.set(fx, fy, fz)
-  if (settings.if_showArrows) {
-    _tmpVel.set(vx, vy, vz)
-    _tmpForce.set(fx, fy, fz)
-    _tmpFrom.set(px, py, pz)
-    updateArrowHelper(p.velocityArrow, _tmpFrom, _tmpVel, arrowScaleForVelocities)
-    updateArrowHelper(p.forceArrow, _tmpFrom, _tmpForce, arrowScaleForForces)
-  }
   if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz })
 }
 
@@ -197,16 +173,16 @@ function animate(): void {
   stats.update()
 }
 function calculateTemperature(): number {
-  let temperature = 0
-  particles.filter(particle => !particle.isEscaped).forEach(particle => {
-    temperature +=
-      particle.mass *
-      particle.velocity.length() ** 2
-  })
-  temperature *= 1 / settings.kB / (3 * settings.particleCount - 3)
-  if (temperature > maxTemperature) {
-    maxTemperature = temperature
+  if (!simState) return 0
+  const { velocities, masses, N } = simState
+  let sum = 0
+  for (let i = 0; i < N; i++) {
+    const i3 = 3 * i
+    const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2]
+    sum += (masses[i] || 1) * (vx * vx + vy * vy + vz * vz)
   }
+  const temperature = sum / settings.kB / (3 * settings.particleCount - 3)
+  if (temperature > maxTemperature) maxTemperature = temperature
   return temperature
 }
 
@@ -270,13 +246,11 @@ docReady(() => {
     simState.positions[i3] = particles[i].position.x
     simState.positions[i3 + 1] = particles[i].position.y
     simState.positions[i3 + 2] = particles[i].position.z
-    // Velocity may have been initialized when particle was created; copy it if present.
-    if (particles[i].velocity) {
-      const v = particles[i].velocity
-      simState.velocities[i3] = v.x
-      simState.velocities[i3 + 1] = v.y
-      simState.velocities[i3 + 2] = v.z
-    }
+  // Seed velocities from captured initialVelocities array exported by particleSystem module (if present on window for tests)
+  const maybe = (window as unknown as { initialVelocities?: number[] })?.initialVelocities || []
+  simState.velocities[i3] = maybe[i3] || 0
+  simState.velocities[i3 + 1] = maybe[i3 + 1] || 0
+  simState.velocities[i3 + 2] = maybe[i3 + 2] || 0
     simState.masses[i] = particles[i].mass
     simState.charges[i] = particles[i].charge
   }
@@ -317,23 +291,17 @@ function captureState(): SavedState {
   const particleVelocities: Array<{ x: number, y: number, z: number }> = []
   const particleMasses: number[] = []
   const particleCharges: number[] = []
-  for (const p of particles) {
-    particleColors.push(p.color.r, p.color.g, p.color.b)
-    particlePositions.push(p.position.x, p.position.y, p.position.z)
-    particleForces.push({ x: p.force.x, y: p.force.y, z: p.force.z })
-    particleVelocities.push({ x: p.velocity.x, y: p.velocity.y, z: p.velocity.z })
-    particleMasses.push(p.mass)
-    particleCharges.push(p.charge)
+  if (simState) {
+    for (let i = 0; i < particleCount; i++) {
+      const p = particles[i]
+      particleColors.push(p.color.r, p.color.g, p.color.b)
+      particlePositions.push(p.position.x, p.position.y, p.position.z)
+      const i3 = 3 * i
+      particleForces.push({ x: simState.forces[i3], y: simState.forces[i3 + 1], z: simState.forces[i3 + 2] })
+      particleVelocities.push({ x: simState.velocities[i3], y: simState.velocities[i3 + 1], z: simState.velocities[i3 + 2] })
+      particleMasses.push(simState.masses[i])
+      particleCharges.push(simState.charges[i])
+    }
   }
-  return {
-    particleCount,
-    particleColors,
-    particlePositions,
-    particleForces,
-    particleVelocities,
-    particleMasses,
-    particleCharges,
-    time,
-    lastSnapshotTime
-  }
+  return { particleCount, particleColors, particlePositions, particleForces, particleVelocities, particleMasses, particleCharges, time, lastSnapshotTime }
 }
