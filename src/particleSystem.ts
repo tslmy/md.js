@@ -1,4 +1,13 @@
 import * as THREE from 'three'
+/**
+ * Internal metadata stored on a THREE.Line's built-in `userData` bag.
+ * Three.js gives every Object3D a `userData: Record<string, any>` that it does not interpret,
+ * except for cloning/serialization. We use it to track a circular (ring) buffer write index
+ * for trajectory points so we avoid O(N) shifting each frame. The name "userData" just means
+ * "application-owned data" – not related to an end-user or auth concept.
+ */
+interface TrajectoryRingMeta { write: number; length: number; count: number }
+interface TrajectoryLine extends THREE.Line { userData: { trajectoryRing?: TrajectoryRingMeta } }
 import { generateTexture } from './drawingHelpers.js'
 import { loadState, previousState } from './stateStorage.js'
 // Type alias for settings shape (imported dynamically); avoids circular dep.
@@ -194,7 +203,10 @@ function makeTrajectory(
     linewidth: 1,
     vertexColors: true
   })
-  return new THREE.Line(thisGeometry, thisTrajectoryMaterial)
+  const line: TrajectoryLine = new THREE.Line(thisGeometry, thisTrajectoryMaterial) as TrajectoryLine
+  // Attach ring buffer bookkeeping (ignored by Three.js internals, safe to mutate each frame).
+  line.userData.trajectoryRing = { write: 0, length: maxTrajectoryLength, count: 0 }
+  return line
 }
 function objectToVector(obj: { x: number, y: number, z: number }): THREE.Vector3 {
   return new THREE.Vector3(obj.x, obj.y, obj.z)
