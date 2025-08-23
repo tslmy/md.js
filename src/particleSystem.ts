@@ -18,8 +18,6 @@ const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationFo
 class Particle {
   color: THREE.Color
   position: THREE.Vector3
-  force: THREE.Vector3
-  velocity: THREE.Vector3
   mass: number
   charge: number
   velocityArrow: THREE.ArrowHelper
@@ -30,58 +28,47 @@ class Particle {
   constructor(
     color: THREE.Color,
     position: THREE.Vector3,
-    force: THREE.Vector3,
-    velocity: THREE.Vector3,
     mass: number,
     charge: number,
-  trajectory: THREE.Line | null
+    trajectory: THREE.Line | null
   ) {
     this.color = color
     this.position = position
-    this.force = force
-    this.velocity = velocity
     this.mass = mass
     this.charge = charge
     this.trajectory = trajectory
     this.isEscaped = false
-    // Add arrows.
-    this.velocityArrow = new THREE.ArrowHelper(
-      new THREE.Vector3(),
-      new THREE.Vector3(),
-      1,
-      0x0055aa
-    )
-    this.forceArrow = new THREE.ArrowHelper(
-      new THREE.Vector3(),
-      new THREE.Vector3(),
-      1,
-      0xaa5555
-    )
+    this.velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa)
+    this.forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0xaa5555)
   }
 }
 
-function addParticle(
-  color: THREE.Color,
-  position: THREE.Vector3,
-  velocity: THREE.Vector3,
-  force: THREE.Vector3,
-  thisMass: number,
-  thisCharge: number,
-  particles: Particle[],
-  particlesGeometry: THREE.BufferGeometry,
-  scene: THREE.Scene,
-  shouldShowTrajectory: boolean,
+// Store initial velocities separately for seeding the SoA simulation state.
+export const initialVelocities: number[] = [] // flat array length 3 * particleCount
+
+interface AddParticleOpts {
+  color: THREE.Color
+  position: THREE.Vector3
+  velocity: THREE.Vector3
+  mass: number
+  charge: number
+  particles: Particle[]
+  geometry: THREE.BufferGeometry
+  scene: THREE.Scene
+  showTrajectory: boolean
   maxTrajectoryLength: number
-): void {
+}
+function addParticle(opts: AddParticleOpts): void {
+  const { color, position, velocity, mass, charge, particles, geometry, scene, showTrajectory, maxTrajectoryLength } = opts
   // Create the vertex
   // Add the vertex to the geometry
-  particlesGeometry.attributes.position.setXYZ(
+  geometry.attributes.position.setXYZ(
     particles.length,
     position.x,
     position.y,
     position.z
   )
-  particlesGeometry.attributes.color.setXYZ(
+  geometry.attributes.color.setXYZ(
     particles.length,
     color.r, color.g, color.b
   )
@@ -89,7 +76,7 @@ function addParticle(
   // add trajectories.
 
   let thisTrajectory: THREE.Line | null = null
-  if (shouldShowTrajectory) {
+  if (showTrajectory) {
     // make colors (http://jsfiddle.net/J7zp4/200/)
     thisTrajectory = makeTrajectory(
       color,
@@ -99,16 +86,10 @@ function addParticle(
     scene.add(thisTrajectory)
   }
 
-  const particle = new Particle(
-    color,
-    position,
-    force,
-    velocity,
-    thisMass,
-    thisCharge,
-    thisTrajectory
-  )
+  const particle = new Particle(color, position, mass, charge, thisTrajectory)
   particles.push(particle)
+  // Record initial velocity components for SoA seeding.
+  initialVelocities.push(velocity.x, velocity.y, velocity.z)
 
   scene.add(particle.velocityArrow)
   scene.add(particle.forceArrow)
@@ -121,11 +102,11 @@ function addParticle(
   tableRow.appendChild(particleColumn)
   const massColumn = document.createElement('td')
   massColumn.classList.add('mass')
-  massColumn.innerText = `${Math.round(thisMass * 10) / 10}`
+  massColumn.innerText = `${Math.round(mass * 10) / 10}`
   tableRow.appendChild(massColumn)
   const chargeColumn = document.createElement('td')
   chargeColumn.classList.add('mass')
-  chargeColumn.innerText = `${Math.round(thisCharge * 10) / 10}`
+  chargeColumn.innerText = `${Math.round(charge * 10) / 10}`
   tableRow.appendChild(chargeColumn)
   for (const columnName of columnNames) {
     const column = document.createElement('td')
@@ -245,83 +226,8 @@ function createParticleSystem(
     size: 0.3,
     vertexColors: true
   })
-  let particleCountToAdd
-  // Create the vertices and add them to the particles geometry
-  if (loadState()) {
-    console.log('State from previous session loaded.')
-    // Initialize the particleSystem with the info stored from localStorage.
-    const prev = previousState()
-    let particleCountToRead = 0
-    if (
-      prev.particleCount < settings.particleCount ||
-      settings.if_override_particleCount_setting_with_lastState
-    ) {
-      particleCountToRead = prev.particleCount
-    } else {
-      particleCountToRead = settings.particleCount
-    }
-    for (let i = 0; i < particleCountToRead; i++) {
-      const color = new THREE.Color(
-        prev.particleColors[3 * i],
-        prev.particleColors[3 * i + 1],
-        prev.particleColors[3 * i + 2])
-      addParticle(
-        color,
-        new THREE.Vector3().fromArray(prev.particlePositions, 3 * i),
-        objectToVector(prev.particleVelocities[i]),
-        objectToVector(prev.particleForces[i]),
-        prev.particleMasses[i],
-        prev.particleCharges[i],
-        particles,
-        particlesGeometry,
-        scene,
-        settings.if_showTrajectory,
-        settings.maxTrajectoryLength
-      )
-    }
-    particleCountToAdd = settings.particleCount - prev.particleCount
-    if (particleCountToAdd < 0) {
-      console.log(
-        'Dropping',
-        -particleCountToAdd,
-        'particles stored, since we only need',
-        settings.particleCount,
-        'particles this time.'
-      )
-    } else if (particleCountToAdd > 0) {
-      console.log(
-        'md.js will be creating only',
-        particleCountToAdd,
-        'particles from scratch, since',
-    prev.particleCount,
-        'has been loaded from previous browser session.'
-      )
-    }
-  time = prev.time
-  lastSnapshotTime = prev.lastSnapshotTime
-  } else {
-    console.log('Creating new universe.')
-    console.log(
-      'md.js will be creating all',
-      settings.particleCount,
-      'particles from scratch.'
-    )
-    // create a sun:
-    if (settings.if_makeSun) {
-      addParticle(
-        new THREE.Color(0, 0, 0),
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, 0),
-        settings.sunMass,
-        0,
-        particles,
-        particlesGeometry,
-        scene,
-        settings.if_showTrajectory,
-        settings.maxTrajectoryLength
-      )
-    } // always make the sun the first particle, please.
+  if (!populateFromPreviousOrFresh(particles, particlesGeometry, scene, settings)) {
+    // fresh world already created inside helper when no previous state
   }
   // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
   for (let i = particles.length; i < settings.particleCount; i++) {
@@ -355,25 +261,18 @@ function createParticleSystem(
     }
     // Force should always be initialized to zero. It will be computed properly upon first refresh.
     // Don't share this object across particles, though -- The values of their components will vary across particles during simulation.
-    const force = new THREE.Vector3(0, 0, 0)
-    addParticle(
-      new THREE.Color(
-        Math.random(),
-        Math.random(),
-        Math.random()),
+    addParticle({
+      color: new THREE.Color(Math.random(), Math.random(), Math.random()),
       position,
       velocity,
-      force,
-      random(
-        settings.massLowerBound,
-        settings.massUpperBound),
-      sample<number>(settings.availableCharges),
+      mass: random(settings.massLowerBound, settings.massUpperBound),
+      charge: sample<number>(settings.availableCharges),
       particles,
-      particlesGeometry,
+      geometry: particlesGeometry,
       scene,
-      settings.if_showTrajectory,
-      settings.maxTrajectoryLength
-    )
+      showTrajectory: settings.if_showTrajectory,
+      maxTrajectoryLength: settings.maxTrajectoryLength
+    })
   }
   // Create the material that will be used to render each vertex of the geometry
   // Create the particle system
@@ -395,6 +294,51 @@ function createParticleSystem(
     group.add(clone)
   })
   return particleSystem
+}
+
+function populateFromPreviousOrFresh(particles: Particle[], particlesGeometry: THREE.BufferGeometry, scene: THREE.Scene, settings: Settings): boolean {
+  if (loadState()) {
+    console.log('State from previous session loaded.')
+    const prev = previousState()
+    const particleCountToRead = (prev.particleCount < settings.particleCount || settings.if_override_particleCount_setting_with_lastState)
+      ? prev.particleCount
+      : settings.particleCount
+    for (let i = 0; i < particleCountToRead; i++) {
+      const color = new THREE.Color(prev.particleColors[3 * i], prev.particleColors[3 * i + 1], prev.particleColors[3 * i + 2])
+      addParticle({
+        color,
+        position: new THREE.Vector3().fromArray(prev.particlePositions, 3 * i),
+        velocity: objectToVector(prev.particleVelocities[i]),
+        mass: prev.particleMasses[i],
+        charge: prev.particleCharges[i],
+        particles,
+        geometry: particlesGeometry,
+        scene,
+        showTrajectory: settings.if_showTrajectory,
+        maxTrajectoryLength: settings.maxTrajectoryLength
+      })
+    }
+    const diff = settings.particleCount - prev.particleCount
+    if (diff < 0) console.log('Dropping', -diff, 'particles from stored state (exceeds current target).')
+    else if (diff > 0) console.log('Creating only', diff, 'new particles in addition to loaded', prev.particleCount)
+    return true
+  }
+  console.log('Creating new universe. md.js will be creating all', settings.particleCount, 'particles from scratch.')
+  if (settings.if_makeSun) {
+    addParticle({
+      color: new THREE.Color(0, 0, 0),
+      position: new THREE.Vector3(0, 0, 0),
+      velocity: new THREE.Vector3(0, 0, 0),
+      mass: settings.sunMass,
+      charge: 0,
+      particles,
+      geometry: particlesGeometry,
+      scene,
+      showTrajectory: settings.if_showTrajectory,
+      maxTrajectoryLength: settings.maxTrajectoryLength
+    })
+  }
+  return false
 }
 
 function random(min: number, max: number): number {
