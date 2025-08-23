@@ -227,9 +227,8 @@ function initializeGuiControls (settings, group, boxMesh) {
 
   const guiFolderPlotting = gui.addFolder('Plotting') // toggles for Plotting:
   // guiFolderPlotting.add(settings, "if_override_particleCount_setting_with_lastState").name("");
-  guiFolderPlotting
-    .add(settings, 'if_ReferenceFrame_movesWithSun')
-    .name('Center the sun')
+  guiFolderPlotting.add(settings, 'referenceFrameMode', { 'Fixed': 'fixed', 'Sun': 'sun', 'Center of Mass': 'com' })
+    .name('Reference frame')
 
   // (sun & fog toggles managed elsewhere)
 

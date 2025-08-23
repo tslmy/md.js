@@ -15,7 +15,7 @@ async function main () {
   const page = await browser.newPage()
   await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 15000 })
   // Disable centering in-page
-  await page.evaluate(() => { if (window.__mdjs) window.__mdjs.settings.if_ReferenceFrame_movesWithSun = false })
+  await page.evaluate(() => { if (window.__mdjs) window.__mdjs.settings.referenceFrameMode = 'fixed' })
   const start = await page.evaluate(() => {
     const api = window.__mdjs
     const p0 = api?.particles?.[0]
