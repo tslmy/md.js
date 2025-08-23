@@ -38,7 +38,8 @@ function fullscreen () {
 function init (settings,
   particles,
   time,
-  lastSnapshotTime) {
+  lastSnapshotTime,
+  simState) {
   // initialize the scene
   const scene = new THREE.Scene()
   //    configure the scene:
@@ -62,7 +63,8 @@ function init (settings,
     scene,
     time,
     lastSnapshotTime,
-    settings
+    settings,
+    simState
   )
   console.log("3D object 'group' created: ", group)
   scene.add(group)
