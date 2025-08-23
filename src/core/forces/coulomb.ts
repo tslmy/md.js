@@ -1,6 +1,15 @@
 import { SimulationState, index3 } from '../simulation/state.js'
 import { ForceField, ForceContext, forEachPair } from './forceInterfaces.js'
 
+/**
+ * Coulomb (electrostatic) force.
+ * Intuition:
+ *  - Like charges repel, opposite charges attract.
+ *  - Strength proportional to product of charges; direction along line connecting particles.
+ * Parameter K: overall scaling constant (not real Coulomb constant) to keep magnitudes balanced with other forces.
+ * Implementation detail: we multiply by 1/r^3 to get component-wise force from raw displacement (dx,dy,dz).
+ */
+
 export interface CoulombParams { K: number }
 
 export class Coulomb implements ForceField {

@@ -1,8 +1,18 @@
 import { SimulationState, index3 } from '../simulation/state.js'
 import { ForceContext, ForceField, forEachPair } from './forceInterfaces.js'
 
-// F magnitude from Lennard-Jones: F = 24 * epsilon * (2*(sigma/r)^12 - (sigma/r)^6) / r
-// We'll use settings names epsilon (EPSILON) & sigma (DELTA) analogously later.
+/**
+ * Lennard-Jones force (short-range repulsion + weak longer-range attraction).
+ * Intuition for non-physics maintainers:
+ *  - At very short distance particles repel strongly (prevents overlap).
+ *  - At moderate distance there's a mild attraction (models van der Waals bonding tendency).
+ *  - Beyond the cutoff we ignore interaction to save time.
+ * Parameters:
+ *  - epsilon: depth of the potential well (overall interaction strength).
+ *  - sigma: distance where potential crosses zero (~"size" of particle core).
+ * Implementation details:
+ *  - Uses a standard analytical derivative giving the vector force without computing expensive roots repeatedly.
+ */
 
 export interface LennardJonesParams { epsilon: number; sigma: number }
 

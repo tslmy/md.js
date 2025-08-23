@@ -1,6 +1,15 @@
 import { SimulationState, index3 } from '../simulation/state.js'
 import { ForceField, ForceContext, forEachPair } from './forceInterfaces.js'
 
+/**
+ * Simple pairwise Newtonian gravity.
+ * Characteristics:
+ *  - Always attractive (pulls particles together).
+ *  - Strength scales with product of masses and inverse square of distance (directional factor gives inverse cube overall for components).
+ * Parameter G: tuned constant (not actual physical G units) controlling how strong the pull is.
+ * Note: In dense short-range MD mixing gravity with strong LJ repulsion can create clustered behavior; adjust G cautiously.
+ */
+
 export interface GravityParams { G: number }
 
 export class Gravity implements ForceField {

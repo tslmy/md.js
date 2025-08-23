@@ -1,20 +1,36 @@
 import { SimulationState, index3 } from '../simulation/state.js'
 
+/**
+ * A ForceField encapsulates one physical interaction rule (e.g. gravity, electrostatics, Lennard-Jones).
+ * Implementation rule of thumb for contributors without physics background:
+ *  - Read pairwise loops as: for every unique unordered particle pair (i,j) within a certain distance (cutoff) compute a push/pull.
+ *  - Add that push to one particle and the opposite to the other (Newton's third law ensures momentum conservation).
+ *  - The magnitude formulas (inside specific forces) translate domain constants into numeric coefficients.
+ */
+
 export interface ForceField {
+  /** Unique short identifier for diagnostics */
   readonly name: string
+  /** Accumulate force contributions into state.forces (must only add; never reset arrays here). */
   apply(state: SimulationState, ctx: ForceContext): void
 }
 
 export interface ForceContext {
+  /** Maximum interaction distance (optimization to skip weak far pairs). */
   cutoff: number
-  // Future: neighbor list, scratch buffers, config flags.
+  /** Optional feature flags to gate specialized logic (reserved for future extensions). */
   flags?: Record<string, boolean>
+  /** Optional constants bag for experimental force tuning without changing signatures. */
   constants?: Record<string, number>
 }
 
 export type PairHandler = (i: number, j: number, dx: number, dy: number, dz: number, r2: number) => void
 
-// Naive O(N^2) pair iteration with cutoff (squared) used for initial port.
+/**
+ * Naive O(N^2) pair iterator with distance cutoff.
+ * For each i<j pair inside cutoff^2 calls the handler once.
+ * Future optimization path: replace with cell / neighbor list to cut complexity toward O(N).
+ */
 export function forEachPair(state: SimulationState, cutoff: number, handler: PairHandler): void {
   const { N, positions } = state
   const cutoff2 = cutoff * cutoff
