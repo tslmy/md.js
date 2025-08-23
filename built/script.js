@@ -80,34 +80,48 @@ function updateTrajectoryBuffer(p, trajectory, maxLen) {
     trajectory.needsUpdate = true;
 }
 function updateHudRow(i, d) {
-    const speed = Math.hypot(d.vx, d.vy, d.vz);
-    const forceMag = Math.hypot(d.fx, d.fy, d.fz);
     const row = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
     if (!row)
         return;
-    const speedEl = row.querySelector('.speed');
-    if (speedEl)
-        speedEl.textContent = `${Math.round(speed * 100) / 100}`;
-    const keEl = row.querySelector('.kineticEnergy');
-    if (keEl)
-        keEl.textContent = `${Math.round(speed * speed * d.mass * 50) / 100}`;
-    const tfEl = row.querySelector('.TotalForceStrength');
-    if (tfEl)
-        tfEl.textContent = `${Math.round(forceMag * 100) / 100}`;
+    const rnd = (v) => `${Math.round(v * 100) / 100}`;
+    const speed2 = d.vx * d.vx + d.vy * d.vy + d.vz * d.vz;
+    const speed = Math.sqrt(speed2);
+    const forceMag = Math.hypot(d.fx, d.fy, d.fz);
+    const set = (cls, val) => { const el = row.querySelector(cls); if (el)
+        el.textContent = val; };
+    set('.speed', rnd(speed));
+    set('.kineticEnergy', rnd(speed2 * d.mass * 0.5));
+    set('.TotalForceStrength', rnd(forceMag));
+    if (!d.perForce)
+        return;
+    const classMap = {
+        lennardJones: '.LJForceStrength',
+        gravity: '.GravitationForceStrength',
+        coulomb: '.CoulombForceStrength'
+    };
+    const i3 = 3 * i;
+    for (const [name, arr] of Object.entries(d.perForce)) {
+        const cls = classMap[name];
+        if (!cls)
+            continue;
+        const mag = Math.hypot(arr[i3], arr[i3 + 1], arr[i3 + 2]);
+        set(cls, rnd(mag));
+    }
 }
 const _tmpDir = new THREE.Vector3();
 const _tmpFrom = new THREE.Vector3();
-function updateFromSimulation(_arrowScaleForForces, _arrowScaleForVelocities, frameOffset) {
+function updateFromSimulation(_arrowScaleForces, _arrowScaleForVelocities, frameOffset) {
     if (!simulation || !simState || !particleSystem)
         return;
     const hudVisible = isVisible(document.querySelector('#hud'));
     const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt);
     const posAttr = particleSystem.geometry.attributes.position;
+    const perForce = simulation.getPerForceContributions();
     for (let i = 0; i < particles.length; i++)
-        updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset);
+        updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, perForce);
     posAttr.needsUpdate = true;
 }
-function updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset) {
+function updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, perForce) {
     if (!simState)
         return;
     const { positions, velocities, forces, masses } = simState;
@@ -138,7 +152,7 @@ function updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOf
     // Mirror final (display) position for tests & capture
     p.position.set(px, py, pz);
     if (hudVisible)
-        updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz });
+        updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz, perForce });
 }
 // Removed legacy applyParticleVisualUpdate; loop logic in updateFromSimulation now works directly off SoA arrays.
 function applyPbc(pos, trajectory, maxLen, bx, by, bz) {
