@@ -9,7 +9,9 @@ const testScripts = [
   'centerstest',
   'centers-neg-test',
   'force-sym',
-  'energy'
+  'energy',
+  'pairs',
+  'persist'
 ]
 
 const results = []
