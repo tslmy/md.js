@@ -84,4 +84,5 @@ function loadState(): boolean {
   return true
 }
 function previousState(): SavedState { return _previousState }
+export type { SavedState }
 export { dump, clearState, loadState, saveState, previousState }

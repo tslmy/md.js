@@ -1,17 +1,24 @@
 import { settings } from './settings.js'
 import { init, ifMobileDevice, toggle } from './init.js'
+import { saveState } from './stateStorage.js'
+import type { SavedState } from './stateStorage.js'
 import * as THREE from 'three'
 import {
   makeClonePositionsList, Particle
 } from './particleSystem.js'
 // global variables
+interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
+interface ControlsLike { update(): void }
+interface StatsLike { update(): void }
+interface TemperaturePanelLike { update(t: number, max: number): void }
+
 let camera: THREE.PerspectiveCamera
 let scene: THREE.Scene
 let renderer: THREE.WebGLRenderer
-let effect: any // StereoEffect | undefined; keeping any due to lack of types
-let controls: any // OrbitControls
-let temperaturePanel: { update: (t: number, max: number) => void }
-let stats: any // Stats.js panel
+let effect: StereoEffectLike | undefined
+let controls: ControlsLike | undefined
+let temperaturePanel: TemperaturePanelLike
+let stats: StatsLike
 let maxTemperature = 0
 let particleSystem: THREE.Points | undefined
 
@@ -407,7 +414,7 @@ function update(): void {
   if (controls) controls.update()
 }
 
-function render(renderer: THREE.WebGLRenderer, effect: any): void {
+function render(renderer: THREE.WebGLRenderer, effect: StereoEffectLike | undefined): void {
   if (ifMobileDevice && effect) {
     effect.render(scene, camera)
   } else {
@@ -444,6 +451,15 @@ docReady(() => {
   effect = values[7]
 
   animate()
+  // Install full-state persistence handler (overrides placeholder in init.js)
+  window.onbeforeunload = () => {
+    try {
+      const snapshot: SavedState = captureState()
+      saveState(snapshot)
+    } catch (e) {
+      console.log('Failed to persist state:', e)
+    }
+  }
   // bind keyboard event:
   document.onkeydown = (e) => {
     switch (e.keyCode) {
@@ -453,3 +469,33 @@ docReady(() => {
     }
   }
 })
+
+// Build a complete snapshot matching SavedState interface for persistence.
+function captureState(): SavedState {
+  const particleCount = particles.length
+  const particleColors: number[] = []
+  const particlePositions: number[] = []
+  const particleForces: Array<{ x: number, y: number, z: number }> = []
+  const particleVelocities: Array<{ x: number, y: number, z: number }> = []
+  const particleMasses: number[] = []
+  const particleCharges: number[] = []
+  for (const p of particles) {
+    particleColors.push(p.color.r, p.color.g, p.color.b)
+    particlePositions.push(p.position.x, p.position.y, p.position.z)
+    particleForces.push({ x: p.force.x, y: p.force.y, z: p.force.z })
+    particleVelocities.push({ x: p.velocity.x, y: p.velocity.y, z: p.velocity.z })
+    particleMasses.push(p.mass)
+    particleCharges.push(p.charge)
+  }
+  return {
+    particleCount,
+    particleColors,
+    particlePositions,
+    particleForces,
+    particleVelocities,
+    particleMasses,
+    particleCharges,
+    time,
+    lastSnapshotTime
+  }
+}
