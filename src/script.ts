@@ -88,12 +88,13 @@ function rescaleVelocityScaleBarFromState(state: SimulationState | undefined): n
 
 // Helpers to reduce complexity
 function updateArrowHelper(arrow: THREE.ArrowHelper, from: THREE.Vector3, vector: THREE.Vector3, scale: number): void {
-  const lengthToScale = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale : settings.unitArrowLength
-  arrow.setLength(
-    settings.if_limitArrowsMaxLength && lengthToScale > settings.maxArrowLength
-      ? settings.maxArrowLength
-      : lengthToScale
-  )
+  // Compute raw length (either proportional to magnitude or fixed unit length)
+  let lengthToScale = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale * settings.arrowMagnitudeMultiplier : settings.unitArrowLength
+  // Ensure a small minimum so arrows remain visible when forces / velocities are tiny (or zero after reset)
+  const minVisible = 0.2 * settings.unitArrowLength
+  if (lengthToScale < minVisible) lengthToScale = minVisible
+  if (settings.if_limitArrowsMaxLength && lengthToScale > settings.maxArrowLength) lengthToScale = settings.maxArrowLength
+  arrow.setLength(lengthToScale)
   arrow.position.copy(from)
   const dir = vector.lengthSq() === 0 ? _unitX : _tmpDir.copy(vector).normalize()
   arrow.setDirection(dir)
