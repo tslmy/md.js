@@ -8,11 +8,15 @@ export class Simulation {
     }
     step() {
         const { dt, cutoff } = this.config;
-        zeroForces(this.state);
-        const ctx = { cutoff };
-        for (const f of this.forces)
-            f.apply(this.state, ctx);
-        this.integrator.step(this.state, dt);
+        const recomputeForces = () => {
+            zeroForces(this.state);
+            const ctx = { cutoff };
+            for (const f of this.forces)
+                f.apply(this.state, ctx);
+        };
+        // Initial force computation (Euler requires only once; Verlet will call back for second pass)
+        recomputeForces();
+        this.integrator.step(this.state, dt, recomputeForces);
     }
     addForce(f) { this.forces.push(f); }
 }

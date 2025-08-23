@@ -1,5 +1,7 @@
 // Headless smoke test for md.js
 import { spawn, execFileSync } from 'node:child_process'
+import net from 'node:net'
+import http from 'node:http'
 import puppeteer from 'puppeteer'
 
 async function main () {
@@ -7,16 +9,43 @@ async function main () {
   execFileSync('npm', ['run', 'build', '--silent'], { stdio: 'inherit' })
 
   console.log('[smoke] Starting static server...')
-  const port = 8123
-  const server = spawn('python', ['-m', 'http.server', String(port), '--directory', '.'], { stdio: 'inherit' })
+  // Find a free port (attempt starting at 8123)
+  async function findPort (start = 8123) {
+    const attempt = (p) => new Promise((resolve) => {
+      const srv = net.createServer()
+      srv.once('error', () => resolve(0))
+      srv.listen(p, () => { srv.close(() => resolve(p)) })
+    })
+    for (let p = start; p < start + 50; p++) {
+      const got = await attempt(p)
+      if (got) return got
+    }
+    throw new Error('No free port found')
+  }
+  const port = await findPort()
+  const server = spawn('python', ['-m', 'http.server', String(port), '--directory', '.'], { stdio: 'ignore' })
 
   const cleanup = async (code = 0) => {
-    try { server.kill() } catch {}
+    try { server.kill() } catch { /* ignore */ }
     process.exit(code)
   }
 
-  // Give server a moment
-  await new Promise(r => setTimeout(r, 800))
+  // Poll for server readiness
+  async function waitForServer (retries = 40) {
+    for (let i = 0; i < retries; i++) {
+      const ok = await new Promise(resolve => {
+        const req = http.request({ method: 'HEAD', host: 'localhost', port, path: '/index.html' }, res => {
+          resolve(res.statusCode >= 200 && res.statusCode < 500)
+        })
+        req.on('error', () => resolve(false))
+        req.end()
+      })
+      if (ok) return
+      await new Promise(r => setTimeout(r, 250))
+    }
+    throw new Error('Server did not become ready')
+  }
+  await waitForServer()
 
   const browser = await puppeteer.launch({ headless: 'new' })
   const page = await browser.newPage()
@@ -24,11 +53,11 @@ async function main () {
   page.on('console', msg => consoleMessages.push(msg.text()))
 
   console.log('[smoke] Loading page...')
-  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 15000 })
+  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 20000 })
 
   // Pull initial state
   const initial = await page.evaluate(() => {
-    const api = window.__mdjs
+    const api = (typeof globalThis !== 'undefined' && globalThis.__mdjs) ? globalThis.__mdjs : undefined
     return {
       present: !!api,
       count: api?.particles?.length ?? 0,
@@ -48,7 +77,7 @@ async function main () {
   // Let simulation advance a few frames
   await new Promise(r => setTimeout(r, 500))
   const after = await page.evaluate(() => {
-    const api = window.__mdjs
+    const api = (typeof globalThis !== 'undefined' && globalThis.__mdjs) ? globalThis.__mdjs : undefined
     return api?.particles?.slice(0, 5).map(p => ({ x: p.position.x, y: p.position.y, z: p.position.z })) ?? []
   })
   const moved = initial.firstPositions.some((p, i) => {

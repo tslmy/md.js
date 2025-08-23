@@ -1,7 +1,8 @@
 import { SimulationState, index3 } from './state.js'
 
 export interface Integrator {
-  step(state: SimulationState, dt: number): void
+  // recomputeForces callback will zero forces and apply all force plugins when invoked
+  step(state: SimulationState, dt: number, recomputeForces: () => void): void
 }
 
 // Basic (existing) explicit Euler for parity baseline.
@@ -22,46 +23,43 @@ export const EulerIntegrator: Integrator = {
   }
 }
 
-// Velocity Verlet (better energy behavior) — not yet wired into main app.
+// Fully implemented Velocity Verlet integrator (single call handles both force evaluations via callback)
 export const VelocityVerlet: Integrator = {
-  step(state, dt) {
+  step(state, dt, recomputeForces) {
     const { N, positions, velocities, forces, masses } = state
-    const halfDt = 0.5 * dt
-    const ax = new Array<number>(N)
-    const ay = new Array<number>(N)
-    const az = new Array<number>(N)
+    const dt2 = dt * dt
+    // Allocate scratch for initial accelerations (reuse per step to keep simple)
+    const a0 = new Float32Array(N * 3)
+    // 1. Use current forces to advance positions and half-step velocities
     for (let i = 0; i < N; i++) {
       const i3 = index3(i)
       const invM = 1 / (masses[i] || 1)
-      ax[i] = forces[i3] * invM
-      ay[i] = forces[i3 + 1] * invM
-      az[i] = forces[i3 + 2] * invM
-      // first half-step position update
-      positions[i3] += velocities[i3] * dt + 0.5 * ax[i] * dt * dt
-      positions[i3 + 1] += velocities[i3 + 1] * dt + 0.5 * ay[i] * dt * dt
-      positions[i3 + 2] += velocities[i3 + 2] * dt + 0.5 * az[i] * dt * dt
-      // provisional half-step velocity
-      velocities[i3] += ax[i] * halfDt
-      velocities[i3 + 1] += ay[i] * halfDt
-      velocities[i3 + 2] += az[i] * halfDt
+      const ax = forces[i3] * invM
+      const ay = forces[i3 + 1] * invM
+      const az = forces[i3 + 2] * invM
+      a0[i3] = ax; a0[i3 + 1] = ay; a0[i3 + 2] = az
+      // position(t+dt)
+      positions[i3] += velocities[i3] * dt + 0.5 * ax * dt2
+      positions[i3 + 1] += velocities[i3 + 1] * dt + 0.5 * ay * dt2
+      positions[i3 + 2] += velocities[i3 + 2] * dt + 0.5 * az * dt2
+      // v half-step
+      velocities[i3] += 0.5 * ax * dt
+      velocities[i3 + 1] += 0.5 * ay * dt
+      velocities[i3 + 2] += 0.5 * az * dt
     }
-    // NOTE: caller must recompute forces here for full Verlet (not done yet in this scaffold)
-    // After recomputing forces, caller should invoke finalizeVelocityVerlet()
+    // 2. Recompute forces with updated positions
+    recomputeForces()
+    // 3. Complete velocity update with new accelerations
+    for (let i = 0; i < N; i++) {
+      const i3 = index3(i)
+      const invM = 1 / (masses[i] || 1)
+      const axNew = forces[i3] * invM
+      const ayNew = forces[i3 + 1] * invM
+      const azNew = forces[i3 + 2] * invM
+      velocities[i3] += 0.5 * axNew * dt
+      velocities[i3 + 1] += 0.5 * ayNew * dt
+      velocities[i3 + 2] += 0.5 * azNew * dt
+    }
     state.time += dt
-  }
-}
-
-export function finalizeVelocityVerlet(state: SimulationState, dt: number, oldAccelerations: Float32Array): void {
-  const { N, velocities, forces, masses } = state
-  const halfDt = 0.5 * dt
-  for (let i = 0; i < N; i++) {
-    const i3 = index3(i)
-    const invM = 1 / (masses[i] || 1)
-    const axNew = forces[i3] * invM
-    const ayNew = forces[i3 + 1] * invM
-    const azNew = forces[i3 + 2] * invM
-    velocities[i3] += (axNew - oldAccelerations[i3]) * halfDt
-    velocities[i3 + 1] += (ayNew - oldAccelerations[i3 + 1]) * halfDt
-    velocities[i3 + 2] += (azNew - oldAccelerations[i3 + 2]) * halfDt
   }
 }

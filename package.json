@@ -32,7 +32,7 @@
     "forcestest": "npm run build && node scripts/testForces.mjs",
     "smoke": "node scripts/smoke.mjs",
     "start": "npm run build && python -m http.server --directory .",
-    "test": "npm run smoke",
+    "test": "node scripts/runAllTests.mjs",
     "typecheck": "tsc --noEmit",
     "watch": "tsc --watch"
   },

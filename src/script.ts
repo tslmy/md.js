@@ -7,7 +7,7 @@ import { Particle } from './particleSystem.js'
 // New SoA simulation core imports
 import { createState, type SimulationState } from './core/simulation/state.js'
 import { Simulation } from './core/simulation/Simulation.js'
-import { EulerIntegrator } from './core/simulation/integrators.js'
+import { VelocityVerlet } from './core/simulation/integrators.js'
 import { LennardJones } from './core/forces/lennardJones.js'
 import { Gravity } from './core/forces/gravity.js'
 import { Coulomb } from './core/forces/coulomb.js'
@@ -259,7 +259,7 @@ docReady(() => {
   if (settings.if_apply_LJpotential) forcePlugins.push(new LennardJones({ epsilon: settings.EPSILON, sigma: settings.DELTA }))
   if (settings.if_apply_gravitation) forcePlugins.push(new Gravity({ G: settings.G }))
   if (settings.if_apply_coulombForce) forcePlugins.push(new Coulomb({ K: settings.K }))
-  simulation = new Simulation(simState, EulerIntegrator, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance })
+  simulation = new Simulation(simState, VelocityVerlet, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance })
 
   animate()
   // Expose handle for automated headless tests

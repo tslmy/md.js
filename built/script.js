@@ -5,7 +5,7 @@ import * as THREE from 'three';
 // New SoA simulation core imports
 import { createState } from './core/simulation/state.js';
 import { Simulation } from './core/simulation/Simulation.js';
-import { EulerIntegrator } from './core/simulation/integrators.js';
+import { VelocityVerlet } from './core/simulation/integrators.js';
 import { LennardJones } from './core/forces/lennardJones.js';
 import { Gravity } from './core/forces/gravity.js';
 import { Coulomb } from './core/forces/coulomb.js';
@@ -242,7 +242,7 @@ docReady(() => {
         forcePlugins.push(new Gravity({ G: settings.G }));
     if (settings.if_apply_coulombForce)
         forcePlugins.push(new Coulomb({ K: settings.K }));
-    simulation = new Simulation(simState, EulerIntegrator, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance });
+    simulation = new Simulation(simState, VelocityVerlet, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance });
     animate();
     // Expose handle for automated headless tests
     // Expose simulation state (read-only for tests; mutation not supported outside test harness)
