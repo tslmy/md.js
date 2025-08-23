@@ -42,4 +42,18 @@ export class LennardJones implements ForceField {
       forces[j3 + 2] -= fz
     })
   }
+  /** Total Lennard-Jones potential energy: Σ 4ε[(σ/r)^12 - (σ/r)^6] over unique pairs within cutoff. */
+  potential(state: SimulationState, ctx: ForceContext): number {
+    const { epsilon, sigma } = this.params
+    let V = 0
+    forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
+      if (r2 === 0) return
+      const invR2 = 1 / r2
+      const sr2 = (sigma * sigma) * invR2
+      const sr6 = sr2 * sr2 * sr2
+      const sr12 = sr6 * sr6
+      V += 4 * epsilon * (sr12 - sr6)
+    })
+    return V
+  }
 }

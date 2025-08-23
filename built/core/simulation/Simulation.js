@@ -19,5 +19,6 @@ export class Simulation {
         this.integrator.step(this.state, dt, recomputeForces);
     }
     addForce(f) { this.forces.push(f); }
+    getForces() { return this.forces; }
 }
 //# sourceMappingURL=Simulation.js.map

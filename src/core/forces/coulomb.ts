@@ -36,4 +36,14 @@ export class Coulomb implements ForceField {
       forces[j3 + 2] -= fz
     })
   }
+  potential(state: SimulationState, ctx: ForceContext): number {
+    const { K } = this.params
+    const { charges } = state
+    let V = 0
+    forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
+      if (r2 === 0) return
+      V += K * (charges[i] || 0) * (charges[j] || 0) / Math.sqrt(r2)
+    })
+    return V
+  }
 }

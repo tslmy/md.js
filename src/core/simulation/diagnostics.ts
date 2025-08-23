@@ -1,8 +1,5 @@
 import { SimulationState } from './state.js'
-import { forEachPair, ForceField } from '../forces/forceInterfaces.js'
-import { Gravity } from '../forces/gravity.js'
-import { Coulomb } from '../forces/coulomb.js'
-import { LennardJones } from '../forces/lennardJones.js'
+import { ForceField } from '../forces/forceInterfaces.js'
 
 /**
  * Snapshot of high‑level physical metrics for a simulation state.
@@ -62,36 +59,11 @@ function computeKineticAndExtrema(state: SimulationState): { kinetic: number; ma
  * NOTE: This duplicates pair iteration per force and is intentionally simple
  * for an initial diagnostics step (can be optimized by sharing pair loops later).
  */
-function computePotential(state: SimulationState, forces: ForceField[], cutoff: number): number {
+function computePotential(state: SimulationState, forces: ForceField[], _cutoff: number): number {
   let pot = 0
   for (const f of forces) {
-    if (f instanceof Gravity) {
-      const G = (f as unknown as { params: { G: number } }).params.G
-      const { masses } = state
-      forEachPair(state, cutoff, (i, j, dx, dy, dz, r2) => {
-        if (r2 === 0) return
-        const r = Math.sqrt(r2)
-        pot += -G * (masses[i] || 1) * (masses[j] || 1) / r
-      })
-    } else if (f instanceof Coulomb) {
-      const K = (f as unknown as { params: { K: number } }).params.K
-      const { charges } = state
-      forEachPair(state, cutoff, (i, j, dx, dy, dz, r2) => {
-        if (r2 === 0) return
-        const r = Math.sqrt(r2)
-        pot += K * (charges[i] || 0) * (charges[j] || 0) / r
-      })
-    } else if (f instanceof LennardJones) {
-      const { epsilon, sigma } = (f as unknown as { params: { epsilon: number; sigma: number } }).params
-      forEachPair(state, cutoff, (i, j, dx, dy, dz, r2) => {
-        if (r2 === 0) return
-        const invR2 = 1 / r2
-        const sr2 = (sigma * sigma) * invR2
-        const sr6 = sr2 * sr2 * sr2
-        const sr12 = sr6 * sr6
-        pot += 4 * epsilon * (sr12 - sr6)
-      })
-    }
+    // ForceField interface marks potential as optional; skip if absent
+    if (f.potential) pot += f.potential(state, { cutoff: _cutoff })
   }
   return pot
 }

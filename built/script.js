@@ -9,6 +9,7 @@ import { VelocityVerlet } from './core/simulation/integrators.js';
 import { LennardJones } from './core/forces/lennardJones.js';
 import { Gravity } from './core/forces/gravity.js';
 import { Coulomb } from './core/forces/coulomb.js';
+import { computeDiagnostics } from './core/simulation/diagnostics.js';
 let camera;
 let scene;
 let renderer;
@@ -21,6 +22,7 @@ let particleSystem;
 // New SoA simulation objects
 let simulation;
 let simState;
+let lastDiagnostics;
 const particles = [];
 let time = 0;
 let lastSnapshotTime = 0;
@@ -161,41 +163,68 @@ function applyPbc(pos, trajectory, maxLen, bx, by, bz) {
     wrapAxis('y', by, adjustFactory((i, v) => trajectory?.setY(i, v), i => trajectory?.getY(i) ?? 0));
     wrapAxis('z', bz, adjustFactory((i, v) => trajectory?.setZ(i, v), i => trajectory?.getZ(i) ?? 0));
 }
-function animate() {
+/**
+ * Advance simulation one timestep and update visual + diagnostic layers.
+ * Split from animate() to keep the frame logic testable and reduce complexity warnings.
+ */
+function runFrame() {
     time += settings.dt;
     if (simulation)
         simulation.step();
-    const arrowScaleForForces = rescaleForceScaleBarFromState(simState);
-    const arrowScaleForVelocities = rescaleVelocityScaleBarFromState(simState);
-    let frameOffset = new THREE.Vector3(0, 0, 0);
-    if (simState) {
-        if (settings.referenceFrameMode === 'sun' && simState.N > 0) {
-            frameOffset = new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2]);
-        }
-        else if (settings.referenceFrameMode === 'com') {
-            const { masses, positions, N } = simState;
-            let mx = 0, my = 0, mz = 0, mTot = 0;
-            for (let i = 0; i < N; i++) {
-                const i3 = 3 * i;
-                const m = masses[i] || 1;
-                mx += m * positions[i3];
-                my += m * positions[i3 + 1];
-                mz += m * positions[i3 + 2];
-                mTot += m;
-            }
-            if (mTot > 0)
-                frameOffset = new THREE.Vector3(mx / mTot, my / mTot, mz / mTot);
-        }
-    }
-    updateFromSimulation(arrowScaleForForces, arrowScaleForVelocities, frameOffset);
+    const arrowScaleForces = rescaleForceScaleBarFromState(simState);
+    const arrowScaleVel = rescaleVelocityScaleBarFromState(simState);
+    const frameOffset = computeFrameOffset();
+    updateFromSimulation(arrowScaleForces, arrowScaleVel, frameOffset);
     if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt)
         lastSnapshotTime = time;
     statistics(temperaturePanel, maxTemperature);
+    updateDiagnostics();
     update();
     render(renderer, effect);
+    stats.update();
+}
+/**
+ * Determine the frame offset based on the selected reference frame mode.
+ *  - fixed: origin remains at (0,0,0)
+ *  - sun: subtract position of particle 0
+ *  - com: subtract instantaneous center-of-mass (translational DOF removal)
+ */
+function computeFrameOffset() {
+    if (!simState)
+        return new THREE.Vector3(0, 0, 0);
+    if (settings.referenceFrameMode === 'sun' && simState.N > 0) {
+        return new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2]);
+    }
+    if (settings.referenceFrameMode === 'com') {
+        const { masses, positions, N } = simState;
+        let mx = 0, my = 0, mz = 0, mTot = 0;
+        for (let i = 0; i < N; i++) {
+            const i3 = 3 * i;
+            const m = masses[i] || 1;
+            mx += m * positions[i3];
+            my += m * positions[i3 + 1];
+            mz += m * positions[i3 + 2];
+            mTot += m;
+        }
+        if (mTot > 0)
+            return new THREE.Vector3(mx / mTot, my / mTot, mz / mTot);
+    }
+    return new THREE.Vector3(0, 0, 0);
+}
+/**
+ * Compute & expose latest diagnostics snapshot (energy, temperature, extrema).
+ */
+function updateDiagnostics() {
+    if (!simState || !simulation)
+        return;
+    lastDiagnostics = computeDiagnostics(simState, simulation.getForces(), { cutoff: settings.cutoffDistance, kB: settings.kB });
+    if (window.__mdjs)
+        window.__mdjs.diagnostics = lastDiagnostics;
+}
+function animate() {
+    runFrame();
     if (settings.ifRun)
         requestAnimationFrame(animate);
-    stats.update();
 }
 function calculateTemperature() {
     if (!simState)
@@ -285,7 +314,7 @@ docReady(() => {
     animate();
     // Expose handle for automated headless tests
     // Expose simulation state (read-only for tests; mutation not supported outside test harness)
-    window.__mdjs = { particles, settings, simState };
+    window.__mdjs = { particles, settings, simState, diagnostics: lastDiagnostics };
     // Install full-state persistence handler (overrides placeholder in init.js)
     window.onbeforeunload = () => {
         try {

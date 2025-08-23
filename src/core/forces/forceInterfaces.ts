@@ -13,6 +13,8 @@ export interface ForceField {
   readonly name: string
   /** Accumulate force contributions into state.forces (must only add; never reset arrays here). */
   apply(state: SimulationState, ctx: ForceContext): void
+  /** Optional: return total potential energy contribution for current state (pairwise sum). */
+  potential?(state: SimulationState, ctx: ForceContext): number
 }
 
 export interface ForceContext {

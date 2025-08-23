@@ -11,7 +11,7 @@ export class Simulation {
   constructor(
     public readonly state: SimulationState,
     private readonly integrator: Integrator,
-    private readonly forces: ForceField[],
+  private readonly forces: ForceField[],
     private readonly config: SimulationConfig
   ) {}
 
@@ -28,4 +28,6 @@ export class Simulation {
   }
 
   addForce(f: ForceField): void { this.forces.push(f) }
+
+  getForces(): ForceField[] { return this.forces }
 }
