@@ -83,6 +83,41 @@ Notes:
 
 This repo uses pre-commit hooks to automate several house-keeping chores.
 
+### Headless smoke test & debugging
+
+An automated headless smoke test validates two core guarantees:
+
+1. Particles actually move after the simulation starts.
+2. State persistence works across a reload (a previous session state is detected & loaded).
+
+Run it locally:
+
+```sh
+npm test        # or: npm run smoke
+```
+
+What it does:
+
+* Builds the TypeScript sources (`npm run build`).
+* Launches a temporary static server (Python `http.server`).
+* Uses Puppeteer to load `index.html` headlessly, captures a few particle positions, waits 500ms, and confirms motion.
+* Reloads the page and confirms the console log `State from previous session loaded.` appears (verifying `localStorage` snapshot replay).
+
+For development & debugging, a lightweight API is exposed on `window.__mdjs` (non‑stable, test/support only):
+
+```js
+window.__mdjs.particles        // live particle objects (Three.js Points children)
+window.__mdjs.settings         // current settings object
+```
+
+You can experiment in DevTools (e.g. pause the simulation, inspect forces) without adding ad‑hoc globals everywhere. Avoid relying on this in production code; it's intentionally minimal and may change.
+
+Persistence details:
+
+* On page unload a full snapshot (positions, velocities, forces, etc.) is serialized into `localStorage`.
+* On next load, if a previous snapshot passes validation it is restored and a console line `State from previous session loaded.` is emitted (the smoke test keys off this message).
+* Delete the key from DevTools (`localStorage.removeItem('mdjsSavedState')`) to start fresh.
+
 ## Plan
 
 * [ ] Start with a Three.js-based molecule viewer.
