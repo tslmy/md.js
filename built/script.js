@@ -128,6 +128,7 @@ function updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOf
     let px = positions[i3] - frameOffset.x;
     let py = positions[i3 + 1] - frameOffset.y;
     let pz = positions[i3 + 2] - frameOffset.z;
+    // We'll update p.position after applying frame offset / PBC so tests & UI see displayed coordinates.
     posAttr.setXYZ(i, px, py, pz);
     const trajectoryAttr = (settings.if_showTrajectory && p.trajectory)
         ? p.trajectory.geometry.getAttribute('position')
@@ -144,6 +145,11 @@ function updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOf
         updateTrajectoryBuffer({ position: _tmpFrom.set(px, py, pz) }, trajectoryAttr, settings.maxTrajectoryLength);
     const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2];
     const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2];
+    // Mirror final (display) position back to OO particle
+    p.position.set(px, py, pz);
+    // Sync legacy object-oriented mirrors for temperature calc & persistence
+    p.velocity.set(vx, vy, vz);
+    p.force.set(fx, fy, fz);
     if (settings.if_showArrows) {
         _tmpVel.set(vx, vy, vz);
         _tmpForce.set(fx, fy, fz);
@@ -263,9 +269,13 @@ docReady(() => {
         simState.positions[i3] = particles[i].position.x;
         simState.positions[i3 + 1] = particles[i].position.y;
         simState.positions[i3 + 2] = particles[i].position.z;
-        simState.velocities[i3] = particles[i].velocity.x;
-        simState.velocities[i3 + 1] = particles[i].velocity.y;
-        simState.velocities[i3 + 2] = particles[i].velocity.z;
+        // Velocity may have been initialized when particle was created; copy it if present.
+        if (particles[i].velocity) {
+            const v = particles[i].velocity;
+            simState.velocities[i3] = v.x;
+            simState.velocities[i3 + 1] = v.y;
+            simState.velocities[i3 + 2] = v.z;
+        }
         simState.masses[i] = particles[i].mass;
         simState.charges[i] = particles[i].charge;
     }

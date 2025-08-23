@@ -29,6 +29,10 @@ class Particle {
   position: THREE.Vector3
   mass: number
   charge: number
+  // Current velocity vector (duplicated from SoA state for convenience / legacy APIs)
+  velocity: THREE.Vector3
+  // Current force accumulator (duplicated from SoA state for convenience / legacy APIs)
+  force: THREE.Vector3
   velocityArrow: THREE.ArrowHelper
   forceArrow: THREE.ArrowHelper
   trajectory: THREE.Line | null
@@ -39,7 +43,8 @@ class Particle {
     position: THREE.Vector3,
     mass: number,
     charge: number,
-    trajectory: THREE.Line | null
+    trajectory: THREE.Line | null,
+    velocity: THREE.Vector3
   ) {
     this.color = color
     this.position = position
@@ -47,6 +52,9 @@ class Particle {
     this.charge = charge
     this.trajectory = trajectory
     this.isEscaped = false
+    // Initialize with provided velocity and zero force (force will be filled in after first simulation step).
+    this.velocity = velocity.clone()
+    this.force = new THREE.Vector3(0, 0, 0)
     this.velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa)
     this.forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0xaa5555)
   }
@@ -95,7 +103,7 @@ function addParticle(opts: AddParticleOpts): void {
     scene.add(thisTrajectory)
   }
 
-  const particle = new Particle(color, position, mass, charge, thisTrajectory)
+  const particle = new Particle(color, position, mass, charge, thisTrajectory, velocity)
   particles.push(particle)
   // Record initial velocity components for SoA seeding.
   initialVelocities.push(velocity.x, velocity.y, velocity.z)
