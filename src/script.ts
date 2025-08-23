@@ -11,6 +11,7 @@ import { VelocityVerlet } from './core/simulation/integrators.js'
 import { LennardJones } from './core/forces/lennardJones.js'
 import { Gravity } from './core/forces/gravity.js'
 import { Coulomb } from './core/forces/coulomb.js'
+import { computeDiagnostics, type Diagnostics } from './core/simulation/diagnostics.js'
 // global variables
 interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
 interface ControlsLike { update(): void }
@@ -29,6 +30,7 @@ let particleSystem: THREE.Points | undefined
 // New SoA simulation objects
 let simulation: Simulation | undefined
 let simState: SimulationState | undefined
+let lastDiagnostics: Diagnostics | undefined
 
 const particles: Particle[] = []
 let time = 0
@@ -36,7 +38,7 @@ let lastSnapshotTime = 0
 
 // Expose minimal state for headless smoke tests (non-production usage)
 declare global {
-  interface Window { __mdjs?: { particles: Particle[]; settings: typeof settings; simState?: SimulationState } }
+  interface Window { __mdjs?: { particles: Particle[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics } }
 }
 
 /**
@@ -156,36 +158,58 @@ function applyPbc(pos: THREE.Vector3, trajectory: THREE.BufferAttribute | null, 
   wrapAxis('z', bz, adjustFactory((i, v) => trajectory?.setZ(i, v), i => trajectory?.getZ(i) ?? 0))
 }
 
-function animate(): void {
+/**
+ * Advance simulation one timestep and update visual + diagnostic layers.
+ * Split from animate() to keep the frame logic testable and reduce complexity warnings.
+ */
+function runFrame(): void {
   time += settings.dt
   if (simulation) simulation.step()
-  const arrowScaleForForces = rescaleForceScaleBarFromState(simState)
-  const arrowScaleForVelocities = rescaleVelocityScaleBarFromState(simState)
-  let frameOffset = new THREE.Vector3(0, 0, 0)
-  if (simState) {
-    if (settings.referenceFrameMode === 'sun' && simState.N > 0) {
-      frameOffset = new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
-    } else if (settings.referenceFrameMode === 'com') {
-      const { masses, positions, N } = simState
-      let mx=0,my=0,mz=0, mTot=0
-      for (let i=0;i<N;i++) {
-        const i3=3*i
-        const m = masses[i] || 1
-        mx += m*positions[i3]
-        my += m*positions[i3+1]
-        mz += m*positions[i3+2]
-        mTot += m
-      }
-      if (mTot>0) frameOffset = new THREE.Vector3(mx/mTot, my/mTot, mz/mTot)
-    }
-  }
-  updateFromSimulation(arrowScaleForForces, arrowScaleForVelocities, frameOffset)
+  const arrowScaleForces = rescaleForceScaleBarFromState(simState)
+  const arrowScaleVel = rescaleVelocityScaleBarFromState(simState)
+  const frameOffset = computeFrameOffset()
+  updateFromSimulation(arrowScaleForces, arrowScaleVel, frameOffset)
   if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt) lastSnapshotTime = time
   statistics(temperaturePanel, maxTemperature)
-  update()
-  render(renderer, effect)
+  updateDiagnostics()
+  update(); render(renderer, effect); stats.update()
+}
+
+/**
+ * Determine the frame offset based on the selected reference frame mode.
+ *  - fixed: origin remains at (0,0,0)
+ *  - sun: subtract position of particle 0
+ *  - com: subtract instantaneous center-of-mass (translational DOF removal)
+ */
+function computeFrameOffset(): THREE.Vector3 {
+  if (!simState) return new THREE.Vector3(0,0,0)
+  if (settings.referenceFrameMode === 'sun' && simState.N > 0) {
+    return new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
+  }
+  if (settings.referenceFrameMode === 'com') {
+    const { masses, positions, N } = simState
+    let mx=0,my=0,mz=0,mTot=0
+    for (let i=0;i<N;i++) {
+      const i3=3*i; const m=masses[i]||1
+      mx += m*positions[i3]; my += m*positions[i3+1]; mz += m*positions[i3+2]; mTot += m
+    }
+    if (mTot>0) return new THREE.Vector3(mx/mTot, my/mTot, mz/mTot)
+  }
+  return new THREE.Vector3(0,0,0)
+}
+
+/**
+ * Compute & expose latest diagnostics snapshot (energy, temperature, extrema).
+ */
+function updateDiagnostics(): void {
+  if (!simState || !simulation) return
+  lastDiagnostics = computeDiagnostics(simState, simulation.getForces(), { cutoff: settings.cutoffDistance, kB: settings.kB })
+  if (window.__mdjs) window.__mdjs.diagnostics = lastDiagnostics
+}
+
+function animate(): void {
+  runFrame()
   if (settings.ifRun) requestAnimationFrame(animate)
-  stats.update()
 }
 function calculateTemperature(): number {
   if (!simState) return 0
@@ -278,7 +302,7 @@ docReady(() => {
   animate()
   // Expose handle for automated headless tests
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)
-  window.__mdjs = { particles, settings, simState }
+  window.__mdjs = { particles, settings, simState, diagnostics: lastDiagnostics }
   // Install full-state persistence handler (overrides placeholder in init.js)
   window.onbeforeunload = () => {
     try {
