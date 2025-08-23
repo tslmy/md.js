@@ -7,8 +7,10 @@
   },
   "description": "A toy molecular dynamics simulator in the browser.",
   "devDependencies": {
+    "@eslint/js": "^9.34.0",
     "@types/node": "^24.3.0",
     "@types/three": "^0.179.0",
+    "eslint": "^9.34.0",
     "nodemon": "^3.1.10",
     "typescript": "^5.9.2"
   },

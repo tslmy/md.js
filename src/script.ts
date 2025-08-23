@@ -24,11 +24,11 @@ let lastSnapshotTime = 0
 /**
  * el: the DOM element you'd like to test for visibility.
  */
-function isVisible (el: HTMLElement): boolean {
+function isVisible(el: HTMLElement): boolean {
   return window.getComputedStyle(el).display !== 'none'
 }
 
-function applyForce (particles: Particle[], i: number, j: number, func: (i: number, j: number, d: number) => number): THREE.Vector3 {
+function applyForce(particles: Particle[], i: number, j: number, func: (i: number, j: number, d: number) => number): THREE.Vector3 {
   const thisPosition = particles[i].position
   const thatPosition = particles[j].position
   const rOriginal = new THREE.Vector3().subVectors(thisPosition, thatPosition) // relative displacement
@@ -61,7 +61,7 @@ function applyForce (particles: Particle[], i: number, j: number, func: (i: numb
   return forceFromAllClones
 }
 
-function computeForces (
+function computeForces(
   particles: Particle[],
   particleCount: number = 8,
   shouldUpdateHud: boolean = false
@@ -143,7 +143,7 @@ function computeForces (
   }
 }
 
-function rescaleForceScaleBar (particles: Particle[]): number {
+function rescaleForceScaleBar(particles: Particle[]): number {
   const forceStrengths: number[] = particles.filter(particle => !particle.isEscaped).map(particle => particle.force.length())
   const highestForceStrengthPresent = Math.max(...forceStrengths)
   const arrowScaleForForces = settings.unitArrowLength / highestForceStrengthPresent
@@ -151,7 +151,7 @@ function rescaleForceScaleBar (particles: Particle[]): number {
   return arrowScaleForForces
 }
 
-function rescaleVelocityScaleBar (particles: Particle[]): number {
+function rescaleVelocityScaleBar(particles: Particle[]): number {
   const speeds: number[] = particles.filter(particle => !particle.isEscaped).map(particle => particle.velocity.length())
   const highestSpeedPresent = Math.max(...speeds)
   const arrowScaleForVelocities =
@@ -160,7 +160,7 @@ function rescaleVelocityScaleBar (particles: Particle[]): number {
   return arrowScaleForVelocities
 }
 
-function animateOneParticle (i: number, arrowScaleForForces: number, arrowScaleForVelocities: number): void {
+function animateOneParticle(i: number, arrowScaleForForces: number, arrowScaleForVelocities: number): void {
   if (particles[i].isEscaped) {
     return
   }
@@ -196,7 +196,7 @@ function animateOneParticle (i: number, arrowScaleForForces: number, arrowScaleF
   if (settings.if_showArrows) {
     // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user
     // update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-    function updateArrow (arrow, from, vector, scale): void {
+    function updateArrow(arrow, from, vector, scale): void {
       const lengthToScale = settings.if_proportionate_arrows_with_vectors
         ? vector.length() * scale
         : settings.unitArrowLength
@@ -263,7 +263,7 @@ function animateOneParticle (i: number, arrowScaleForForces: number, arrowScaleF
   }
 }
 
-function applyPbc (
+function applyPbc(
   thisPosition: THREE.Vector3,
   trajectoryPositions: THREE.BufferAttribute,
   maxTrajectoryLength: number,
@@ -343,7 +343,7 @@ function applyPbc (
   }
 }
 
-function animate (): void {
+function animate(): void {
   time += settings.dt
   computeForces(particles, settings.particleCount, isVisible(document.querySelector('#hud')))
   const arrowScaleForForces = rescaleForceScaleBar(particles)
@@ -374,7 +374,7 @@ function animate (): void {
   }
   stats.update()
 }
-function calculateTemperature (): number {
+function calculateTemperature(): number {
   let temperature = 0
   particles.filter(particle => !particle.isEscaped).forEach(particle => {
     temperature +=
@@ -388,18 +388,18 @@ function calculateTemperature (): number {
   return temperature
 }
 
-function statistics (temperaturePanel, maxTemperature): void {
+function statistics(temperaturePanel, maxTemperature): void {
   const temperature = calculateTemperature()
   temperaturePanel.update(temperature, maxTemperature)
 }
 
-function update (): void {
+function update(): void {
   // resize();
   camera.updateProjectionMatrix()
   controls.update()
 }
 
-function render (renderer, effect): void {
+function render(renderer, effect): void {
   if (ifMobileDevice) {
     effect.render(scene, camera)
   } else {
@@ -409,7 +409,7 @@ function render (renderer, effect): void {
 
 // when document is ready:
 // Source: https://stackoverflow.com/a/9899701/1147061
-function docReady (fn): void {
+function docReady(fn): void {
   // see if DOM is already available
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     // call on next available tick
