@@ -2,7 +2,13 @@ import { settings } from './settings.js';
 import { init, ifMobileDevice, toggle } from './init.js';
 import { saveState } from './stateStorage.js';
 import * as THREE from 'three';
-import { makeClonePositionsList } from './particleSystem.js';
+// New SoA simulation core imports
+import { createState } from './core/simulation/state.js';
+import { Simulation } from './core/simulation/Simulation.js';
+import { EulerIntegrator } from './core/simulation/integrators.js';
+import { LennardJones } from './core/forces/lennardJones.js';
+import { Gravity } from './core/forces/gravity.js';
+import { Coulomb } from './core/forces/coulomb.js';
 let camera;
 let scene;
 let renderer;
@@ -12,6 +18,9 @@ let temperaturePanel;
 let stats;
 let maxTemperature = 0;
 let particleSystem;
+// New SoA simulation objects
+let simulation;
+let simState;
 const particles = [];
 let time = 0;
 let lastSnapshotTime = 0;
@@ -21,113 +30,7 @@ let lastSnapshotTime = 0;
 function isVisible(el) {
     return !!el && window.getComputedStyle(el).display !== 'none';
 }
-function applyForce(particles, i, j, func) {
-    const thisPosition = particles[i].position;
-    const thatPosition = particles[j].position;
-    const rOriginal = new THREE.Vector3().subVectors(thisPosition, thatPosition); // relative displacement
-    let clonePositions;
-    // ====== populate the array "particleJClones" ======
-    if (settings.if_use_periodic_boundary_condition) {
-        clonePositions = makeClonePositionsList(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
-        clonePositions.push(new THREE.Vector3(0, 0, 0));
-    }
-    else {
-        clonePositions = [new THREE.Vector3(0, 0, 0)];
-    }
-    // `forceFromAllClones` accumulates force that i feels from all clones of j.
-    const forceFromAllClones = new THREE.Vector3(0, 0, 0);
-    clonePositions.forEach((thatPositionDisplacement) => {
-        // (possibly) displace shift the end of this vector from particle j to one of its clones:
-        const rEffective = new THREE.Vector3().subVectors(rOriginal, thatPositionDisplacement);
-        const d = rEffective.length(); // calculate distance between particles i and j (with j may being a clone)
-        if (d < settings.cutoffDistance) {
-            const forceStrengthFromThisClone = func(i, j, d);
-            const forceFromThisClone = rEffective.clone().setLength(forceStrengthFromThisClone);
-            particles[i].force.sub(forceFromThisClone);
-            particles[j].force.add(forceFromThisClone);
-            forceFromAllClones.add(forceFromThisClone);
-        }
-    });
-    return forceFromAllClones;
-}
-function computeForces(particles, particleCount = 8, shouldUpdateHud = false) {
-    // remove all forces first.
-    particles.filter(particle => !particle.isEscaped)
-        .forEach((particle) => particle.force.set(0, 0, 0));
-    for (let i = 0; i < particleCount; i++) {
-        if (particles[i].isEscaped) {
-            continue;
-        }
-        // initialize total force counters:
-        let thisLJForceStrength = 0;
-        let thisGravitationForceStrength = 0;
-        let thisCoulombForceStrength = 0;
-        // process interactions:
-        for (let j = i + 1; j < particleCount; j++) {
-            if (particles[j].isEscaped) {
-                continue;
-            }
-            // generate all forces:
-            if (settings.if_apply_LJpotential) {
-                // Use Lennard-Jones potential
-                // V = 4*epsilon*((delta/d)^12 - (delta/d)^6)
-                // F = 4*epsilon*(-12/d*(delta/d)^12 + 6/d*(delta/d)^6) r/|r|
-                const thisLJForce = applyForce(particles, i, j, (i, j, d) => {
-                    let d6 = settings.DELTA / d;
-                    if (d6 < 0.5) {
-                        d6 = 0.5; // what kind of socery is this??
-                    }
-                    d6 = d6 * d6 * d6;
-                    d6 = d6 * d6;
-                    return 4 * settings.EPSILON * (6 / d) * (-2 * d6 * d6 + d6);
-                });
-                thisLJForceStrength += thisLJForce.length();
-            }
-            if (settings.if_apply_gravitation) {
-                // Use gravitational potential
-                // -> F = GMm/(d*d) r/|r|
-                const thisGravitationForce = applyForce(particles, i, j, (i, j, d) => {
-                    // Use d_min to prevent high potential when particles are close
-                    // to avoid super high accelerations in poor time resolution
-                    if (d < settings.d_min) {
-                        console.log('particle', i, ',', j, 'too near for gravitation.');
-                        d = settings.d_min;
-                    }
-                    return (settings.G * particles[i].mass * particles[j].mass) / (d * d);
-                });
-                thisGravitationForceStrength += thisGravitationForce.length();
-            }
-            if (settings.if_apply_coulombForce) {
-                // Use gravitational potential
-                // -> F = GMm/(d*d) r/|r|
-                const thisCoulombForce = applyForce(particles, i, j, (i, j, d) => {
-                    // Use d_min to prevent high potential when particles are close
-                    // to avoid super high accelerations in poor time resolution
-                    if (d < settings.d_min) {
-                        console.log('particle', i, ',', j, 'too near for coulomb force.');
-                        d = settings.d_min;
-                    }
-                    return ((-settings.K * particles[i].charge * particles[j].charge) / (d * d));
-                });
-                thisCoulombForceStrength += thisCoulombForce.length();
-            }
-        }
-        if (shouldUpdateHud) {
-            const $thisRow = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
-            if ($thisRow) {
-                const $LJForceStrength = $thisRow.querySelector('.LJForceStrength');
-                if ($LJForceStrength)
-                    $LJForceStrength.textContent = `${Math.round(thisLJForceStrength * 100) / 100}`;
-                const $GravitationForceStrength = $thisRow.querySelector('.GravitationForceStrength');
-                if ($GravitationForceStrength)
-                    $GravitationForceStrength.textContent = `${Math.round(thisGravitationForceStrength * 100) / 100}`;
-                const $CoulombForceStrength = $thisRow.querySelector('.CoulombForceStrength');
-                if ($CoulombForceStrength)
-                    $CoulombForceStrength.textContent = `${Math.round(thisCoulombForceStrength * 100) / 100}`;
-            }
-        }
-    }
-}
+// Legacy force application removed in favor of SoA simulation core.
 function rescaleForceScaleBar(particles) {
     const forceStrengths = particles.filter(particle => !particle.isEscaped).map(particle => particle.force.length());
     const highestForceStrengthPresent = Math.max(...forceStrengths);
@@ -146,165 +49,117 @@ function rescaleVelocityScaleBar(particles) {
         velEl.style.width = `${arrowScaleForVelocities * 1000000}px`;
     return arrowScaleForVelocities;
 }
-function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
-    if (particles[i].isEscaped) {
+// Helpers to reduce complexity
+function updateArrowHelper(arrow, from, vector, scale) {
+    const lengthToScale = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale : settings.unitArrowLength;
+    arrow.setLength(settings.if_limitArrowsMaxLength && lengthToScale > settings.maxArrowLength
+        ? settings.maxArrowLength
+        : lengthToScale);
+    arrow.position.copy(from);
+    const dir = vector.lengthSq() === 0 ? _unitX : _tmpDir.copy(vector).normalize();
+    arrow.setDirection(dir);
+}
+function updateTrajectoryBuffer(p, trajectory, maxLen) {
+    for (let j = 0; j < maxLen - 1; j++)
+        trajectory.copyAt(j, trajectory, j + 1);
+    trajectory.setXYZ(maxLen - 1, p.position.x, p.position.y, p.position.z);
+    trajectory.needsUpdate = true;
+}
+function updateHudRow(i, p) {
+    const thisSpeed = p.velocity.length();
+    const row = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
+    if (!row)
         return;
+    const speedEl = row.querySelector('.speed');
+    if (speedEl)
+        speedEl.textContent = `${Math.round(thisSpeed * 100) / 100}`;
+    const keEl = row.querySelector('.kineticEnergy');
+    if (keEl)
+        keEl.textContent = `${Math.round(thisSpeed * thisSpeed * p.mass * 50) / 100}`;
+    const tfEl = row.querySelector('.TotalForceStrength');
+    if (tfEl)
+        tfEl.textContent = `${Math.round(p.force.length() * 100) / 100}`;
+}
+const _tmpDir = new THREE.Vector3();
+const _unitX = new THREE.Vector3(1, 0, 0);
+function updateFromSimulation(arrowScaleForForces, arrowScaleForVelocities, frameOffset) {
+    if (!simulation || !simState || !particleSystem)
+        return;
+    const { positions, velocities, forces } = simState;
+    const hudVisible = isVisible(document.querySelector('#hud'));
+    const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt);
+    for (let i = 0; i < particles.length; i++) {
+        applyParticleVisualUpdate(i, positions, velocities, forces, { f: arrowScaleForForces, v: arrowScaleForVelocities }, { hudVisible, needsTrajectoryShift, frameOffset });
     }
-    // ======================== now update eveything user could see ========================
-    // update velocities according to force:
-    particles[i].velocity.addScaledVector(particles[i].force, settings.dt / particles[i].mass); // v = v + f/m·dt
-    const thisSpeed = particles[i].velocity.length(); // vector -> scalar
-    // update positions according to velocity:
-    particles[i].position.addScaledVector(particles[i].velocity, settings.dt); // x = x + v·dt
-    if (!particleSystem)
+    particleSystem.geometry.attributes.position.needsUpdate = true;
+}
+function applyParticleVisualUpdate(i, positions, velocities, forces, scales, ctx) {
+    const p = particles[i];
+    if (p.isEscaped)
         return;
-    particleSystem.geometry.attributes.position.setXYZ(i, particles[i].position.x, particles[i].position.y, particles[i].position.z);
-    const trajectoryPositions = (settings.if_showTrajectory && particles[i].trajectory)
-        ? particles[i].trajectory.geometry.attributes.position
+    const i3 = 3 * i;
+    p.position.set(positions[i3] - ctx.frameOffset.x, positions[i3 + 1] - ctx.frameOffset.y, positions[i3 + 2] - ctx.frameOffset.z);
+    p.velocity.set(velocities[i3], velocities[i3 + 1], velocities[i3 + 2]);
+    p.force.set(forces[i3], forces[i3 + 1], forces[i3 + 2]);
+    if (particleSystem)
+        particleSystem.geometry.attributes.position.setXYZ(i, p.position.x, p.position.y, p.position.z);
+    const trajectoryAttr = (settings.if_showTrajectory && p.trajectory)
+        ? p.trajectory.geometry.getAttribute('position')
         : null;
-    // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
     if (settings.if_use_periodic_boundary_condition) {
-        applyPbc(particles[i].position, trajectoryPositions, settings.maxTrajectoryLength, settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
+        applyPbc(p.position, trajectoryAttr, settings.maxTrajectoryLength, settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ);
     }
     if (settings.if_showArrows) {
-        // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user
-        // update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-        function updateArrow(arrow, from, vector, scale) {
-            const lengthToScale = settings.if_proportionate_arrows_with_vectors
-                ? vector.length() * scale
-                : settings.unitArrowLength;
-            arrow.setLength(settings.if_limitArrowsMaxLength &&
-                lengthToScale > settings.maxArrowLength
-                ? settings.maxArrowLength
-                : lengthToScale);
-            arrow.position.copy(from);
-            arrow.setDirection(new THREE.Vector3().copy(vector).normalize());
-        }
-        updateArrow(particles[i].velocityArrow, particles[i].position, particles[i].velocity, arrowScaleForForces);
-        updateArrow(particles[i].forceArrow, particles[i].position, particles[i].force, arrowScaleForVelocities);
+        updateArrowHelper(p.velocityArrow, p.position, p.velocity, scales.f);
+        updateArrowHelper(p.forceArrow, p.position, p.force, scales.v);
     }
-    // update trajectories:
-    if (settings.if_showTrajectory && trajectoryPositions) {
-        if (time - lastSnapshotTime > settings.dt) {
-            for (let j = 0; j < settings.maxTrajectoryLength - 1; j++) {
-                trajectoryPositions.copyAt(j, trajectoryPositions, j + 1);
-            }
-            trajectoryPositions.setXYZ(settings.maxTrajectoryLength - 1, particles[i].position.x, particles[i].position.y, particles[i].position.z);
-            trajectoryPositions.needsUpdate = true;
-        }
-    }
-    // update HUD, if visible:
-    if (isVisible(document.querySelector('#hud'))) {
-        const $thisRow = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
-        if ($thisRow) {
-            const speedEl = $thisRow.querySelector('.speed');
-            if (speedEl)
-                speedEl.textContent = `${Math.round(thisSpeed * 100) / 100}`;
-            const keEl = $thisRow.querySelector('.kineticEnergy');
-            if (keEl)
-                keEl.textContent = `${Math.round(thisSpeed * thisSpeed * particles[i].mass * 50) / 100}`;
-            const tfEl = $thisRow.querySelector('.TotalForceStrength');
-            if (tfEl)
-                tfEl.textContent = `${particles[i].force ? Math.round(particles[i].force.length() * 100) / 100 : '0'}`;
-        }
-    }
-    if (settings.if_constant_temperature) {
-        const currentTemperature = calculateTemperature();
-        const scaleFactor = Math.sqrt(settings.targetTemperature / currentTemperature);
-        particles.filter(particle => !particle.isEscaped).forEach(particle => particle.velocity.multiplyScalar(scaleFactor));
-    }
-    const hasThisParticleEscaped = settings.if_use_periodic_boundary_condition &&
-        thisSpeed > settings.escapeSpeed &&
-        (Math.abs(particles[i].position.x) >= 0.9 * settings.spaceBoundaryX ||
-            Math.abs(particles[i].position.y) >= 0.9 * settings.spaceBoundaryY ||
-            Math.abs(particles[i].position.z) >= 0.9 * settings.spaceBoundaryZ);
-    if (hasThisParticleEscaped) {
-        console.log('Particle', i, 'escaped with speed', thisSpeed, '.');
-        particles[i].isEscaped = true;
-    }
+    if (trajectoryAttr && ctx.needsTrajectoryShift)
+        updateTrajectoryBuffer(p, trajectoryAttr, settings.maxTrajectoryLength);
+    if (ctx.hudVisible)
+        updateHudRow(i, p);
 }
-function applyPbc(thisPosition, trajectoryPositions, maxTrajectoryLength, spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ) {
-    while (thisPosition.x < -spaceBoundaryX) {
-        thisPosition.x += 2 * spaceBoundaryX;
-        if (trajectoryPositions !== null) {
-            for (let j = 0; j < maxTrajectoryLength; j++) {
-                trajectoryPositions.setX(j, trajectoryPositions.getX(j) + 2 * spaceBoundaryX);
-            }
+function applyPbc(pos, trajectory, maxLen, bx, by, bz) {
+    const wrapAxis = (axis, boundary, adjust) => {
+        while (pos[axis] < -boundary) {
+            pos[axis] += 2 * boundary;
+            adjust(2 * boundary);
         }
-    }
-    while (thisPosition.x > spaceBoundaryX) {
-        thisPosition.x -= 2 * spaceBoundaryX;
-        if (trajectoryPositions !== null) {
-            for (let j = 0; j < maxTrajectoryLength; j++) {
-                trajectoryPositions.setX(j, trajectoryPositions.getX(j) - 2 * spaceBoundaryX);
-            }
+        while (pos[axis] > boundary) {
+            pos[axis] -= 2 * boundary;
+            adjust(-2 * boundary);
         }
-    }
-    while (thisPosition.y < -spaceBoundaryY) {
-        thisPosition.y += 2 * spaceBoundaryY;
-        if (trajectoryPositions !== null) {
-            for (let j = 0; j < maxTrajectoryLength; j++) {
-                trajectoryPositions.setY(j, trajectoryPositions.getY(j) + 2 * spaceBoundaryY);
-            }
-        }
-    }
-    while (thisPosition.y > spaceBoundaryY) {
-        thisPosition.y -= 2 * spaceBoundaryY;
-        if (trajectoryPositions !== null) {
-            for (let j = 0; j < maxTrajectoryLength; j++) {
-                trajectoryPositions.setY(j, trajectoryPositions.getY(j) - 2 * spaceBoundaryY);
-            }
-        }
-    }
-    while (thisPosition.z < -spaceBoundaryZ) {
-        thisPosition.z += 2 * spaceBoundaryZ;
-        if (trajectoryPositions !== null) {
-            for (let j = 0; j < maxTrajectoryLength; j++) {
-                trajectoryPositions.setZ(j, trajectoryPositions.getZ(j) + 2 * spaceBoundaryZ);
-            }
-            trajectoryPositions.needsUpdate = true;
-        }
-    }
-    while (thisPosition.z > spaceBoundaryZ) {
-        thisPosition.z -= 2 * spaceBoundaryZ;
-        if (trajectoryPositions !== null) {
-            for (let j = 0; j < maxTrajectoryLength; j++) {
-                trajectoryPositions.setZ(j, trajectoryPositions.getZ(j) - 2 * spaceBoundaryZ);
-            }
-        }
-    }
-    if (trajectoryPositions !== null) {
-        trajectoryPositions.needsUpdate = true;
-    }
+    };
+    const adjustFactory = (setter, getter) => (delta) => {
+        if (!trajectory)
+            return;
+        for (let j = 0; j < maxLen; j++)
+            setter(j, getter(j) + delta);
+        trajectory.needsUpdate = true;
+    };
+    wrapAxis('x', bx, adjustFactory((i, v) => trajectory?.setX(i, v), i => trajectory?.getX(i) ?? 0));
+    wrapAxis('y', by, adjustFactory((i, v) => trajectory?.setY(i, v), i => trajectory?.getY(i) ?? 0));
+    wrapAxis('z', bz, adjustFactory((i, v) => trajectory?.setZ(i, v), i => trajectory?.getZ(i) ?? 0));
 }
 function animate() {
     time += settings.dt;
-    computeForces(particles, settings.particleCount, isVisible(document.querySelector('#hud')));
+    // Step SoA simulation
+    if (simulation)
+        simulation.step();
+    // Copy SoA results back & update visual elements
     const arrowScaleForForces = rescaleForceScaleBar(particles);
     const arrowScaleForVelocities = rescaleVelocityScaleBar(particles);
-    for (let i = 0; i < settings.particleCount; i++) {
-        animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities);
-    }
-    if (settings.if_showTrajectory &&
-        time - lastSnapshotTime > settings.dt) {
+    const frameOffset = (settings.if_ReferenceFrame_movesWithSun && simState)
+        ? new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
+        : new THREE.Vector3(0, 0, 0);
+    updateFromSimulation(arrowScaleForForces, arrowScaleForVelocities, frameOffset);
+    if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt) {
         lastSnapshotTime = time;
     }
-    if (settings.if_ReferenceFrame_movesWithSun) {
-        particles.forEach(i => i.position.sub(particles[0].position));
-    }
-    // =============================== now the rendering ==================================
-    // flag to the particle system that we've changed its vertices.
-    if (particleSystem) {
-        particleSystem.geometry.attributes.position.needsUpdate = true;
-    }
-    // draw this frame
     statistics(temperaturePanel, maxTemperature);
     update();
     render(renderer, effect);
-    // set up the next call
-    if (settings.ifRun) {
+    if (settings.ifRun)
         requestAnimationFrame(animate);
-    }
     stats.update();
 }
 function calculateTemperature() {
@@ -325,7 +180,7 @@ function statistics(panel, maxTemperature) {
     panel.update(temperature, maxTemperature);
 }
 function update() {
-    // resize();
+    // (removed stale resize comment)
     camera.updateProjectionMatrix();
     if (controls)
         controls.update();
@@ -361,6 +216,33 @@ docReady(() => {
     stats = values[5];
     temperaturePanel = values[6];
     effect = values[7];
+    // Build SoA simulation state from existing particle objects
+    simState = createState({
+        particleCount: settings.particleCount,
+        box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ },
+        dt: settings.dt,
+        cutoff: settings.cutoffDistance
+    });
+    // Seed arrays
+    for (let i = 0; i < particles.length; i++) {
+        const i3 = 3 * i;
+        simState.positions[i3] = particles[i].position.x;
+        simState.positions[i3 + 1] = particles[i].position.y;
+        simState.positions[i3 + 2] = particles[i].position.z;
+        simState.velocities[i3] = particles[i].velocity.x;
+        simState.velocities[i3 + 1] = particles[i].velocity.y;
+        simState.velocities[i3 + 2] = particles[i].velocity.z;
+        simState.masses[i] = particles[i].mass;
+        simState.charges[i] = particles[i].charge;
+    }
+    const forcePlugins = [];
+    if (settings.if_apply_LJpotential)
+        forcePlugins.push(new LennardJones({ epsilon: settings.EPSILON, sigma: settings.DELTA }));
+    if (settings.if_apply_gravitation)
+        forcePlugins.push(new Gravity({ G: settings.G }));
+    if (settings.if_apply_coulombForce)
+        forcePlugins.push(new Coulomb({ K: settings.K }));
+    simulation = new Simulation(simState, EulerIntegrator, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance });
     animate();
     // Expose handle for automated headless tests
     window.__mdjs = { particles, settings };
@@ -375,13 +257,12 @@ docReady(() => {
         }
     };
     // bind keyboard event:
-    document.onkeydown = (e) => {
-        switch (e.keyCode) {
-            case 9:
-                toggle('#hud');
-                break;
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            toggle('#hud');
         }
-    };
+    });
 });
 // Build a complete snapshot matching SavedState interface for persistence.
 function captureState() {
