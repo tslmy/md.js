@@ -3,7 +3,7 @@ import { init, ifMobileDevice, toggle } from './init.js'
 import { saveState } from './stateStorage.js'
 import type { SavedState } from './stateStorage.js'
 import * as THREE from 'three'
-import { Particle } from './particleSystem.js'
+import { Particle, initialVelocities } from './particleSystem.js'
 // New SoA simulation core imports
 import { createState, type SimulationState } from './core/simulation/state.js'
 import { Simulation } from './core/simulation/Simulation.js'
@@ -271,18 +271,16 @@ docReady(() => {
   // Seed arrays
   for (let i = 0; i < particles.length; i++) {
     const i3 = 3 * i
-    simState.positions[i3] = particles[i].position.x
-    simState.positions[i3 + 1] = particles[i].position.y
-    simState.positions[i3 + 2] = particles[i].position.z
-    // Velocity may have been initialized when particle was created; copy it if present.
-    if (particles[i].velocity) {
-      const v = particles[i].velocity
-      simState.velocities[i3] = v.x
-      simState.velocities[i3 + 1] = v.y
-      simState.velocities[i3 + 2] = v.z
-    }
-    simState.masses[i] = particles[i].mass
-    simState.charges[i] = particles[i].charge
+    const p = particles[i]
+    simState.positions[i3] = p.position.x
+    simState.positions[i3 + 1] = p.position.y
+    simState.positions[i3 + 2] = p.position.z
+    // Seed velocity from initialVelocities captured during particle creation (fallback zero).
+    simState.velocities[i3] = initialVelocities[i3] ?? 0
+    simState.velocities[i3 + 1] = initialVelocities[i3 + 1] ?? 0
+    simState.velocities[i3 + 2] = initialVelocities[i3 + 2] ?? 0
+    simState.masses[i] = p.mass
+    simState.charges[i] = p.charge
   }
   const forcePlugins = []
   if (settings.if_apply_LJpotential) forcePlugins.push(new LennardJones({ epsilon: settings.EPSILON, sigma: settings.DELTA }))
