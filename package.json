@@ -29,6 +29,8 @@
     "centerstest": "node scripts/testCenteredSun.mjs",
     "clean": "rm -rf built/*",
     "coretest": "npm run build && node scripts/testCore.mjs",
+    "energy": "npm run build && node scripts/testEnergyDrift.mjs",
+    "force-sym": "npm run build && node scripts/testForceSymmetry.mjs",
     "forcestest": "npm run build && node scripts/testForces.mjs",
     "smoke": "node scripts/smoke.mjs",
     "start": "npm run build && python -m http.server --directory .",

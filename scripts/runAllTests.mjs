@@ -7,7 +7,9 @@ const testScripts = [
   'coretest',
   'forcestest',
   'centerstest',
-  'centers-neg-test'
+  'centers-neg-test',
+  'force-sym',
+  'energy'
 ]
 
 const results = []
