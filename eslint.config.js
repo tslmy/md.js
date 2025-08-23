@@ -25,5 +25,20 @@ export default [
       // Allow console for this simulation project
       'no-console': 'off'
     }
+  },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        setTimeout: 'readonly'
+      }
+    },
+    rules: {
+      'no-console': 'off'
+    }
   }
 ]

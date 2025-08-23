@@ -12,6 +12,7 @@
     "@types/three": "^0.179.0",
     "eslint": "^9.34.0",
     "nodemon": "^3.1.10",
+    "puppeteer": "^24.17.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.40.0"
   },
@@ -25,8 +26,9 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf built/*",
+    "smoke": "node scripts/smoke.mjs",
     "start": "npm run build && python -m http.server --directory .",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run smoke",
     "typecheck": "tsc --noEmit",
     "watch": "tsc --watch"
   },

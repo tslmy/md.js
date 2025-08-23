@@ -26,6 +26,11 @@ const particles: Particle[] = []
 let time = 0
 let lastSnapshotTime = 0
 
+// Expose minimal state for headless smoke tests (non-production usage)
+declare global {
+  interface Window { __mdjs?: { particles: Particle[]; settings: typeof settings } }
+}
+
 /**
  * el: the DOM element you'd like to test for visibility.
  */
@@ -451,6 +456,8 @@ docReady(() => {
   effect = values[7]
 
   animate()
+  // Expose handle for automated headless tests
+  window.__mdjs = { particles, settings }
   // Install full-state persistence handler (overrides placeholder in init.js)
   window.onbeforeunload = () => {
     try {
