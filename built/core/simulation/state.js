@@ -20,3 +20,4 @@ export function zeroForces(state) {
     state.forces.fill(0);
 }
 export function index3(i) { return 3 * i; }
+//# sourceMappingURL=state.js.map

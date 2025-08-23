@@ -30,3 +30,4 @@ export class LennardJones {
         });
     }
 }
+//# sourceMappingURL=lennardJones.js.map

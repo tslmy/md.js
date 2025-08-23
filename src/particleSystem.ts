@@ -1,36 +1,67 @@
 import * as THREE from 'three'
+/**
+ * Internal metadata stored on a THREE.Line's built-in `userData` bag.
+ * Three.js gives every Object3D a `userData: Record<string, any>` that it does not interpret,
+ * except for cloning/serialization. We use it to track a circular (ring) buffer write index
+ * for trajectory points so we avoid O(N) shifting each frame. The name "userData" just means
+ * "application-owned data" – not related to an end-user or auth concept.
+ */
+interface TrajectoryRingMeta { write: number; length: number; count: number }
+interface TrajectoryLine extends THREE.Line { userData: { trajectoryRing?: TrajectoryRingMeta } }
 import { generateTexture } from './drawingHelpers.js'
 import { loadState, previousState } from './stateStorage.js'
-import type { SimulationState } from './core/simulation/state.js'
 // Type alias for settings shape (imported dynamically); avoids circular dep.
 type Settings = typeof import('./settings.js').settings
-
-// Texture & base materials
 const texture = new THREE.Texture(generateTexture())
-texture.needsUpdate = true
-const particleMaterialForClones = new THREE.PointsMaterial({ map: texture, size: 0.2, alphaTest: 0.5, vertexColors: true })
+texture.needsUpdate = true // important
+const particleMaterialForClones = new THREE.PointsMaterial({
+  // http://jsfiddle.net/7yDGy/1/
+  map: texture,
+  size: 0.2,
+  alphaTest: 0.5,
+  vertexColors: true
+})
 
-// HUD column names
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength']
 
-// Minimal render facade for a particle. All physics data lives in SimulationState (SoA).
 class Particle {
-  readonly index: number
   color: THREE.Color
-  position: THREE.Vector3 // cached position for Three helpers (updated from SoA each frame)
+  position: THREE.Vector3
+  mass: number
+  charge: number
+  // Current velocity vector (duplicated from SoA state for convenience / legacy APIs)
+  velocity: THREE.Vector3
+  // Current force accumulator (duplicated from SoA state for convenience / legacy APIs)
+  force: THREE.Vector3
+  velocityArrow: THREE.ArrowHelper
+  forceArrow: THREE.ArrowHelper
   trajectory: THREE.Line | null
-  isEscaped = false
-  constructor(index: number, color: THREE.Color, initialPosition: THREE.Vector3, trajectory: THREE.Line | null) {
-    this.index = index
+  isEscaped: boolean = false
+
+  constructor(
+    color: THREE.Color,
+    position: THREE.Vector3,
+    mass: number,
+    charge: number,
+    trajectory: THREE.Line | null,
+    velocity: THREE.Vector3
+  ) {
     this.color = color
-    this.position = initialPosition.clone()
+    this.position = position
+    this.mass = mass
+    this.charge = charge
     this.trajectory = trajectory
+    this.isEscaped = false
+    // Initialize with provided velocity and zero force (force will be filled in after first simulation step).
+    this.velocity = velocity.clone()
+    this.force = new THREE.Vector3(0, 0, 0)
+    this.velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x0055aa)
+    this.forceArrow = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0xaa5555)
   }
 }
 
-// Internal metadata stored on a trajectory line's userData
-interface TrajectoryRingMeta { write: number; length: number; count: number }
-interface TrajectoryLine extends THREE.Line { userData: { trajectoryRing?: TrajectoryRingMeta } }
+// Store initial velocities separately for seeding the SoA simulation state.
+export const initialVelocities: number[] = [] // flat array length 3 * particleCount
 
 interface AddParticleOpts {
   color: THREE.Color
@@ -43,41 +74,64 @@ interface AddParticleOpts {
   scene: THREE.Scene
   showTrajectory: boolean
   maxTrajectoryLength: number
-  simState: SimulationState
 }
 function addParticle(opts: AddParticleOpts): void {
-  const { color, position, velocity, mass, charge, particles, geometry, scene, showTrajectory, maxTrajectoryLength, simState } = opts
-  const idx = particles.length
-  // Seed SoA arrays (single source of truth)
-  const i3 = 3 * idx
-  simState.positions[i3] = position.x
-  simState.positions[i3 + 1] = position.y
-  simState.positions[i3 + 2] = position.z
-  simState.velocities[i3] = velocity.x
-  simState.velocities[i3 + 1] = velocity.y
-  simState.velocities[i3 + 2] = velocity.z
-  simState.masses[idx] = mass
-  simState.charges[idx] = charge
-  // Geometry attributes
-  geometry.attributes.position.setXYZ(idx, position.x, position.y, position.z)
-  geometry.attributes.color.setXYZ(idx, color.r, color.g, color.b)
-  // Trajectory (optional)
-  let trajectory: THREE.Line | null = null
+  const { color, position, velocity, mass, charge, particles, geometry, scene, showTrajectory, maxTrajectoryLength } = opts
+  // Create the vertex
+  // Add the vertex to the geometry
+  geometry.attributes.position.setXYZ(
+    particles.length,
+    position.x,
+    position.y,
+    position.z
+  )
+  geometry.attributes.color.setXYZ(
+    particles.length,
+    color.r, color.g, color.b
+  )
+
+  // add trajectories.
+
+  let thisTrajectory: THREE.Line | null = null
   if (showTrajectory) {
-    trajectory = makeTrajectory(color, position, maxTrajectoryLength)
-    scene.add(trajectory)
+    // make colors (http://jsfiddle.net/J7zp4/200/)
+    thisTrajectory = makeTrajectory(
+      color,
+      position,
+      maxTrajectoryLength
+    )
+    scene.add(thisTrajectory)
   }
-  const particle = new Particle(idx, color, position, trajectory)
+
+  const particle = new Particle(color, position, mass, charge, thisTrajectory, velocity)
   particles.push(particle)
-  // Per-particle ArrowHelpers removed (now using instanced arrows in rendering layer)
-  // HUD row
-  const row = document.createElement('tr')
-  const particleCol = document.createElement('td')
-  particleCol.classList.add('particle'); particleCol.innerText = '⬤'; particleCol.style.color = color.getStyle(); row.appendChild(particleCol)
-  const massCol = document.createElement('td'); massCol.classList.add('mass'); massCol.innerText = `${Math.round(mass * 10) / 10}`; row.appendChild(massCol)
-  const chargeCol = document.createElement('td'); chargeCol.classList.add('mass'); chargeCol.innerText = `${Math.round(charge * 10) / 10}`; row.appendChild(chargeCol)
-  for (const cName of columnNames) { const c = document.createElement('td'); c.classList.add(cName); row.appendChild(c) }
-  const tbody = document.querySelector<HTMLTableSectionElement>('#tabularInfo > tbody'); if (tbody) tbody.appendChild(row)
+  // Record initial velocity components for SoA seeding.
+  initialVelocities.push(velocity.x, velocity.y, velocity.z)
+
+  scene.add(particle.velocityArrow)
+  scene.add(particle.forceArrow)
+  // Make the HUD table.
+  const tableRow = document.createElement('tr')
+  const particleColumn = document.createElement('td')
+  particleColumn.classList.add('particle')
+  particleColumn.innerText = '⬤'
+  particleColumn.style.color = color.getStyle()
+  tableRow.appendChild(particleColumn)
+  const massColumn = document.createElement('td')
+  massColumn.classList.add('mass')
+  massColumn.innerText = `${Math.round(mass * 10) / 10}`
+  tableRow.appendChild(massColumn)
+  const chargeColumn = document.createElement('td')
+  chargeColumn.classList.add('mass')
+  chargeColumn.innerText = `${Math.round(charge * 10) / 10}`
+  tableRow.appendChild(chargeColumn)
+  for (const columnName of columnNames) {
+    const column = document.createElement('td')
+    column.classList.add(columnName)
+    tableRow.appendChild(column)
+  }
+  const tbody = document.querySelector<HTMLTableSectionElement>('#tabularInfo > tbody')
+  if (tbody) tbody.appendChild(tableRow)
 }
 
 function makeClonePositionsList(
@@ -172,8 +226,7 @@ function createParticleSystem(
   scene: THREE.Scene,
   time: number,
   lastSnapshotTime: number,
-  settings: Settings,
-  simState: SimulationState
+  settings: Settings
 ): THREE.Points {
   // Particles are just individual vertices in a geometry
   // Create the geometry that will hold all of the vertices
@@ -193,11 +246,12 @@ function createParticleSystem(
     size: 0.3,
     vertexColors: true
   })
-  if (!populateFromPreviousOrFresh(particles, particlesGeometry, scene, settings, simState)) {
+  if (!populateFromPreviousOrFresh(particles, particlesGeometry, scene, settings)) {
     // fresh world already created inside helper when no previous state
   }
   // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
   for (let i = particles.length; i < settings.particleCount; i++) {
+    let r: number
     let position: THREE.Vector3
     let velocity: THREE.Vector3
     if (settings.if_makeSun) {
@@ -207,10 +261,10 @@ function createParticleSystem(
         0,
         random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
       )
-  const r = position.length()
+      r = position.length()
       // The speed in the vertical direction should be the orbital speed.
       // See https://www.physicsclassroom.com/class/circles/Lesson-4/Mathematics-of-Satellite-Motion.
-  const vy = Math.sqrt((settings.G * (simState.masses[0] || 1)) / r)
+      const vy = Math.sqrt((settings.G * particles[0].mass) / r)
       velocity = new THREE.Vector3(0, vy, 0)
       // Let's also round-robin the orientation of the orbiting motions with each "planet". It's more fun.
       if (i % 2 === 0) {
@@ -222,7 +276,7 @@ function createParticleSystem(
         random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
         random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
       )
-  position.length() // compute length once if needed later (currently unused)
+      r = position.length()
       velocity = new THREE.Vector3(0, 0, 0)
     }
     // Force should always be initialized to zero. It will be computed properly upon first refresh.
@@ -237,8 +291,7 @@ function createParticleSystem(
       geometry: particlesGeometry,
       scene,
       showTrajectory: settings.if_showTrajectory,
-      maxTrajectoryLength: settings.maxTrajectoryLength,
-      simState
+      maxTrajectoryLength: settings.maxTrajectoryLength
     })
   }
   // Create the material that will be used to render each vertex of the geometry
@@ -263,7 +316,7 @@ function createParticleSystem(
   return particleSystem
 }
 
-function populateFromPreviousOrFresh(particles: Particle[], particlesGeometry: THREE.BufferGeometry, scene: THREE.Scene, settings: Settings, simState: SimulationState): boolean {
+function populateFromPreviousOrFresh(particles: Particle[], particlesGeometry: THREE.BufferGeometry, scene: THREE.Scene, settings: Settings): boolean {
   if (loadState()) {
     console.log('State from previous session loaded.')
     const prev = previousState()
@@ -282,8 +335,7 @@ function populateFromPreviousOrFresh(particles: Particle[], particlesGeometry: T
         geometry: particlesGeometry,
         scene,
         showTrajectory: settings.if_showTrajectory,
-        maxTrajectoryLength: settings.maxTrajectoryLength,
-        simState
+        maxTrajectoryLength: settings.maxTrajectoryLength
       })
     }
     const diff = settings.particleCount - prev.particleCount
@@ -303,8 +355,7 @@ function populateFromPreviousOrFresh(particles: Particle[], particlesGeometry: T
       geometry: particlesGeometry,
       scene,
       showTrajectory: settings.if_showTrajectory,
-      maxTrajectoryLength: settings.maxTrajectoryLength,
-      simState
+      maxTrajectoryLength: settings.maxTrajectoryLength
     })
   }
   return false

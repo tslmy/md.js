@@ -20,3 +20,4 @@ export class Simulation {
     }
     addForce(f) { this.forces.push(f); }
 }
+//# sourceMappingURL=Simulation.js.map

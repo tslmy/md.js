@@ -38,9 +38,7 @@ function fullscreen () {
 function init (settings,
   particles,
   time,
-  lastSnapshotTime,
-  simState) {
-
+  lastSnapshotTime) {
   // initialize the scene
   const scene = new THREE.Scene()
   //    configure the scene:
@@ -64,14 +62,13 @@ function init (settings,
     scene,
     time,
     lastSnapshotTime,
-    settings,
-    simState
+    settings
   )
   console.log("3D object 'group' created: ", group)
   scene.add(group)
   console.log(particles)
   // enable settings
-  initializeGuiControls(settings, group, boxMesh)
+  initializeGuiControls(settings, group, boxMesh, particles)
   // initialize the camera
   const camera = new THREE.PerspectiveCamera(
     90,
@@ -150,7 +147,7 @@ function resize (camera, effect, renderer) {
   if (ifMobileDevice) effect.setSize(width, height)
 }
 
-function initializeGuiControls (settings, group, boxMesh) {
+function initializeGuiControls (settings, group, boxMesh, particles) {
 // Enable the GUI Controls powered by "dat.gui.min.js":
   const gui = new dat.GUI()
 
@@ -234,6 +231,8 @@ function initializeGuiControls (settings, group, boxMesh) {
     .add(settings, 'if_ReferenceFrame_movesWithSun')
     .name('Center the sun')
 
+  // guiFolderPlotting.add(settings, "if_makeSun");
+  // guiFolderPlotting.add(settings, "if_useFog");
 
   const guiFolderTrajectories = guiFolderPlotting.addFolder(
     'Particle trajectories'
@@ -251,11 +250,13 @@ function initializeGuiControls (settings, group, boxMesh) {
     .add(settings, 'if_showArrows')
     .name('Show arrows')
     .onChange(function () {
-      // Visibility now managed by instanced arrow system (updated in script.ts)
+      particles.forEach(particle => {
+        particle.forceArrow.visible = settings.if_showArrows
+        particle.velocityArrow.visible = settings.if_showArrows
+      })
     })
   guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length')
   guiFolderArrows.add(settings, 'maxArrowLength').name('Max length')
-  guiFolderArrows.add(settings, 'arrowMagnitudeMultiplier', 0.1, 20, 0.1).name('Mag multiplier')
   guiFolderArrows.add(settings, 'unitArrowLength').name('Unit length')
   guiFolderArrows
     .add(settings, 'if_showMapscale')
@@ -264,10 +265,6 @@ function initializeGuiControls (settings, group, boxMesh) {
   guiFolderArrows
     .add(settings, 'if_proportionate_arrows_with_vectors')
     .name('Proportionate arrows with vectors')
-
-  const guiFolderRenderMode = guiFolderPlotting.addFolder('Render mode')
-  guiFolderRenderMode.add(settings, 'if_renderSpheres').name('Use spheres')
-  guiFolderRenderMode.add(settings, 'sphereBaseRadius', 0.01, 1, 0.01).name('Sphere radius')
 
   guiFolderPlotting.open()
 

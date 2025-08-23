@@ -36,3 +36,4 @@ function drawBox(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, scene) {
     return boxMesh;
 }
 export { generateTexture, drawBox };
+//# sourceMappingURL=drawingHelpers.js.map

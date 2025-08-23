@@ -23,3 +23,4 @@ export function forEachPair(state, cutoff, handler) {
         }
     }
 }
+//# sourceMappingURL=forceInterfaces.js.map

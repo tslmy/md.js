@@ -72,3 +72,4 @@ export const VelocityVerlet = {
         state.time += dt;
     }
 };
+//# sourceMappingURL=integrators.js.map

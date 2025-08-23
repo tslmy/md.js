@@ -41,7 +41,7 @@ function init(settings, particles, time, lastSnapshotTime, simState) {
     scene.add(group);
     console.log(particles);
     // enable settings
-    initializeGuiControls(settings, group, boxMesh, particles);
+    initializeGuiControls(settings, group, boxMesh);
     // initialize the camera
     const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 1000000);
     camera.position.set(0, 2, 10);
@@ -96,7 +96,7 @@ function resize(camera, effect, renderer) {
     if (ifMobileDevice)
         effect.setSize(width, height);
 }
-function initializeGuiControls(settings, group, boxMesh, particles) {
+function initializeGuiControls(settings, group, boxMesh) {
     // Enable the GUI Controls powered by "dat.gui.min.js":
     const gui = new dat.GUI();
     const guiFolderWorld = gui.addFolder('World building');
@@ -167,10 +167,7 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
         .add(settings, 'if_showArrows')
         .name('Show arrows')
         .onChange(function () {
-        particles.forEach(particle => {
-            particle.forceArrow.visible = settings.if_showArrows;
-            particle.velocityArrow.visible = settings.if_showArrows;
-        });
+        // Visibility now managed by instanced arrow system (updated in script.ts)
     });
     guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length');
     guiFolderArrows.add(settings, 'maxArrowLength').name('Max length');
@@ -183,6 +180,9 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     guiFolderArrows
         .add(settings, 'if_proportionate_arrows_with_vectors')
         .name('Proportionate arrows with vectors');
+    const guiFolderRenderMode = guiFolderPlotting.addFolder('Render mode');
+    guiFolderRenderMode.add(settings, 'if_renderSpheres').name('Use spheres');
+    guiFolderRenderMode.add(settings, 'sphereBaseRadius', 0.01, 1, 0.01).name('Sphere radius');
     guiFolderPlotting.open();
     const commands = {
         stop: () => {
@@ -211,3 +211,4 @@ function toggle(selector) {
     }
 }
 export { init, ifMobileDevice, toggle };
+//# sourceMappingURL=init.js.map

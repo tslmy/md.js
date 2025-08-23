@@ -38,6 +38,8 @@ const settings = {
     if_useFog: true,
     if_proportionate_arrows_with_vectors: true,
     if_limitArrowsMaxLength: true,
+    if_renderSpheres: false, // render instanced spheres instead of point sprites
+    sphereBaseRadius: 0.15, // base sphere radius before scaling by mass
     if_constant_temperature: false,
     ifRun: true,
     // physical constants -- be the god!
@@ -48,3 +50,4 @@ const settings = {
     kB: 6.02
 };
 export { settings, originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ };
+//# sourceMappingURL=settings.js.map

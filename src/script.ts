@@ -4,8 +4,6 @@ import { saveState } from './stateStorage.js'
 import type { SavedState } from './stateStorage.js'
 import * as THREE from 'three'
 import { Particle } from './particleSystem.js'
-import { InstancedArrows } from './view/three/InstancedArrows.js'
-import { InstancedSpheres } from './view/three/InstancedSpheres.js'
 // New SoA simulation core imports
 import { createState, type SimulationState } from './core/simulation/state.js'
 import { Simulation } from './core/simulation/Simulation.js'
@@ -28,16 +26,9 @@ let temperaturePanel: TemperaturePanelLike
 let stats: StatsLike
 let maxTemperature = 0
 let particleSystem: THREE.Points | undefined
-let velocityArrows: InstancedArrows | undefined
-let forceArrows: InstancedArrows | undefined
-let spheres: InstancedSpheres | undefined
 // New SoA simulation objects
 let simulation: Simulation | undefined
 let simState: SimulationState | undefined
-
-// Distinct per-type colors (velocity vs force)
-const VELOCITY_ARROW_COLOR = 0x1e90ff // DodgerBlue
-const FORCE_ARROW_COLOR = 0xff5a2a // Vibrant orange-red
 
 const particles: Particle[] = []
 let time = 0
@@ -46,11 +37,6 @@ let lastSnapshotTime = 0
 // Expose minimal state for headless smoke tests (non-production usage)
 declare global {
   interface Window { __mdjs?: { particles: Particle[]; settings: typeof settings; simState?: SimulationState } }
-}
-
-// Expose placeholder early so headless smoke test can detect handle before async init completes.
-if (typeof window !== 'undefined') {
-  window.__mdjs = { particles, settings }
 }
 
 /**
@@ -75,13 +61,7 @@ function rescaleForceScaleBarFromState(state: SimulationState | undefined): numb
   if (maxMag === 0) maxMag = 1
   const scale = settings.unitArrowLength / maxMag
   const forceEl = document.getElementById('force')
-  if (forceEl) {
-    forceEl.style.width = `${scale * 1000000}px`
-    forceEl.style.backgroundColor = `#${FORCE_ARROW_COLOR.toString(16).padStart(6, '0')}`
-    forceEl.style.borderColor = forceEl.style.backgroundColor
-    forceEl.style.color = '#fff'
-  if (!forceEl.textContent || forceEl.textContent.trim() === '') forceEl.textContent = 'Force'
-  }
+  if (forceEl) forceEl.style.width = `${scale * 1000000}px`
   return scale
 }
 
@@ -97,23 +77,21 @@ function rescaleVelocityScaleBarFromState(state: SimulationState | undefined): n
   if (maxSpeed === 0) maxSpeed = 1
   const scale = settings.unitArrowLength / maxSpeed
   const velEl = document.getElementById('velocity')
-  if (velEl) {
-    velEl.style.width = `${scale * 1000000}px`
-    velEl.style.backgroundColor = `#${VELOCITY_ARROW_COLOR.toString(16).padStart(6, '0')}`
-    velEl.style.borderColor = velEl.style.backgroundColor
-    velEl.style.color = '#fff'
-  if (!velEl.textContent || velEl.textContent.trim() === '') velEl.textContent = 'Speed'
-  }
+  if (velEl) velEl.style.width = `${scale * 1000000}px`
   return scale
 }
 
 // Helpers to reduce complexity
-function computeArrowLength(vector: THREE.Vector3, scale: number): number {
-  let len = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale * settings.arrowMagnitudeMultiplier : settings.unitArrowLength
-  const minVisible = 0.2 * settings.unitArrowLength
-  if (len < minVisible) len = minVisible
-  if (settings.if_limitArrowsMaxLength && len > settings.maxArrowLength) len = settings.maxArrowLength
-  return len
+function updateArrowHelper(arrow: THREE.ArrowHelper, from: THREE.Vector3, vector: THREE.Vector3, scale: number): void {
+  const lengthToScale = settings.if_proportionate_arrows_with_vectors ? vector.length() * scale : settings.unitArrowLength
+  arrow.setLength(
+    settings.if_limitArrowsMaxLength && lengthToScale > settings.maxArrowLength
+      ? settings.maxArrowLength
+      : lengthToScale
+  )
+  arrow.position.copy(from)
+  const dir = vector.lengthSq() === 0 ? _unitX : _tmpDir.copy(vector).normalize()
+  arrow.setDirection(dir)
 }
 
 function updateTrajectoryBuffer(p: Particle, trajectory: THREE.BufferAttribute, maxLen: number): void {
@@ -133,6 +111,7 @@ function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: 
 }
 
 const _tmpDir = new THREE.Vector3()
+const _unitX = new THREE.Vector3(1, 0, 0)
 const _tmpVel = new THREE.Vector3()
 const _tmpForce = new THREE.Vector3()
 const _tmpFrom = new THREE.Vector3()
@@ -144,15 +123,6 @@ function updateFromSimulation(arrowScaleForForces: number, arrowScaleForVelociti
   const posAttr = particleSystem.geometry.attributes.position as THREE.BufferAttribute
   for (let i = 0; i < particles.length; i++) updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, arrowScaleForForces, arrowScaleForVelocities)
   posAttr.needsUpdate = true
-  // Update instanced spheres if enabled
-  if (settings.if_renderSpheres && spheres && simState) {
-    const { positions } = simState
-    for (let i = 0; i < particles.length; i++) {
-      const i3 = 3 * i
-      spheres.update(i, positions[i3] - frameOffset.x, positions[i3 + 1] - frameOffset.y, positions[i3 + 2] - frameOffset.z)
-    }
-    spheres.commit()
-  }
 }
 
 function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3, arrowScaleForForces: number, arrowScaleForVelocities: number): void {
@@ -164,6 +134,7 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   let px = positions[i3] - frameOffset.x
   let py = positions[i3 + 1] - frameOffset.y
   let pz = positions[i3 + 2] - frameOffset.z
+  // We'll update p.position after applying frame offset / PBC so tests & UI see displayed coordinates.
   posAttr.setXYZ(i, px, py, pz)
   const trajectoryAttr = (settings.if_showTrajectory && p.trajectory)
     ? p.trajectory.geometry.getAttribute('position') as THREE.BufferAttribute
@@ -177,16 +148,17 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   if (trajectoryAttr && needsTrajectoryShift) updateTrajectoryBuffer({ position: _tmpFrom.set(px, py, pz) } as Particle, trajectoryAttr, settings.maxTrajectoryLength)
   const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2]
   const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2]
-  // Update displayed position only (SoA remains source of truth). Legacy velocity/force mirrors removed.
+  // Mirror final (display) position back to OO particle
   p.position.set(px, py, pz)
-  if (settings.if_showArrows && velocityArrows && forceArrows) {
+  // Sync legacy object-oriented mirrors for temperature calc & persistence
+  p.velocity.set(vx, vy, vz)
+  p.force.set(fx, fy, fz)
+  if (settings.if_showArrows) {
     _tmpVel.set(vx, vy, vz)
     _tmpForce.set(fx, fy, fz)
     _tmpFrom.set(px, py, pz)
-  const vLen = computeArrowLength(_tmpVel, arrowScaleForVelocities)
-  const fLen = computeArrowLength(_tmpForce, arrowScaleForForces)
-  velocityArrows.update(i, _tmpFrom, _tmpVel, vLen)
-  forceArrows.update(i, _tmpFrom, _tmpForce, fLen)
+    updateArrowHelper(p.velocityArrow, _tmpFrom, _tmpVel, arrowScaleForVelocities)
+    updateArrowHelper(p.forceArrow, _tmpFrom, _tmpForce, arrowScaleForForces)
   }
   if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz })
 }
@@ -218,7 +190,6 @@ function animate(): void {
     : new THREE.Vector3(0, 0, 0)
   updateFromSimulation(arrowScaleForForces, arrowScaleForVelocities, frameOffset)
   if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt) lastSnapshotTime = time
-  if (settings.if_showArrows && velocityArrows && forceArrows) { velocityArrows.commit(); forceArrows.commit() }
   statistics(temperaturePanel, maxTemperature)
   update()
   render(renderer, effect)
@@ -226,19 +197,16 @@ function animate(): void {
   stats.update()
 }
 function calculateTemperature(): number {
-  if (!simState) return 0
-  const { velocities, masses, N } = simState
-  let sum = 0
-  for (let i = 0; i < N; i++) {
-    const i3 = 3 * i
-    const vx = velocities[i3]
-    const vy = velocities[i3 + 1]
-    const vz = velocities[i3 + 2]
-    const v2 = vx * vx + vy * vy + vz * vz
-    sum += (masses[i] || 1) * v2
+  let temperature = 0
+  particles.filter(particle => !particle.isEscaped).forEach(particle => {
+    temperature +=
+      particle.mass *
+      particle.velocity.length() ** 2
+  })
+  temperature *= 1 / settings.kB / (3 * settings.particleCount - 3)
+  if (temperature > maxTemperature) {
+    maxTemperature = temperature
   }
-  const temperature = sum / settings.kB / (3 * settings.particleCount - 3)
-  if (temperature > maxTemperature) maxTemperature = temperature
   return temperature
 }
 
@@ -275,21 +243,10 @@ function docReady(fn: () => void): void {
 docReady(() => {
   console.log('Ready.')
 
-  // Create simulation state up front; particleSystem population will seed it directly.
-  simState = createState({
-    particleCount: settings.particleCount,
-    box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ },
-    dt: settings.dt,
-    cutoff: settings.cutoffDistance
-  })
-  // Expose early (before particle creation) so addParticle can populate.
-  if (typeof window !== 'undefined') window.__mdjs = { particles, settings, simState }
-
   const values = init(settings,
     particles,
     time,
-    lastSnapshotTime,
-    simState)
+    lastSnapshotTime)
 
   scene = values[0]
   particleSystem = values[1] as THREE.Points
@@ -300,31 +257,34 @@ docReady(() => {
   temperaturePanel = values[6]
   effect = values[7]
 
-  // Simulation state already populated during particle creation.
+  // Build SoA simulation state from existing particle objects
+  simState = createState({
+    particleCount: settings.particleCount,
+    box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ },
+    dt: settings.dt,
+    cutoff: settings.cutoffDistance
+  })
+  // Seed arrays
+  for (let i = 0; i < particles.length; i++) {
+    const i3 = 3 * i
+    simState.positions[i3] = particles[i].position.x
+    simState.positions[i3 + 1] = particles[i].position.y
+    simState.positions[i3 + 2] = particles[i].position.z
+    // Velocity may have been initialized when particle was created; copy it if present.
+    if (particles[i].velocity) {
+      const v = particles[i].velocity
+      simState.velocities[i3] = v.x
+      simState.velocities[i3 + 1] = v.y
+      simState.velocities[i3 + 2] = v.z
+    }
+    simState.masses[i] = particles[i].mass
+    simState.charges[i] = particles[i].charge
+  }
   const forcePlugins = []
   if (settings.if_apply_LJpotential) forcePlugins.push(new LennardJones({ epsilon: settings.EPSILON, sigma: settings.DELTA }))
   if (settings.if_apply_gravitation) forcePlugins.push(new Gravity({ G: settings.G }))
   if (settings.if_apply_coulombForce) forcePlugins.push(new Coulomb({ K: settings.K }))
   simulation = new Simulation(simState, VelocityVerlet, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance })
-  if (settings.if_showArrows) {
-    velocityArrows = new InstancedArrows(particles.length, { color: VELOCITY_ARROW_COLOR })
-    forceArrows = new InstancedArrows(particles.length, { color: FORCE_ARROW_COLOR })
-    velocityArrows.addTo(scene)
-    forceArrows.addTo(scene)
-  }
-  if (settings.if_renderSpheres && simState) {
-    // Build per-particle color array from existing geometry attribute for consistency
-    const colors: THREE.Color[] = []
-    const colorAttr = (particleSystem.geometry.getAttribute('color') as THREE.BufferAttribute)
-    for (let i = 0; i < particles.length; i++) {
-      const c = new THREE.Color(colorAttr.getX(i), colorAttr.getY(i), colorAttr.getZ(i))
-      colors.push(c)
-    }
-    spheres = new InstancedSpheres(particles.length, settings.sphereBaseRadius, colors, simState.masses)
-    spheres.addTo(scene)
-    // Hide point sprite system when spheres enabled
-    particleSystem.visible = false
-  }
 
   animate()
   // Expose handle for automated headless tests
@@ -357,23 +317,23 @@ function captureState(): SavedState {
   const particleVelocities: Array<{ x: number, y: number, z: number }> = []
   const particleMasses: number[] = []
   const particleCharges: number[] = []
-  // Use SoA arrays as single source of truth for dynamic quantities.
-  for (let i = 0; i < particles.length; i++) {
-    const p = particles[i]
+  for (const p of particles) {
     particleColors.push(p.color.r, p.color.g, p.color.b)
     particlePositions.push(p.position.x, p.position.y, p.position.z)
-    if (simState) {
-      const i3 = 3 * i
-      particleForces.push({ x: simState.forces[i3], y: simState.forces[i3 + 1], z: simState.forces[i3 + 2] })
-      particleVelocities.push({ x: simState.velocities[i3], y: simState.velocities[i3 + 1], z: simState.velocities[i3 + 2] })
-      particleMasses.push(simState.masses[i])
-      particleCharges.push(simState.charges[i])
-    } else { // fallback (should not happen after init)
-      particleForces.push({ x: 0, y: 0, z: 0 })
-      particleVelocities.push({ x: 0, y: 0, z: 0 })
-      particleMasses.push(0)
-      particleCharges.push(0)
-    }
+    particleForces.push({ x: p.force.x, y: p.force.y, z: p.force.z })
+    particleVelocities.push({ x: p.velocity.x, y: p.velocity.y, z: p.velocity.z })
+    particleMasses.push(p.mass)
+    particleCharges.push(p.charge)
   }
-  return { particleCount, particleColors, particlePositions, particleForces, particleVelocities, particleMasses, particleCharges, time, lastSnapshotTime }
+  return {
+    particleCount,
+    particleColors,
+    particlePositions,
+    particleForces,
+    particleVelocities,
+    particleMasses,
+    particleCharges,
+    time,
+    lastSnapshotTime
+  }
 }

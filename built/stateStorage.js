@@ -67,3 +67,4 @@ function loadState() {
 }
 function previousState() { return _previousState; }
 export { dump, clearState, loadState, saveState, previousState };
+//# sourceMappingURL=stateStorage.js.map
