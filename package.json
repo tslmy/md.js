@@ -26,6 +26,8 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf built/*",
+    "coretest": "npm run build && node scripts/testCore.mjs",
+    "forcestest": "npm run build && node scripts/testForces.mjs",
     "smoke": "node scripts/smoke.mjs",
     "start": "npm run build && python -m http.server --directory .",
     "test": "npm run smoke",

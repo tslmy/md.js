@@ -362,6 +362,8 @@ docReady(() => {
     temperaturePanel = values[6];
     effect = values[7];
     animate();
+    // Expose handle for automated headless tests
+    window.__mdjs = { particles, settings };
     // Install full-state persistence handler (overrides placeholder in init.js)
     window.onbeforeunload = () => {
         try {
