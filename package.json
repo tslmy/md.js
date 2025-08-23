@@ -10,6 +10,7 @@
     "@eslint/js": "^9.34.0",
     "@types/node": "^24.3.0",
     "@types/three": "^0.179.0",
+    "c8": "^9.1.0",
     "eslint": "^9.34.0",
     "nodemon": "^3.1.10",
     "puppeteer": "^24.17.0",
@@ -29,6 +30,7 @@
     "centerstest": "node scripts/testCenteredSun.mjs",
     "clean": "rm -rf built/*",
     "coretest": "npm run build && node scripts/testCore.mjs",
+    "cov:open": "open coverage/lcov-report/index.html || xdg-open coverage/lcov-report/index.html || true",
     "energy": "npm run build && node scripts/testEnergyDrift.mjs",
     "force-sym": "npm run build && node scripts/testForceSymmetry.mjs",
     "forcestest": "npm run build && node scripts/testForces.mjs",
@@ -37,6 +39,7 @@
     "smoke": "node scripts/smoke.mjs",
     "start": "npm run build && python -m http.server --directory .",
     "test": "node scripts/runAllTests.mjs",
+    "test:cov": "npm run build && c8 --exclude 'scripts/**' --reporter=text --reporter=lcov node scripts/runAllTests.mjs",
     "typecheck": "tsc --noEmit",
     "watch": "tsc --watch"
   },
