@@ -1,8 +1,8 @@
 import { settings } from './settings.js';
 import { init, ifMobileDevice, toggle } from './init.js';
+import { saveState } from './stateStorage.js';
 import * as THREE from 'three';
 import { makeClonePositionsList } from './particleSystem.js';
-// global variables
 let camera;
 let scene;
 let renderer;
@@ -19,7 +19,7 @@ let lastSnapshotTime = 0;
  * el: the DOM element you'd like to test for visibility.
  */
 function isVisible(el) {
-    return window.getComputedStyle(el).display !== 'none';
+    return !!el && window.getComputedStyle(el).display !== 'none';
 }
 function applyForce(particles, i, j, func) {
     const thisPosition = particles[i].position;
@@ -36,7 +36,7 @@ function applyForce(particles, i, j, func) {
     }
     // `forceFromAllClones` accumulates force that i feels from all clones of j.
     const forceFromAllClones = new THREE.Vector3(0, 0, 0);
-    clonePositions.forEach(thatPositionDisplacement => {
+    clonePositions.forEach((thatPositionDisplacement) => {
         // (possibly) displace shift the end of this vector from particle j to one of its clones:
         const rEffective = new THREE.Vector3().subVectors(rOriginal, thatPositionDisplacement);
         const d = rEffective.length(); // calculate distance between particles i and j (with j may being a clone)
@@ -114,12 +114,17 @@ function computeForces(particles, particleCount = 8, shouldUpdateHud = false) {
         }
         if (shouldUpdateHud) {
             const $thisRow = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
-            const $LJForceStrength = $thisRow.querySelector('.LJForceStrength');
-            $LJForceStrength.textContent = `${Math.round(thisLJForceStrength * 100) / 100}`;
-            const $GravitationForceStrength = $thisRow.querySelector('.GravitationForceStrength');
-            $GravitationForceStrength.textContent = `${Math.round(thisGravitationForceStrength * 100) / 100}`;
-            const $CoulombForceStrength = $thisRow.querySelector('.CoulombForceStrength');
-            $CoulombForceStrength.textContent = `${Math.round(thisCoulombForceStrength * 100) / 100}`;
+            if ($thisRow) {
+                const $LJForceStrength = $thisRow.querySelector('.LJForceStrength');
+                if ($LJForceStrength)
+                    $LJForceStrength.textContent = `${Math.round(thisLJForceStrength * 100) / 100}`;
+                const $GravitationForceStrength = $thisRow.querySelector('.GravitationForceStrength');
+                if ($GravitationForceStrength)
+                    $GravitationForceStrength.textContent = `${Math.round(thisGravitationForceStrength * 100) / 100}`;
+                const $CoulombForceStrength = $thisRow.querySelector('.CoulombForceStrength');
+                if ($CoulombForceStrength)
+                    $CoulombForceStrength.textContent = `${Math.round(thisCoulombForceStrength * 100) / 100}`;
+            }
         }
     }
 }
@@ -127,14 +132,18 @@ function rescaleForceScaleBar(particles) {
     const forceStrengths = particles.filter(particle => !particle.isEscaped).map(particle => particle.force.length());
     const highestForceStrengthPresent = Math.max(...forceStrengths);
     const arrowScaleForForces = settings.unitArrowLength / highestForceStrengthPresent;
-    document.getElementById('force').style.width = `${arrowScaleForForces * 1000000}px`;
+    const forceEl = document.getElementById('force');
+    if (forceEl)
+        forceEl.style.width = `${arrowScaleForForces * 1000000}px`;
     return arrowScaleForForces;
 }
 function rescaleVelocityScaleBar(particles) {
     const speeds = particles.filter(particle => !particle.isEscaped).map(particle => particle.velocity.length());
     const highestSpeedPresent = Math.max(...speeds);
     const arrowScaleForVelocities = settings.unitArrowLength / highestSpeedPresent;
-    document.getElementById('velocity').style.width = `${arrowScaleForVelocities * 1000000}px`;
+    const velEl = document.getElementById('velocity');
+    if (velEl)
+        velEl.style.width = `${arrowScaleForVelocities * 1000000}px`;
     return arrowScaleForVelocities;
 }
 function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
@@ -147,8 +156,10 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
     const thisSpeed = particles[i].velocity.length(); // vector -> scalar
     // update positions according to velocity:
     particles[i].position.addScaledVector(particles[i].velocity, settings.dt); // x = x + v·dt
+    if (!particleSystem)
+        return;
     particleSystem.geometry.attributes.position.setXYZ(i, particles[i].position.x, particles[i].position.y, particles[i].position.z);
-    const trajectoryPositions = settings.if_showTrajectory
+    const trajectoryPositions = (settings.if_showTrajectory && particles[i].trajectory)
         ? particles[i].trajectory.geometry.attributes.position
         : null;
     // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
@@ -173,7 +184,7 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
         updateArrow(particles[i].forceArrow, particles[i].position, particles[i].force, arrowScaleForVelocities);
     }
     // update trajectories:
-    if (settings.if_showTrajectory) {
+    if (settings.if_showTrajectory && trajectoryPositions) {
         if (time - lastSnapshotTime > settings.dt) {
             for (let j = 0; j < settings.maxTrajectoryLength - 1; j++) {
                 trajectoryPositions.copyAt(j, trajectoryPositions, j + 1);
@@ -185,9 +196,17 @@ function animateOneParticle(i, arrowScaleForForces, arrowScaleForVelocities) {
     // update HUD, if visible:
     if (isVisible(document.querySelector('#hud'))) {
         const $thisRow = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`);
-        $thisRow.querySelector('.speed').textContent = `${Math.round(thisSpeed * 100) / 100}`;
-        $thisRow.querySelector('.kineticEnergy').textContent = `${Math.round(thisSpeed * thisSpeed * particles[i].mass * 50) / 100}`;
-        $thisRow.querySelector('.TotalForceStrength').textContent = `${particles[i].force ? Math.round(particles[i].force.length() * 100) / 100 : '0'}`;
+        if ($thisRow) {
+            const speedEl = $thisRow.querySelector('.speed');
+            if (speedEl)
+                speedEl.textContent = `${Math.round(thisSpeed * 100) / 100}`;
+            const keEl = $thisRow.querySelector('.kineticEnergy');
+            if (keEl)
+                keEl.textContent = `${Math.round(thisSpeed * thisSpeed * particles[i].mass * 50) / 100}`;
+            const tfEl = $thisRow.querySelector('.TotalForceStrength');
+            if (tfEl)
+                tfEl.textContent = `${particles[i].force ? Math.round(particles[i].force.length() * 100) / 100 : '0'}`;
+        }
     }
     if (settings.if_constant_temperature) {
         const currentTemperature = calculateTemperature();
@@ -275,7 +294,9 @@ function animate() {
     }
     // =============================== now the rendering ==================================
     // flag to the particle system that we've changed its vertices.
-    particleSystem.geometry.attributes.position.needsUpdate = true;
+    if (particleSystem) {
+        particleSystem.geometry.attributes.position.needsUpdate = true;
+    }
     // draw this frame
     statistics(temperaturePanel, maxTemperature);
     update();
@@ -299,17 +320,18 @@ function calculateTemperature() {
     }
     return temperature;
 }
-function statistics(temperaturePanel, maxTemperature) {
+function statistics(panel, maxTemperature) {
     const temperature = calculateTemperature();
-    temperaturePanel.update(temperature, maxTemperature);
+    panel.update(temperature, maxTemperature);
 }
 function update() {
     // resize();
     camera.updateProjectionMatrix();
-    controls.update();
+    if (controls)
+        controls.update();
 }
 function render(renderer, effect) {
-    if (ifMobileDevice) {
+    if (ifMobileDevice && effect) {
         effect.render(scene, camera);
     }
     else {
@@ -340,6 +362,16 @@ docReady(() => {
     temperaturePanel = values[6];
     effect = values[7];
     animate();
+    // Install full-state persistence handler (overrides placeholder in init.js)
+    window.onbeforeunload = () => {
+        try {
+            const snapshot = captureState();
+            saveState(snapshot);
+        }
+        catch (e) {
+            console.log('Failed to persist state:', e);
+        }
+    };
     // bind keyboard event:
     document.onkeydown = (e) => {
         switch (e.keyCode) {
@@ -349,3 +381,32 @@ docReady(() => {
         }
     };
 });
+// Build a complete snapshot matching SavedState interface for persistence.
+function captureState() {
+    const particleCount = particles.length;
+    const particleColors = [];
+    const particlePositions = [];
+    const particleForces = [];
+    const particleVelocities = [];
+    const particleMasses = [];
+    const particleCharges = [];
+    for (const p of particles) {
+        particleColors.push(p.color.r, p.color.g, p.color.b);
+        particlePositions.push(p.position.x, p.position.y, p.position.z);
+        particleForces.push({ x: p.force.x, y: p.force.y, z: p.force.z });
+        particleVelocities.push({ x: p.velocity.x, y: p.velocity.y, z: p.velocity.z });
+        particleMasses.push(p.mass);
+        particleCharges.push(p.charge);
+    }
+    return {
+        particleCount,
+        particleColors,
+        particlePositions,
+        particleForces,
+        particleVelocities,
+        particleMasses,
+        particleCharges,
+        time,
+        lastSnapshotTime
+    };
+}

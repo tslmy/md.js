@@ -15,10 +15,12 @@ function generateTexture(size = 32, fillStyle = '#fff') {
     const centerX = size / 2;
     const centerY = size / 2;
     const radius = size / 2;
-    context.beginPath();
-    context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-    context.fillStyle = fillStyle;
-    context.fill();
+    if (context) {
+        context.beginPath();
+        context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+        context.fillStyle = fillStyle;
+        context.fill();
+    }
     return canvas;
 }
 function drawBox(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, scene) {

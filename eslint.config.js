@@ -2,6 +2,7 @@
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 export default [
+  { ignores: ['built/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -14,7 +15,10 @@ export default [
         document: 'readonly',
         navigator: 'readonly',
         console: 'readonly',
-        setTimeout: 'readonly'
+        setTimeout: 'readonly',
+        requestAnimationFrame: 'readonly',
+        localStorage: 'readonly',
+        location: 'readonly'
       }
     },
     rules: {

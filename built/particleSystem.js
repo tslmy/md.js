@@ -63,7 +63,9 @@ function addParticle(color, position, velocity, force, thisMass, thisCharge, par
         column.classList.add(columnName);
         tableRow.appendChild(column);
     }
-    document.querySelector('#tabularInfo > tbody').appendChild(tableRow);
+    const tbody = document.querySelector('#tabularInfo > tbody');
+    if (tbody)
+        tbody.appendChild(tableRow);
 }
 function makeClonePositionsList(x, y, z) {
     return [
@@ -152,27 +154,28 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
     if (loadState()) {
         console.log('State from previous session loaded.');
         // Initialize the particleSystem with the info stored from localStorage.
+        const prev = previousState();
         let particleCountToRead = 0;
-        if (previousState.particleCount < settings.particleCount ||
+        if (prev.particleCount < settings.particleCount ||
             settings.if_override_particleCount_setting_with_lastState) {
-            particleCountToRead = previousState.particleCount;
+            particleCountToRead = prev.particleCount;
         }
         else {
             particleCountToRead = settings.particleCount;
         }
         for (let i = 0; i < particleCountToRead; i++) {
-            const color = new THREE.Color(previousState.particleColors[3 * i], previousState.particleColors[3 * i + 1], previousState.particleColors[3 * i + 2]);
-            addParticle(color, new THREE.Vector3().fromArray(previousState.particlePositions, 3 * i), objectToVector(previousState.particleVelocities[i]), objectToVector(previousState.particleForces[i]), previousState.particleMasses[i], previousState.particleCharges[i], particles, particlesGeometry, scene, settings.if_showTrajectory, settings.maxTrajectoryLength);
+            const color = new THREE.Color(prev.particleColors[3 * i], prev.particleColors[3 * i + 1], prev.particleColors[3 * i + 2]);
+            addParticle(color, new THREE.Vector3().fromArray(prev.particlePositions, 3 * i), objectToVector(prev.particleVelocities[i]), objectToVector(prev.particleForces[i]), prev.particleMasses[i], prev.particleCharges[i], particles, particlesGeometry, scene, settings.if_showTrajectory, settings.maxTrajectoryLength);
         }
-        particleCountToAdd = settings.particleCount - previousState.particleCount;
+        particleCountToAdd = settings.particleCount - prev.particleCount;
         if (particleCountToAdd < 0) {
             console.log('Dropping', -particleCountToAdd, 'particles stored, since we only need', settings.particleCount, 'particles this time.');
         }
         else if (particleCountToAdd > 0) {
-            console.log('md.js will be creating only', particleCountToAdd, 'particles from scratch, since', previousState.particleCount, 'has been loaded from previous browser session.');
+            console.log('md.js will be creating only', particleCountToAdd, 'particles from scratch, since', prev.particleCount, 'has been loaded from previous browser session.');
         }
-        time = previousState.time;
-        lastSnapshotTime = previousState.lastSnapshotTime;
+        time = prev.time;
+        lastSnapshotTime = prev.lastSnapshotTime;
     }
     else {
         console.log('Creating new universe.');

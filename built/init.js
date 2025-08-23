@@ -5,7 +5,7 @@ import Stats from 'Stats';
 import { StereoEffect } from 'StereoEffect';
 import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ } from './settings.js';
 import { drawBox } from './drawingHelpers.js';
-import { saveState, clearState } from './stateStorage.js';
+import { clearState } from './stateStorage.js';
 import { makeClonePositionsList, createParticleSystem, particleMaterialForClones } from './particleSystem.js';
 import * as dat from 'dat.gui';
 const ifMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -78,13 +78,7 @@ function init(settings, particles, time, lastSnapshotTime) {
     // add event listeners
     window.addEventListener('resize', () => { resize(camera, effect, renderer); }, false);
     setTimeout(() => { resize(camera, effect, renderer); }, 1);
-    window.onbeforeunload = () => {
-        saveState({
-            particleCount: settings.particleCount,
-            time,
-            lastSnapshotTime
-        });
-    };
+    // State persistence handled in TypeScript (script.ts) to include full particle data.
     return [scene, particleSystem, camera, renderer, controls, stats, temperaturePanel, effect];
 }
 function updateClonesPositions(spaceBoundaryX, spaceBoundaryY, spaceBoundaryZ, group) {
@@ -121,14 +115,14 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     guiFolderBoundary
         .add(settings, 'if_use_periodic_boundary_condition')
         .name('Use PBC')
-        .onChange((value) => {
-        particleMaterialForClones.visible = value;
+        .onChange(() => {
+        particleMaterialForClones.visible = settings.if_use_periodic_boundary_condition;
     });
     const guiFolderSize = guiFolderBoundary.addFolder('Custom size');
     guiFolderSize
         .add(settings, 'spaceBoundaryX')
         .name('Size, X')
-        .onChange(function (value) {
+        .onChange(function () {
         if (boxMesh) {
             boxMesh.scale.x = settings.spaceBoundaryX / originalSpaceBoundaryX;
         }
@@ -137,7 +131,7 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     guiFolderSize
         .add(settings, 'spaceBoundaryY')
         .name('Size, Y')
-        .onChange(function (value) {
+        .onChange(function () {
         if (boxMesh) {
             boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY;
         }
@@ -146,7 +140,7 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     guiFolderSize
         .add(settings, 'spaceBoundaryZ')
         .name('Size, Z')
-        .onChange(function (value) {
+        .onChange(function () {
         if (boxMesh) {
             boxMesh.scale.z = settings.spaceBoundaryZ / originalSpaceBoundaryZ;
         }
@@ -169,15 +163,15 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     guiFolderTrajectories
         .add(settings, 'maxTrajectoryLength')
         .name('Length')
-        .onChange(function (value) { }); // TODO
+        .onChange(function () { });
     const guiFolderArrows = guiFolderPlotting.addFolder('Arrows for forces and velocities');
     guiFolderArrows
         .add(settings, 'if_showArrows')
         .name('Show arrows')
-        .onChange(function (value) {
+        .onChange(function () {
         particles.forEach(particle => {
-            particle.forceArrow.visible = value;
-            particle.velocityArrow.visible = value;
+            particle.forceArrow.visible = settings.if_showArrows;
+            particle.velocityArrow.visible = settings.if_showArrows;
         });
     });
     guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length');
@@ -186,9 +180,7 @@ function initializeGuiControls(settings, group, boxMesh, particles) {
     guiFolderArrows
         .add(settings, 'if_showMapscale')
         .name('Show scales')
-        .onChange((value) => {
-        toggle('.mapscale');
-    });
+        .onChange(() => { toggle('.mapscale'); });
     guiFolderArrows
         .add(settings, 'if_proportionate_arrows_with_vectors')
         .name('Proportionate arrows with vectors');
