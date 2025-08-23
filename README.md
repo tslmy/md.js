@@ -6,18 +6,32 @@
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/tslmy/md.js/main.svg)](https://results.pre-commit.ci/latest/github/tslmy/md.js/main)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/4b928847-32c8-456a-912d-f502d3e3c2c0/deploy-status)](https://app.netlify.com/sites/mdjs/deploys)
 
-A tiny, hackable [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) playground powered by **TypeScript + Three.js**. Tweak physical constants live, watch particles orbit a heavyweight “sun”, enable / disable force fields, and explore numerical integrators – all in your browser (desktop or mobile / cardboard VR).
+A VR-ready [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) demo that you can [watch right away][dm].
+
+Designed be a teaching tool for entry-level physics and chemistry courses, this program follows these principles:
+
+* **3D and VR ready.** Designed to be used with smartphone-based VR headsets[^1], the view will render in Side-by-Side (SBS) mode and gyro-controlled when when opened from a smartphone browser in landscape mode.
+* **Zero setup.** No need to install anything; just open a webpage. No need to load model files; particles are randomly generated upon first visit, and they start moving immediately.
+* **Variety over accuracy.** Play with different force fields that normally wouldn't make sense together in the real world.
+* **Hackable.** Tweak physical constants live, watch particles orbit a heavyweight “sun”, enable / disable force fields... This is your playground.
+
+[^1]: which simply mounts a phone to your head, making them much more [affordable](https://www.amazon.com/Cell-Phone-VR-Headsets/b?ie=UTF8&node=14775002011) than standalone types and more budget-friendly to students.
 
 ## Quick Demo
 
 ![Demo animation](https://media0.giphy.com/media/boyW0pDMJDWqyLv96Z/giphy.gif)
 
-Opaque spheres are the “real” particles. Fainter semi‑transparent clones render [periodic boundary condition (PBC)][pbc] images for visual intuition.
+What am I looking at?
 
-If the central heavy particle (the “sun”) appears fixed it is because the camera reference frame is following it. Disable “Center the sun” to see its recoil motion, or disable the sun entirely and let chaos ensue.
+* **Default setup.** In a square box, serveral particles spawn. They have randomized mass, electric charge, and starting position. Starting in stillness, these particles will start to move, obeying different force fields all at once: Coulomb force, gravity, and LJ potential.
+* To help you track a particular one, particles are randomly colored and traced with a fading tail.
+* [Periodic boundary condition (PBC)][pbc] is used to simulate this system's behavior as if it were part of an infinite, repeating pattern. Outside of the box space, "ghost" images of the particles are rendered with slight transparentcy to give visual intuitions.
+* Two arrows stick out from each particle. One indicates the velocity, the other combined force. Their lengths are auto‑normalized per frame. All toggles & numeric inputs live in the on‑screen control pane.
+* **About "the sun".** By default, the camera's reference frame is fixed on a heavy, black particle. Nicknamed "the sun", this special particle will appear centered forever.
+  * Heavy in mass, "the sun" tends to attract neighboring particles to revolve around itself. These particles may eventually get too close to "the sun" and get "expelled" from the little "solar system", shooting out of the box with great speed, which is a fun scene to watch.
+  * Disable “Center the sun” to see its recoil motion, or disable the sun entirely and let chaos ensue.
 
-Force / velocity vectors are shown as arrows (scales auto‑normalized per frame). All toggles & numeric inputs live in the on‑screen control pane.
-
+[dm]: https://mdjs.netlify.app/
 [pbc]: https://en.wikipedia.org/wiki/Periodic_boundary_conditions
 ## Feature Highlights
 
@@ -77,8 +91,6 @@ window.__mdjs = {
 6. Visualization layer copies the updated SoA arrays into Three.js buffers and rescales arrows.
 
 ## Getting Started
-
-Play instantly at: <https://mdjs.netlify.app/>
 
 Run locally:
 
