@@ -195,3 +195,30 @@ Coding conventions:
 * Basic energy diagnostics panel (potential, kinetic, total vs. time graph).
 * Save / load presets (JSON export + import UI).
 * Optional bundler (Vite / esbuild) if code splitting or asset pipeline grows.
+
+### Experimental Engine Refactor (In Progress)
+
+An incremental `SimulationEngine` scaffold now lives under `src/engine/` alongside a draft configuration module. It currently wraps the existing `Simulation` class and emits `frame` events while we migrate responsibilities out of `script.ts`. This layer will evolve to own:
+
+* Plugin registry (forces, thermostats, constraints)
+* Neighbor list strategy abstraction
+* Worker bridge & message protocol
+* Versioned config + persistence schema
+* Diagnostics / profiling emission
+
+Early adopters can experiment:
+
+```ts
+import { SimulationEngine } from './engine/SimulationEngine.js'
+import { legacySettingsToEngineConfig } from './engine/config/types.js'
+import { settings } from './settings.js'
+
+const engine = new SimulationEngine(legacySettingsToEngineConfig(settings))
+engine.on('frame', ({ time, state }) => {
+  // Read-only usage of typed arrays
+  // console.log('t', time, state.positions[0])
+})
+engine.run()
+```
+
+Nothing in the legacy path depends on this yet; it is safe to ignore until the migration reaches a stable milestone.
