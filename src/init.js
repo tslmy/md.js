@@ -265,6 +265,10 @@ function initializeGuiControls (settings, group, boxMesh) {
     .add(settings, 'if_proportionate_arrows_with_vectors')
     .name('Proportionate arrows with vectors')
 
+  const guiFolderRenderMode = guiFolderPlotting.addFolder('Render mode')
+  guiFolderRenderMode.add(settings, 'if_renderSpheres').name('Use spheres')
+  guiFolderRenderMode.add(settings, 'sphereBaseRadius', 0.01, 1, 0.01).name('Sphere radius')
+
   guiFolderPlotting.open()
 
   const commands = {

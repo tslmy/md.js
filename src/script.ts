@@ -5,6 +5,7 @@ import type { SavedState } from './stateStorage.js'
 import * as THREE from 'three'
 import { Particle } from './particleSystem.js'
 import { InstancedArrows } from './view/three/InstancedArrows.js'
+import { InstancedSpheres } from './view/three/InstancedSpheres.js'
 // New SoA simulation core imports
 import { createState, type SimulationState } from './core/simulation/state.js'
 import { Simulation } from './core/simulation/Simulation.js'
@@ -29,6 +30,7 @@ let maxTemperature = 0
 let particleSystem: THREE.Points | undefined
 let velocityArrows: InstancedArrows | undefined
 let forceArrows: InstancedArrows | undefined
+let spheres: InstancedSpheres | undefined
 // New SoA simulation objects
 let simulation: Simulation | undefined
 let simState: SimulationState | undefined
@@ -142,6 +144,15 @@ function updateFromSimulation(arrowScaleForForces: number, arrowScaleForVelociti
   const posAttr = particleSystem.geometry.attributes.position as THREE.BufferAttribute
   for (let i = 0; i < particles.length; i++) updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, arrowScaleForForces, arrowScaleForVelocities)
   posAttr.needsUpdate = true
+  // Update instanced spheres if enabled
+  if (settings.if_renderSpheres && spheres && simState) {
+    const { positions } = simState
+    for (let i = 0; i < particles.length; i++) {
+      const i3 = 3 * i
+      spheres.update(i, positions[i3] - frameOffset.x, positions[i3 + 1] - frameOffset.y, positions[i3 + 2] - frameOffset.z)
+    }
+    spheres.commit()
+  }
 }
 
 function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3, arrowScaleForForces: number, arrowScaleForVelocities: number): void {
@@ -300,6 +311,19 @@ docReady(() => {
     forceArrows = new InstancedArrows(particles.length, { color: FORCE_ARROW_COLOR })
     velocityArrows.addTo(scene)
     forceArrows.addTo(scene)
+  }
+  if (settings.if_renderSpheres && simState) {
+    // Build per-particle color array from existing geometry attribute for consistency
+    const colors: THREE.Color[] = []
+    const colorAttr = (particleSystem.geometry.getAttribute('color') as THREE.BufferAttribute)
+    for (let i = 0; i < particles.length; i++) {
+      const c = new THREE.Color(colorAttr.getX(i), colorAttr.getY(i), colorAttr.getZ(i))
+      colors.push(c)
+    }
+    spheres = new InstancedSpheres(particles.length, settings.sphereBaseRadius, colors, simState.masses)
+    spheres.addTo(scene)
+    // Hide point sprite system when spheres enabled
+    particleSystem.visible = false
   }
 
   animate()
