@@ -1,6 +1,8 @@
 import * as THREE from 'three'
 import { generateTexture } from './drawingHelpers.js'
 import { loadState, previousState } from './stateStorage.js'
+// Type alias for settings shape (imported dynamically); avoids circular dep.
+type Settings = typeof import('./settings.js').settings
 const texture = new THREE.Texture(generateTexture())
 texture.needsUpdate = true // important
 const particleMaterialForClones = new THREE.PointsMaterial({
@@ -22,7 +24,7 @@ class Particle {
   charge: number
   velocityArrow: THREE.ArrowHelper
   forceArrow: THREE.ArrowHelper
-  trajectory: THREE.Line
+  trajectory: THREE.Line | null
   isEscaped: boolean = false
 
   constructor(
@@ -32,7 +34,7 @@ class Particle {
     velocity: THREE.Vector3,
     mass: number,
     charge: number,
-    trajectory: THREE.Line
+  trajectory: THREE.Line | null
   ) {
     this.color = color
     this.position = position
@@ -130,13 +132,14 @@ function addParticle(
     column.classList.add(columnName)
     tableRow.appendChild(column)
   }
-  document.querySelector('#tabularInfo > tbody').appendChild(tableRow)
+  const tbody = document.querySelector<HTMLTableSectionElement>('#tabularInfo > tbody')
+  if (tbody) tbody.appendChild(tableRow)
 }
 
 function makeClonePositionsList(
-  x,
-  y,
-  z
+  x: number,
+  y: number,
+  z: number
 ): THREE.Vector3[] {
   return [
     new THREE.Vector3(2 * x, 0, 0),
@@ -212,7 +215,7 @@ function makeTrajectory(
   })
   return new THREE.Line(thisGeometry, thisTrajectoryMaterial)
 }
-function objectToVector(obj): THREE.Vector3 {
+function objectToVector(obj: { x: number, y: number, z: number }): THREE.Vector3 {
   return new THREE.Vector3(obj.x, obj.y, obj.z)
 }
 
@@ -222,7 +225,7 @@ function createParticleSystem(
   scene: THREE.Scene,
   time: number,
   lastSnapshotTime: number,
-  settings
+  settings: Settings
 ): THREE.Points {
   // Particles are just individual vertices in a geometry
   // Create the geometry that will hold all of the vertices
@@ -247,27 +250,28 @@ function createParticleSystem(
   if (loadState()) {
     console.log('State from previous session loaded.')
     // Initialize the particleSystem with the info stored from localStorage.
+    const prev = previousState()
     let particleCountToRead = 0
     if (
-      previousState.particleCount < settings.particleCount ||
+      prev.particleCount < settings.particleCount ||
       settings.if_override_particleCount_setting_with_lastState
     ) {
-      particleCountToRead = previousState.particleCount
+      particleCountToRead = prev.particleCount
     } else {
       particleCountToRead = settings.particleCount
     }
     for (let i = 0; i < particleCountToRead; i++) {
       const color = new THREE.Color(
-        previousState.particleColors[3 * i],
-        previousState.particleColors[3 * i + 1],
-        previousState.particleColors[3 * i + 2])
+        prev.particleColors[3 * i],
+        prev.particleColors[3 * i + 1],
+        prev.particleColors[3 * i + 2])
       addParticle(
         color,
-        new THREE.Vector3().fromArray(previousState.particlePositions, 3 * i),
-        objectToVector(previousState.particleVelocities[i]),
-        objectToVector(previousState.particleForces[i]),
-        previousState.particleMasses[i],
-        previousState.particleCharges[i],
+        new THREE.Vector3().fromArray(prev.particlePositions, 3 * i),
+        objectToVector(prev.particleVelocities[i]),
+        objectToVector(prev.particleForces[i]),
+        prev.particleMasses[i],
+        prev.particleCharges[i],
         particles,
         particlesGeometry,
         scene,
@@ -275,7 +279,7 @@ function createParticleSystem(
         settings.maxTrajectoryLength
       )
     }
-    particleCountToAdd = settings.particleCount - previousState.particleCount
+    particleCountToAdd = settings.particleCount - prev.particleCount
     if (particleCountToAdd < 0) {
       console.log(
         'Dropping',
@@ -289,12 +293,12 @@ function createParticleSystem(
         'md.js will be creating only',
         particleCountToAdd,
         'particles from scratch, since',
-        previousState.particleCount,
+    prev.particleCount,
         'has been loaded from previous browser session.'
       )
     }
-    time = previousState.time
-    lastSnapshotTime = previousState.lastSnapshotTime
+  time = prev.time
+  lastSnapshotTime = prev.lastSnapshotTime
   } else {
     console.log('Creating new universe.')
     console.log(

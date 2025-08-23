@@ -1,21 +1,19 @@
-import {
-  settings
-} from './settings.js'
+import { settings } from './settings.js'
 import { init, ifMobileDevice, toggle } from './init.js'
 import * as THREE from 'three'
 import {
   makeClonePositionsList, Particle
 } from './particleSystem.js'
 // global variables
-let camera
-let scene
-let renderer
-let effect
-let controls
-let temperaturePanel
-let stats
+let camera: THREE.PerspectiveCamera
+let scene: THREE.Scene
+let renderer: THREE.WebGLRenderer
+let effect: any // StereoEffect | undefined; keeping any due to lack of types
+let controls: any // OrbitControls
+let temperaturePanel: { update: (t: number, max: number) => void }
+let stats: any // Stats.js panel
 let maxTemperature = 0
-let particleSystem
+let particleSystem: THREE.Points | undefined
 
 const particles: Particle[] = []
 let time = 0
@@ -24,8 +22,8 @@ let lastSnapshotTime = 0
 /**
  * el: the DOM element you'd like to test for visibility.
  */
-function isVisible(el: HTMLElement): boolean {
-  return window.getComputedStyle(el).display !== 'none'
+function isVisible(el: HTMLElement | null): boolean {
+  return !!el && window.getComputedStyle(el).display !== 'none'
 }
 
 function applyForce(particles: Particle[], i: number, j: number, func: (i: number, j: number, d: number) => number): THREE.Vector3 {
@@ -46,7 +44,7 @@ function applyForce(particles: Particle[], i: number, j: number, func: (i: numbe
   }
   // `forceFromAllClones` accumulates force that i feels from all clones of j.
   const forceFromAllClones = new THREE.Vector3(0, 0, 0)
-  clonePositions.forEach(thatPositionDisplacement => {
+  clonePositions.forEach((thatPositionDisplacement: THREE.Vector3) => {
     // (possibly) displace shift the end of this vector from particle j to one of its clones:
     const rEffective = new THREE.Vector3().subVectors(rOriginal, thatPositionDisplacement)
     const d = rEffective.length() // calculate distance between particles i and j (with j may being a clone)
@@ -130,15 +128,15 @@ function computeForces(
       }
     }
     if (shouldUpdateHud) {
-      const $thisRow: HTMLElement = document.querySelector(
-        `#tabularInfo > tbody > tr:nth-child(${i + 1})`
-      )
-      const $LJForceStrength: HTMLElement = $thisRow.querySelector('.LJForceStrength')
-      $LJForceStrength.textContent = `${Math.round(thisLJForceStrength * 100) / 100}`
-      const $GravitationForceStrength: HTMLElement = $thisRow.querySelector('.GravitationForceStrength')
-      $GravitationForceStrength.textContent = `${Math.round(thisGravitationForceStrength * 100) / 100}`
-      const $CoulombForceStrength: HTMLElement = $thisRow.querySelector('.CoulombForceStrength')
-      $CoulombForceStrength.textContent = `${Math.round(thisCoulombForceStrength * 100) / 100}`
+      const $thisRow = document.querySelector<HTMLElement>(`#tabularInfo > tbody > tr:nth-child(${i + 1})`)
+      if ($thisRow) {
+        const $LJForceStrength = $thisRow.querySelector<HTMLElement>('.LJForceStrength')
+        if ($LJForceStrength) $LJForceStrength.textContent = `${Math.round(thisLJForceStrength * 100) / 100}`
+        const $GravitationForceStrength = $thisRow.querySelector<HTMLElement>('.GravitationForceStrength')
+        if ($GravitationForceStrength) $GravitationForceStrength.textContent = `${Math.round(thisGravitationForceStrength * 100) / 100}`
+        const $CoulombForceStrength = $thisRow.querySelector<HTMLElement>('.CoulombForceStrength')
+        if ($CoulombForceStrength) $CoulombForceStrength.textContent = `${Math.round(thisCoulombForceStrength * 100) / 100}`
+      }
     }
   }
 }
@@ -147,7 +145,8 @@ function rescaleForceScaleBar(particles: Particle[]): number {
   const forceStrengths: number[] = particles.filter(particle => !particle.isEscaped).map(particle => particle.force.length())
   const highestForceStrengthPresent = Math.max(...forceStrengths)
   const arrowScaleForForces = settings.unitArrowLength / highestForceStrengthPresent
-  document.getElementById('force').style.width = `${arrowScaleForForces * 1000000}px`
+  const forceEl = document.getElementById('force')
+  if (forceEl) forceEl.style.width = `${arrowScaleForForces * 1000000}px`
   return arrowScaleForForces
 }
 
@@ -156,7 +155,8 @@ function rescaleVelocityScaleBar(particles: Particle[]): number {
   const highestSpeedPresent = Math.max(...speeds)
   const arrowScaleForVelocities =
     settings.unitArrowLength / highestSpeedPresent
-  document.getElementById('velocity').style.width = `${arrowScaleForVelocities * 1000000}px`
+  const velEl = document.getElementById('velocity')
+  if (velEl) velEl.style.width = `${arrowScaleForVelocities * 1000000}px`
   return arrowScaleForVelocities
 }
 
@@ -173,14 +173,15 @@ function animateOneParticle(i: number, arrowScaleForForces: number, arrowScaleFo
   const thisSpeed = particles[i].velocity.length() // vector -> scalar
   // update positions according to velocity:
   particles[i].position.addScaledVector(particles[i].velocity, settings.dt) // x = x + v·dt
+  if (!particleSystem) return
   particleSystem.geometry.attributes.position.setXYZ(
     i,
     particles[i].position.x,
     particles[i].position.y,
     particles[i].position.z
   )
-  const trajectoryPositions: any = settings.if_showTrajectory
-    ? particles[i].trajectory.geometry.attributes.position
+  const trajectoryPositions: THREE.BufferAttribute | null = (settings.if_showTrajectory && particles[i].trajectory)
+    ? (particles[i].trajectory as THREE.Line).geometry.attributes.position as THREE.BufferAttribute
     : null
   // Check if this particle hit a boundary of the universe (i.e. cell walls). If so, perioidic boundary condition (PBC) might be applied:
   if (settings.if_use_periodic_boundary_condition) {
@@ -196,7 +197,7 @@ function animateOneParticle(i: number, arrowScaleForForces: number, arrowScaleFo
   if (settings.if_showArrows) {
     // let's see whether the camera should trace something (i.e. the reference frame should be moving), defined by user
     // update arrows: (http://jsfiddle.net/pardo/bgyem42v/3/)
-    function updateArrow(arrow, from, vector, scale): void {
+  function updateArrow(arrow: THREE.ArrowHelper, from: THREE.Vector3, vector: THREE.Vector3, scale: number): void {
       const lengthToScale = settings.if_proportionate_arrows_with_vectors
         ? vector.length() * scale
         : settings.unitArrowLength
@@ -223,7 +224,7 @@ function animateOneParticle(i: number, arrowScaleForForces: number, arrowScaleFo
     )
   }
   // update trajectories:
-  if (settings.if_showTrajectory) {
+  if (settings.if_showTrajectory && trajectoryPositions) {
     if (time - lastSnapshotTime > settings.dt) {
       for (let j = 0; j < settings.maxTrajectoryLength - 1; j++) {
         trajectoryPositions.copyAt(j, trajectoryPositions, j + 1)
@@ -239,10 +240,15 @@ function animateOneParticle(i: number, arrowScaleForForces: number, arrowScaleFo
   }
   // update HUD, if visible:
   if (isVisible(document.querySelector('#hud'))) {
-    const $thisRow = document.querySelector(`#tabularInfo > tbody > tr:nth-child(${i + 1})`)
-    $thisRow.querySelector('.speed').textContent = `${Math.round(thisSpeed * 100) / 100}`
-    $thisRow.querySelector('.kineticEnergy').textContent = `${Math.round(thisSpeed * thisSpeed * particles[i].mass * 50) / 100}`
-    $thisRow.querySelector('.TotalForceStrength').textContent = `${particles[i].force ? Math.round(particles[i].force.length() * 100) / 100 : '0'}`
+    const $thisRow = document.querySelector<HTMLElement>(`#tabularInfo > tbody > tr:nth-child(${i + 1})`)
+    if ($thisRow) {
+      const speedEl = $thisRow.querySelector<HTMLElement>('.speed')
+      if (speedEl) speedEl.textContent = `${Math.round(thisSpeed * 100) / 100}`
+      const keEl = $thisRow.querySelector<HTMLElement>('.kineticEnergy')
+      if (keEl) keEl.textContent = `${Math.round(thisSpeed * thisSpeed * particles[i].mass * 50) / 100}`
+      const tfEl = $thisRow.querySelector<HTMLElement>('.TotalForceStrength')
+      if (tfEl) tfEl.textContent = `${particles[i].force ? Math.round(particles[i].force.length() * 100) / 100 : '0'}`
+    }
   }
   if (settings.if_constant_temperature) {
     const currentTemperature = calculateTemperature()
@@ -265,7 +271,7 @@ function animateOneParticle(i: number, arrowScaleForForces: number, arrowScaleFo
 
 function applyPbc(
   thisPosition: THREE.Vector3,
-  trajectoryPositions: THREE.BufferAttribute,
+  trajectoryPositions: THREE.BufferAttribute | null,
   maxTrajectoryLength: number,
   spaceBoundaryX: number,
   spaceBoundaryY: number,
@@ -363,7 +369,9 @@ function animate(): void {
   }
   // =============================== now the rendering ==================================
   // flag to the particle system that we've changed its vertices.
-  particleSystem.geometry.attributes.position.needsUpdate = true
+  if (particleSystem) {
+    particleSystem.geometry.attributes.position.needsUpdate = true
+  }
   // draw this frame
   statistics(temperaturePanel, maxTemperature)
   update()
@@ -388,19 +396,19 @@ function calculateTemperature(): number {
   return temperature
 }
 
-function statistics(temperaturePanel, maxTemperature): void {
+function statistics(panel: { update: (t: number, max: number) => void }, maxTemperature: number): void {
   const temperature = calculateTemperature()
-  temperaturePanel.update(temperature, maxTemperature)
+  panel.update(temperature, maxTemperature)
 }
 
 function update(): void {
   // resize();
   camera.updateProjectionMatrix()
-  controls.update()
+  if (controls) controls.update()
 }
 
-function render(renderer, effect): void {
-  if (ifMobileDevice) {
+function render(renderer: THREE.WebGLRenderer, effect: any): void {
+  if (ifMobileDevice && effect) {
     effect.render(scene, camera)
   } else {
     renderer.render(scene, camera)
@@ -409,7 +417,7 @@ function render(renderer, effect): void {
 
 // when document is ready:
 // Source: https://stackoverflow.com/a/9899701/1147061
-function docReady(fn): void {
+function docReady(fn: () => void): void {
   // see if DOM is already available
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     // call on next available tick
@@ -427,7 +435,7 @@ docReady(() => {
     lastSnapshotTime)
 
   scene = values[0]
-  particleSystem = values[1]
+  particleSystem = values[1] as THREE.Points
   camera = values[2]
   renderer = values[3]
   controls = values[4]
