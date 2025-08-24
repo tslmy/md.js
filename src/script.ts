@@ -4,7 +4,7 @@ import { toggle } from './control/panel.js'
 import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
 import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
-import * as THREE from 'three'
+import { Scene, Camera, PerspectiveCamera, WebGLRenderer, Color, Line, Vector3, BufferAttribute } from 'three'
 // New SoA simulation core imports
 import { createState, seedInitialState, type SimulationState } from './core/simulation/state.js'
 import { generateMassesCharges, generatePositions } from './core/simulation/seeding.js'
@@ -16,17 +16,16 @@ import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEY
 import { InstancedArrows } from './visual/InstancedArrows.js'
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
 import { makeTrajectory } from './visual/drawingHelpers.js'
-import { Vector3 } from 'three'
 
 // global variables
-interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
+interface StereoEffectLike { render(scene: Scene, camera: Camera): void; setSize?(w: number, h: number): void }
 interface ControlsLike { update(): void }
 interface StatsLike { update(): void }
 interface TemperaturePanelLike { update(t: number, max: number): void }
 
-let camera: THREE.PerspectiveCamera
-let scene: THREE.Scene
-let renderer: THREE.WebGLRenderer
+let camera: PerspectiveCamera
+let scene: Scene
+let renderer: WebGLRenderer
 let effect: StereoEffectLike | undefined
 let controls: ControlsLike | undefined
 let temperaturePanel: TemperaturePanelLike
@@ -43,14 +42,14 @@ let sphereMesh: InstancedSpheres | undefined
 let sphereCloneMesh: InstancedSpheres | undefined
 
 // Array of per-particle colors.
-const colors: THREE.Color[] = []
+const colors: Color[] = []
 // Separate per-particle trajectory Line objects (optional)
-const trajectories: (THREE.Line | null)[] = []
+const trajectories: (Line | null)[] = []
 let time = 0
 let lastSnapshotTime = 0
 
 // Expose minimal state for headless smoke tests (non-production usage)
-declare global { interface Window { __mdjs?: { colors: THREE.Color[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics }; __pauseEngine?: () => void } }
+declare global { interface Window { __mdjs?: { colors: Color[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics }; __pauseEngine?: () => void } }
 
 /**
  * el: the DOM element you'd like to test for visibility.
@@ -74,7 +73,7 @@ function updateScaleBars(diag: Diagnostics | undefined): void {
 
 // ArrowHelpers removed; future instanced arrow system will centralize vector -> transform logic.
 
-function updateTrajectoryBuffer(pos: THREE.Vector3, trajectory: THREE.BufferAttribute, maxLen: number): void {
+function updateTrajectoryBuffer(pos: Vector3, trajectory: BufferAttribute, maxLen: number): void {
   for (let j = 0; j < maxLen - 1; j++) trajectory.copyAt(j, trajectory, j + 1)
   trajectory.setXYZ(maxLen - 1, pos.x, pos.y, pos.z)
   trajectory.needsUpdate = true
@@ -106,11 +105,11 @@ function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: 
   }
 }
 
-const _tmpDir = new THREE.Vector3()
-const _tmpFrom = new THREE.Vector3()
+const _tmpDir = new Vector3()
+const _tmpFrom = new Vector3()
 
 /** Update instanced velocity & force arrows with current SoA state & diagnostics-based scaling. */
-function updateArrows(diag: Diagnostics, frameOffset: THREE.Vector3): void {
+function updateArrows(diag: Diagnostics, frameOffset: Vector3): void {
   if (!simState || !velArrows || !forceArrows) return
   const { positions, velocities, forces, N } = simState
   // Determine scales (unitArrowLength normalized against max mags) with safe fallbacks
@@ -118,8 +117,8 @@ function updateArrows(diag: Diagnostics, frameOffset: THREE.Vector3): void {
   const forceNorm = diag.maxForceMag > 0 ? settings.unitArrowLength / diag.maxForceMag : 1
   const limit = settings.if_limitArrowsMaxLength
   const maxLen = settings.maxArrowLength
-  const tmpOrigin = new THREE.Vector3()
-  const tmpVec = new THREE.Vector3()
+  const tmpOrigin = new Vector3()
+  const tmpVec = new Vector3()
   for (let i = 0; i < N; i++) {
     const i3 = 3 * i
     // Skip escaped particles (render nothing = zero-length dir)
@@ -146,7 +145,7 @@ function updateArrows(diag: Diagnostics, frameOffset: THREE.Vector3): void {
   }
 }
 
-function updateFromSimulation(frameOffset: THREE.Vector3): void {
+function updateFromSimulation(frameOffset: Vector3): void {
   if (!engine || !simState) return
   const hudVisible = isVisible(document.querySelector('#hud'))
   const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt)
@@ -155,7 +154,7 @@ function updateFromSimulation(frameOffset: THREE.Vector3): void {
   if (sphereMesh && simState) updateSpheres(frameOffset)
 }
 
-function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3, perForce: Record<string, Float32Array>): void {
+function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: Vector3, perForce: Record<string, Float32Array>): void {
   if (!simState) return
   const { positions, velocities, forces, masses } = simState
   // Prefer authoritative escaped flag from core state over legacy per-Particle flag.
@@ -167,7 +166,7 @@ function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift:
   // We'll update p.position after applying frame offset / PBC so tests & UI see displayed coordinates.
   const traj = settings.if_showTrajectory ? trajectories[i] : null
   const trajectoryAttr = (settings.if_showTrajectory && traj)
-    ? traj.geometry.getAttribute('position') as THREE.BufferAttribute
+    ? traj.geometry.getAttribute('position') as BufferAttribute
     : null
   if (settings.if_use_periodic_boundary_condition) {
     _tmpDir.set(px, py, pz)
@@ -183,39 +182,39 @@ function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift:
   if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz, perForce })
 }
 
-function updateSpheres(frameOffset: THREE.Vector3): void {
+function updateSpheres(frameOffset: Vector3): void {
   if (!simState || !sphereMesh) return
   renderPrimarySpheres(frameOffset)
   renderCloneSpheres(frameOffset)
 }
 
-function renderPrimarySpheres(frameOffset: THREE.Vector3): void {
+function renderPrimarySpheres(frameOffset: Vector3): void {
   if (!simState || !sphereMesh) return
   const { positions, masses, N, escaped } = simState
-  const tmpPos = new THREE.Vector3()
+  const tmpPos = new Vector3()
   for (let i = 0; i < N; i++) {
-    if (escaped && escaped[i] === 1) { sphereMesh.update(i, tmpPos.set(0, -9999, 0), 0.0001, new THREE.Color(0x333333)); continue }
+    if (escaped && escaped[i] === 1) { sphereMesh.update(i, tmpPos.set(0, -9999, 0), 0.0001, new Color(0x333333)); continue }
     const i3 = 3 * i
     tmpPos.set(positions[i3] - frameOffset.x, positions[i3 + 1] - frameOffset.y, positions[i3 + 2] - frameOffset.z)
     const m = masses[i] || 1
     const radius = 0.08 * Math.cbrt(m / 10)
-    sphereMesh.update(i, tmpPos, radius, colors[i] || new THREE.Color(0xffffff))
+    sphereMesh.update(i, tmpPos, radius, colors[i] || new Color(0xffffff))
   }
   sphereMesh.commit()
 }
 
-function renderCloneSpheres(frameOffset: THREE.Vector3): void {
+function renderCloneSpheres(frameOffset: Vector3): void {
   if (!simState || !sphereCloneMesh) return
   const visible = settings.if_use_periodic_boundary_condition
   sphereCloneMesh.setVisible(visible)
   if (!visible) return
   const { positions, masses, N, escaped } = simState
   const cloneOffsets = makeClonePositionsList(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ)
-  const clonePos = new THREE.Vector3()
+  const clonePos = new Vector3()
   let baseIndex = 0
   for (const offset of cloneOffsets) {
     for (let i = 0; i < N; i++) {
-      if (escaped && escaped[i] === 1) { sphereCloneMesh.update(baseIndex + i, clonePos.set(0, -9999, 0), 0.0001, new THREE.Color(0x333333)); continue }
+      if (escaped && escaped[i] === 1) { sphereCloneMesh.update(baseIndex + i, clonePos.set(0, -9999, 0), 0.0001, new Color(0x333333)); continue }
       const i3 = 3 * i
       clonePos.set(
         positions[i3] - frameOffset.x + offset.x,
@@ -224,7 +223,7 @@ function renderCloneSpheres(frameOffset: THREE.Vector3): void {
       )
       const m = masses[i] || 1
       const radius = 0.08 * Math.cbrt(m / 10)
-      sphereCloneMesh.update(baseIndex + i, clonePos, radius, colors[i] || new THREE.Color(0xffffff))
+      sphereCloneMesh.update(baseIndex + i, clonePos, radius, colors[i] || new Color(0xffffff))
     }
     baseIndex += N
   }
@@ -233,7 +232,7 @@ function renderCloneSpheres(frameOffset: THREE.Vector3): void {
 
 // Removed legacy applyParticleVisualUpdate; loop logic in updateFromSimulation now works directly off SoA arrays.
 
-function applyPbc(pos: THREE.Vector3, trajectory: THREE.BufferAttribute | null, maxLen: number, bx: number, by: number, bz: number): void {
+function applyPbc(pos: Vector3, trajectory: BufferAttribute | null, maxLen: number, bx: number, by: number, bz: number): void {
   const wrapAxis = (axis: 'x' | 'y' | 'z', boundary: number, adjust: (delta: number) => void) => {
     while (pos[axis] < -boundary) { pos[axis] += 2 * boundary; adjust(2 * boundary) }
     while (pos[axis] > boundary) { pos[axis] -= 2 * boundary; adjust(-2 * boundary) }
@@ -281,10 +280,10 @@ function applyVisualUpdates(): void {
  *  - sun: subtract position of particle 0
  *  - com: subtract instantaneous center-of-mass (translational DOF removal)
  */
-function computeFrameOffset(): THREE.Vector3 {
-  if (!simState) return new THREE.Vector3(0, 0, 0)
+function computeFrameOffset(): Vector3 {
+  if (!simState) return new Vector3(0, 0, 0)
   if (settings.referenceFrameMode === 'sun' && simState.N > 0) {
-    return new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
+    return new Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
   }
   if (settings.referenceFrameMode === 'com') {
     const { masses, positions, N } = simState
@@ -293,9 +292,9 @@ function computeFrameOffset(): THREE.Vector3 {
       const i3 = 3 * i; const m = masses[i] || 1
       mx += m * positions[i3]; my += m * positions[i3 + 1]; mz += m * positions[i3 + 2]; mTot += m
     }
-    if (mTot > 0) return new THREE.Vector3(mx / mTot, my / mTot, mz / mTot)
+    if (mTot > 0) return new Vector3(mx / mTot, my / mTot, mz / mTot)
   }
-  return new THREE.Vector3(0, 0, 0)
+  return new Vector3(0, 0, 0)
 }
 
 
@@ -305,7 +304,7 @@ function update(): void {
   if (controls) controls.update()
 }
 
-function render(renderer: THREE.WebGLRenderer, effect: StereoEffectLike | undefined): void {
+function render(renderer: WebGLRenderer, effect: StereoEffectLike | undefined): void {
   if (ifMobileDevice && effect) {
     effect.render(scene, camera)
   } else {
@@ -400,8 +399,8 @@ docReady(() => {
       for (let i = 0; i < simState.N; i++) {
         if (!trajectories[i]) {
           const i3 = 3 * i
-          const pos = new THREE.Vector3(simState.positions[i3], simState.positions[i3 + 1], simState.positions[i3 + 2])
-          const color = colors[i] || new THREE.Color(0xffffff)
+          const pos = new Vector3(simState.positions[i3], simState.positions[i3 + 1], simState.positions[i3 + 2])
+          const color = colors[i] || new Color(0xffffff)
           const line = makeTrajectory(color, pos, settings.maxTrajectoryLength)
           scene.add(line)
           trajectories[i] = line
@@ -426,7 +425,7 @@ docReady(() => {
     // Hide any legacy point-sprite based objects (main + periodic clones) to avoid lingering dots.
     scene.traverse(obj => { if ((obj as unknown as { isPoints?: boolean }).isPoints) obj.visible = false })
     // Initialize sphere transforms/colors immediately
-    updateSpheres(new THREE.Vector3(0, 0, 0))
+    updateSpheres(new Vector3(0, 0, 0))
     // Restore visual trajectories if present (after ensuring lines exist)
     if (settings.if_showTrajectory) loadVisualDataFromLocal(trajectories)
   }
