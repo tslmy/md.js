@@ -17,6 +17,7 @@ import { InstancedSpheres } from './visual/InstancedSpheres.js'
 import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer, applyPbc } from './visual/trajectory.js'
 import { createArrows, updateScaleBars, finalizeArrows, type ArrowSet } from './visual/arrows.js'
 import { getHud } from './visual/coloringAndDataSheet.js'
+import { computeCircularOrbitVelocity } from './core/simulation/orbitInit.js'
 
 // global variables
 interface StereoEffectLike { render(scene: Scene, camera: Camera): void; setSize?(w: number, h: number): void }
@@ -275,33 +276,15 @@ docReady(() => {
     // extreme radial infall + sling ejection that occurs when starting from zero
     // velocity near a 1/r^2 singular attraction.
     if (settings.if_makeSun && simState.N > 1) {
+      console.log('Seeding circular orbit velocities for particles.')
       const Msun = simState.masses[0] || settings.sunMass || 1
       const G = settings.G
       const pos = simState.positions
       const vel = simState.velocities
       for (let i = 1; i < simState.N; i++) {
         const i3 = 3 * i
-        const rx = pos[i3]
-        const ry = pos[i3 + 1]
-        const rz = pos[i3 + 2]
-        const r = Math.hypot(rx, ry, rz)
-        if (r < 1e-6) continue // skip degenerate
-        // Circular orbit speed (point mass approximation)
-        const vmag = Math.sqrt(G * Msun / r)
-        // Choose tangential direction roughly perpendicular to radial vector.
-        // Simplicity: constrain to instantaneous projection in XY plane for visual clarity.
-  const rxy = Math.hypot(rx, ry)
-  let tx: number; let ty: number; const tz = 0
-        if (rxy < 1e-8) {
-          // Radial almost along Z; pick +X as tangent
-            tx = 1; ty = 0
-        } else {
-          // 2D rotation by +90°: (-y, x) normalized
-          tx = -ry / rxy; ty = rx / rxy
-        }
-        vel[i3] = tx * vmag
-        vel[i3 + 1] = ty * vmag
-        vel[i3 + 2] = tz * vmag
+        const { vx, vy, vz } = computeCircularOrbitVelocity(pos[i3], pos[i3 + 1], pos[i3 + 2], Msun, G)
+        vel[i3] = vx; vel[i3 + 1] = vy; vel[i3 + 2] = vz
       }
     }
     engine = new SimulationEngine(fromSettings(settings))
