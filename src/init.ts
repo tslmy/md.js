@@ -20,7 +20,7 @@ type SettingsLike = typeof liveSettings
 
 const ifMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
-function fullscreen (): void {
+function fullscreen(): void {
   const b = document.body as HTMLElement & { msRequestFullscreen?: () => void; mozRequestFullScreen?: () => void; webkitRequestFullscreen?: () => void }
   if (b.requestFullscreen) b.requestFullscreen()
   else if (b.msRequestFullscreen) b.msRequestFullscreen()
@@ -28,7 +28,7 @@ function fullscreen (): void {
   else if (b.webkitRequestFullscreen) b.webkitRequestFullscreen()
 }
 
-export function init (settings: SettingsLike, particles: Particle[]): [THREE.Scene, null, THREE.PerspectiveCamera, THREE.WebGLRenderer, OrbitControls, Stats, { update: (t:number, max:number)=>void }, StereoEffect | undefined] {
+export function init(settings: SettingsLike, particles: Particle[]): [THREE.Scene, null, THREE.PerspectiveCamera, THREE.WebGLRenderer, OrbitControls, Stats, { update: (t: number, max: number) => void }, StereoEffect | undefined] {
   const scene = new THREE.Scene()
   if (settings.if_useFog) scene.fog = new THREE.Fog(0xffffff, 0, 20)
   // Optional wireframe box
@@ -54,9 +54,9 @@ export function init (settings: SettingsLike, particles: Particle[]): [THREE.Sce
   document.body.appendChild(element)
 
   const controls = new OrbitControls(camera, element)
-  function setOrientationControls (e: DeviceOrientationEvent): void {
+  function setOrientationControls(e: DeviceOrientationEvent): void {
     if (!e.alpha) return
-  const devCtrls = new DeviceOrientationControls(camera, true)
+    const devCtrls = new DeviceOrientationControls(camera, true)
     devCtrls.connect(); devCtrls.update()
     element.addEventListener('click', fullscreen, false)
     window.removeEventListener('deviceorientation', setOrientationControls, true)
@@ -64,8 +64,8 @@ export function init (settings: SettingsLike, particles: Particle[]): [THREE.Sce
   window.addEventListener('deviceorientation', setOrientationControls, true)
 
   const stats = new Stats()
-  const PanelCtor = (Stats as unknown as { Panel: new (n:string, fg:string, bg:string)=>unknown }).Panel
-  const temperaturePanel = stats.addPanel(new PanelCtor('Temp.', '#ff8', '#221')) as { update: (t:number, max:number)=>void }
+  const PanelCtor = (Stats as unknown as { Panel: new (n: string, fg: string, bg: string) => unknown }).Panel
+  const temperaturePanel = stats.addPanel(new PanelCtor('Temp.', '#ff8', '#221')) as { update: (t: number, max: number) => void }
   stats.showPanel(2)
   document.body.append(stats.domElement)
 
@@ -76,7 +76,7 @@ export function init (settings: SettingsLike, particles: Particle[]): [THREE.Sce
   return [scene, null, camera, renderer, controls, stats, temperaturePanel, effect]
 }
 
-function resize (camera: THREE.PerspectiveCamera, effect: StereoEffect | undefined, renderer: THREE.WebGLRenderer): void {
+function resize(camera: THREE.PerspectiveCamera, effect: StereoEffect | undefined, renderer: THREE.WebGLRenderer): void {
   const width = document.body.offsetWidth
   const height = document.body.offsetHeight
   camera.aspect = width / height
@@ -86,7 +86,7 @@ function resize (camera: THREE.PerspectiveCamera, effect: StereoEffect | undefin
 }
 
 let _activeGui: dat.GUI | null = null
-function initializeGuiControls (settings: SettingsLike, boxMesh: THREE.Object3D | null): void {
+function initializeGuiControls(settings: SettingsLike, boxMesh: THREE.Object3D | null): void {
   try { _activeGui?.destroy(); _activeGui = null } catch { /* ignore */ }
   const gui = new dat.GUI(); _activeGui = gui
   const guiFolderWorld = gui.addFolder('World building')
@@ -127,9 +127,8 @@ function initializeGuiControls (settings: SettingsLike, boxMesh: THREE.Object3D 
   guiFolderArrows.add(settings, 'maxArrowLength').name('Max length')
   guiFolderArrows.add(settings, 'unitArrowLength').name('Unit length')
   guiFolderArrows.add(settings, 'if_showMapscale').name('Show scales').onChange(() => { toggle('.mapscale') })
-  guiFolderArrows.add(settings, 'if_proportionate_arrows_with_vectors').name('Proportionate arrows with vectors')
   const commands = {
-  stop: () => { try { (window as unknown as { __pauseEngine?: () => void }).__pauseEngine?.() } catch { /* ignore */ } },
+    stop: () => { try { (window as unknown as { __pauseEngine?: () => void }).__pauseEngine?.() } catch { /* ignore */ } },
     toggleHUD: () => { toggle('#hud') },
     newWorld: () => { resetWorld() },
     randomizeParticles: () => {
@@ -158,7 +157,7 @@ function initializeGuiControls (settings: SettingsLike, boxMesh: THREE.Object3D 
   gui.close()
 }
 
-export function toggle (selector: string): void {
+export function toggle(selector: string): void {
   const el = document.querySelector<HTMLElement>(selector)
   if (!el) return
   el.style.display = (el.style.display === 'none') ? 'block' : 'none'

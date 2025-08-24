@@ -343,7 +343,7 @@ docReady(() => {
 
   const values = init(settings, particles)
   scene = values[0]
-  // values[1] (legacy particleSystem) ignored
+  // values[1] was a legacy placeholder (always null) – removed
   camera = values[2]
   renderer = values[3]
   controls = values[4]

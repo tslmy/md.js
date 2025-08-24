@@ -100,11 +100,9 @@ export function downloadSnapshot(engine: SimulationEngine): void {
  */
 export function resetWorld(): void {
   try {
-  // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
-  saveUserSettings()
+    // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
+    saveUserSettings()
     clearStoredSnapshot()
-    // Remove legacy key for users upgrading mid-session
-    localStorage.removeItem('mdJsState')
   } catch (e) {
     console.warn('Failed clearing stored snapshot(s):', e)
   }
