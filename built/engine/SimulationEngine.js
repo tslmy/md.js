@@ -151,6 +151,8 @@ export class SimulationEngine {
     getForces() { return this.sim.getForces(); }
     /** Per-force decomposition (proxy to underlying Simulation). */
     getPerForceContributions() { return this.sim.getPerForceContributions(); }
+    /** Set simulation time (used during hydration). */
+    setTime(t) { this.state.time = t; }
     /** Seed initial state arrays (positions, velocities, masses, charges). Call before run(). */
     seed(p) {
         if (p.positions)
