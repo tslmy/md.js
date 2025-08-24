@@ -1,5 +1,6 @@
 import { settings } from './control/settings.js'
-import { init, ifMobileDevice, toggle } from './init.js'
+import { init, ifMobileDevice } from './init.js'
+import { toggle } from './control/panel.js'
 import { saveToLocal, loadFromLocal } from './engine/persistence/storage.js'
 import { loadUserSettings, saveUserSettings } from './control/persistence/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persistence/visual.js'
@@ -15,6 +16,7 @@ import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEY
 import { InstancedArrows } from './visual/three/InstancedArrows.js'
 import { InstancedSpheres } from './visual/three/InstancedSpheres.js'
 import { Vector3 } from 'three'
+
 // global variables
 interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
 interface ControlsLike { update(): void }
