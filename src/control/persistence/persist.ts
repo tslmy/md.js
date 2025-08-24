@@ -5,7 +5,7 @@ const SETTINGS_KEY = 'mdJsUserSettings'
 // Backward compatibility: if an older (subset) object is found, we still map its fields.
 
 /** Persist current UI settings (full object). */
-export function saveUserSettings(): void {
+export function saveSettingsToLocal(): void {
     try {
         const clone: Record<string, unknown> = {}
         const src: Record<string, unknown> = settings as unknown as Record<string, unknown>
@@ -18,7 +18,7 @@ export function saveUserSettings(): void {
 }
 
 /** Load persisted settings into mutable settings object (if present). */
-export function loadUserSettings(): boolean {
+export function loadSettingsFromLocal(): boolean {
     try {
         const raw = localStorage.getItem(SETTINGS_KEY)
         if (!raw) return false
@@ -34,4 +34,11 @@ export function loadUserSettings(): boolean {
         if (data && typeof data === 'object') Object.assign(settings, data as Record<string, unknown>)
         return true
     } catch { return false }
+}
+
+/** Clear persisted settings from localStorage. */
+export function clearSettingsInLocal(): void {
+    try {
+        localStorage.removeItem(SETTINGS_KEY)
+    } catch { /* ignore */ }
 }

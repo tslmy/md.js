@@ -6,8 +6,8 @@ import { GUI } from 'dat.gui'
 import { Object3D } from 'three'
 
 import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults, settings as liveSettings } from './settings.js'
-import { clearEngineSnapshotInLocal } from '../engine/persistence/storage.js'
-import { saveUserSettings } from './persistence/persist.js'
+import { clearEngineSnapshotInLocal } from '../engine/persistence/persist.js'
+import { saveSettingsToLocal } from './persistence/persist.js'
 import { clearVisualDataInLocal } from '../visual/persistence/visual.js'
 
 // Narrow settings type (duck typed from settings.ts export)
@@ -68,7 +68,7 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
         randomizeParticles: () => {
             try {
                 // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
-                saveUserSettings()
+                saveSettingsToLocal()
                 clearVisualDataInLocal()
                 clearEngineSnapshotInLocal()
             } catch (e) {
@@ -88,7 +88,7 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
                 boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY
                 boxMesh.scale.z = settings.spaceBoundaryZ / originalSpaceBoundaryZ
             }
-            try { saveUserSettings() } catch (e) { console.warn('Failed saving user settings:', e) }
+            try { saveSettingsToLocal() } catch (e) { console.warn('Failed saving user settings:', e) }
         }
     }
     guiFolderWorld.add(commands, 'randomizeParticles').name('New world')

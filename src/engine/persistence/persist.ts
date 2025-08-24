@@ -7,9 +7,10 @@
  */
 import type { EngineConfig } from '../config/types.js'
 import { SimulationEngine } from '../SimulationEngine.js'
+const KEY = 'mdJsEngineSnapshot'
 
 /** Serialized representation of engine core state. */
-export interface EngineSnapshot {
+interface EngineSnapshot {
   /** Snapshot schema version (increment when layout changes). */
   version: 1
   /** Deep clone of the engine configuration at snapshot time. */
@@ -26,6 +27,13 @@ export interface EngineSnapshot {
   charges: number[]
   /** Escaped flags (length N, 0|1). */
   escaped: number[]
+}
+
+interface LoadResult {
+  /** Hydrated engine instance (not started). */
+  engine: SimulationEngine
+  /** Raw snapshot used for hydration (for UI display / diff). */
+  snapshot: EngineSnapshot
 }
 
 /** Capture a snapshot of the current engine state (copying arrays).
@@ -51,7 +59,7 @@ export function snapshot(engine: SimulationEngine): EngineSnapshot {
  * Create a new engine from a prior snapshot. Caller can then call run().
  * Assumes snapshot integrity was previously validated.
  */
-export function hydrate(snap: EngineSnapshot): SimulationEngine {
+function hydrate(snap: EngineSnapshot): SimulationEngine {
   if (snap.version !== 1) throw new Error('Unsupported snapshot version ' + String((snap as { version: number }).version))
   const eng = new SimulationEngine(snap.config)
   eng.seed({
@@ -68,8 +76,34 @@ export function hydrate(snap: EngineSnapshot): SimulationEngine {
   eng.setTime(snap.time)
   return eng
 }
+/** Serialize and persist the current engine snapshot into localStorage. */
+export function saveToLocal(engine: SimulationEngine): void {
+  try {
+    const snap = snapshot(engine)
+    localStorage.setItem(KEY, JSON.stringify(snap))
+  } catch (e) {
+    console.warn('Failed to save engine snapshot:', e)
+  }
+}
 
-// NOTE: This module intentionally does not touch browser storage. See `storage.ts` for
-// localStorage integration helpers to avoid coupling core snapshot logic to a host API.
+/** Attempt to load and hydrate a previously stored snapshot; returns null if absent or invalid. */
+export function loadEngineFromLocal(): LoadResult | null {
+  const raw = localStorage.getItem(KEY)
+  if (!raw) return null
+  try {
+    const snap = JSON.parse(raw) as EngineSnapshot
+    if (snap.version !== 1) {
+      console.warn('Unsupported snapshot version; ignoring')
+      return null
+    }
+    return { engine: hydrate(snap), snapshot: snap }
+  } catch (e) {
+    console.warn('Failed to parse stored engine snapshot:', e)
+    return null
+  }
+}
+/** Remove the stored snapshot (no-op if absent). */
 
-// (Removed deprecated configFromSettings helper; construct EngineConfig via fromSettings directly where needed.)
+export function clearEngineSnapshotInLocal(): void {
+  localStorage.removeItem(KEY)
+}

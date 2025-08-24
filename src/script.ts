@@ -1,8 +1,8 @@
 import { settings } from './control/settings.js'
 import { init, ifMobileDevice } from './init.js'
 import { toggle } from './control/panel.js'
-import { saveToLocal, loadEngineFromLocal } from './engine/persistence/storage.js'
-import { loadUserSettings, saveUserSettings } from './control/persistence/persist.js'
+import { saveToLocal, loadEngineFromLocal } from './engine/persistence/persist.js'
+import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persistence/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persistence/visual.js'
 import * as THREE from 'three'
 import { Particle } from './particleSystem.js'
@@ -332,7 +332,7 @@ docReady(() => {
 
   // Attempt to hydrate engine first (if snapshot present) BEFORE building visual particle system.
   // Load persisted user settings first so fresh world uses them if no snapshot.
-  loadUserSettings()
+  loadSettingsFromLocal()
   const loaded = loadEngineFromLocal()
   if (loaded) {
     engine = loaded.engine
@@ -413,7 +413,7 @@ docReady(() => {
   window.__pauseEngine = () => { engine?.pause() }
   // Install full-state persistence handler (overrides placeholder in init.js)
   window.onbeforeunload = () => {
-    try { saveUserSettings() } catch { /* ignore */ }
+    try { saveSettingsToLocal() } catch { /* ignore */ }
     if (engine) {
       // Collect trajectory buffers (if any) for persistence
       if (settings.if_showTrajectory) { saveVisualDataToLocal(particles) }
