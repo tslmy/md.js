@@ -41,6 +41,8 @@ const settings = {
   if_limitArrowsMaxLength: true,
   if_constant_temperature: false,
   ifRun: true,
+  // EXPERIMENTAL: opt into new SimulationEngine orchestration path.
+  useNewEngine: true,
   // physical constants -- be the god!
   EPSILON: 1,
   DELTA: 0.02,
