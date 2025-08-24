@@ -193,26 +193,22 @@ function applyVisualUpdates(): void {
  *  - com: subtract instantaneous center-of-mass (translational DOF removal)
  */
 function computeFrameOffset(): THREE.Vector3 {
-  if (!simState) return new THREE.Vector3(0,0,0)
+  if (!simState) return new THREE.Vector3(0, 0, 0)
   if (settings.referenceFrameMode === 'sun' && simState.N > 0) {
     return new THREE.Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
   }
   if (settings.referenceFrameMode === 'com') {
     const { masses, positions, N } = simState
-    let mx=0,my=0,mz=0,mTot=0
-    for (let i=0;i<N;i++) {
-      const i3=3*i; const m=masses[i]||1
-      mx += m*positions[i3]; my += m*positions[i3+1]; mz += m*positions[i3+2]; mTot += m
+    let mx = 0, my = 0, mz = 0, mTot = 0
+    for (let i = 0; i < N; i++) {
+      const i3 = 3 * i; const m = masses[i] || 1
+      mx += m * positions[i3]; my += m * positions[i3 + 1]; mz += m * positions[i3 + 2]; mTot += m
     }
-    if (mTot>0) return new THREE.Vector3(mx/mTot, my/mTot, mz/mTot)
+    if (mTot > 0) return new THREE.Vector3(mx / mTot, my / mTot, mz / mTot)
   }
-  return new THREE.Vector3(0,0,0)
+  return new THREE.Vector3(0, 0, 0)
 }
 
-/**
- * Compute & expose latest diagnostics snapshot (energy, temperature, extrema).
- */
-// Diagnostics now provided via engine events; legacy function removed.
 function calculateTemperature(): number {
   if (!simState) return 0
   const { velocities, masses, N } = simState
