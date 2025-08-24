@@ -11,41 +11,20 @@ import { settings } from '../../settings.js'
 const KEY = 'mdJsEngineSnapshot'
 const SETTINGS_KEY = 'mdJsUserSettings'
 
-interface PersistedSettings {
-  particleCount: number
-  spaceBoundaryX: number
-  spaceBoundaryY: number
-  spaceBoundaryZ: number
-  cutoffDistance: number
-  dt: number
-  if_apply_LJpotential: boolean
-  if_apply_gravitation: boolean
-  if_apply_coulombForce: boolean
-  EPSILON: number; DELTA: number; G: number; K: number; kB: number
-}
+// We now persist the full settings object (JSON-serializable fields only) for broader config retention.
+// Backward compatibility: if an older (subset) object is found, we still map its fields.
 
-function captureSettings(): PersistedSettings {
-  return {
-    particleCount: settings.particleCount,
-    spaceBoundaryX: settings.spaceBoundaryX,
-    spaceBoundaryY: settings.spaceBoundaryY,
-    spaceBoundaryZ: settings.spaceBoundaryZ,
-    cutoffDistance: settings.cutoffDistance,
-    dt: settings.dt,
-    if_apply_LJpotential: !!settings.if_apply_LJpotential,
-    if_apply_gravitation: !!settings.if_apply_gravitation,
-    if_apply_coulombForce: !!settings.if_apply_coulombForce,
-    EPSILON: settings.EPSILON,
-    DELTA: settings.DELTA,
-    G: settings.G,
-    K: settings.K,
-    kB: settings.kB
-  }
-}
-
-/** Persist current UI settings (subset used to build a new world). */
+/** Persist current UI settings (full object). */
 export function saveUserSettings(): void {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(captureSettings())) } catch { /* ignore */ }
+  try {
+    const clone: Record<string, unknown> = {}
+    const src: Record<string, unknown> = settings as unknown as Record<string, unknown>
+    for (const k of Object.keys(src)) {
+      const v = src[k]
+      if (typeof v !== 'function') clone[k] = v
+    }
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ __v: 2, data: clone }))
+  } catch { /* ignore */ }
 }
 
 /** Load persisted settings into mutable settings object (if present). */
@@ -53,21 +32,16 @@ export function loadUserSettings(): boolean {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (!raw) return false
-    const data = JSON.parse(raw) as PersistedSettings
-    settings.particleCount = data.particleCount
-    settings.spaceBoundaryX = data.spaceBoundaryX
-    settings.spaceBoundaryY = data.spaceBoundaryY
-    settings.spaceBoundaryZ = data.spaceBoundaryZ
-    settings.cutoffDistance = data.cutoffDistance
-    settings.dt = data.dt
-    settings.if_apply_LJpotential = data.if_apply_LJpotential
-    settings.if_apply_gravitation = data.if_apply_gravitation
-    settings.if_apply_coulombForce = data.if_apply_coulombForce
-    settings.EPSILON = data.EPSILON
-    settings.DELTA = data.DELTA
-    settings.G = data.G
-    settings.K = data.K
-    settings.kB = data.kB
+    const parsed = JSON.parse(raw)
+    let data: unknown
+    if (parsed && parsed.__v === 2 && parsed.data) {
+      data = parsed.data
+    } else {
+      // Legacy subset layout
+      data = parsed
+    }
+    if (!data) return false
+    if (data && typeof data === 'object') Object.assign(settings, data as Record<string, unknown>)
     return true
   } catch { return false }
 }

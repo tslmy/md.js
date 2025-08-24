@@ -65,6 +65,24 @@ export function initSettingsSync(engine: SimulationEngine): void {
     engine.on('stateReallocated', () => { /* no-op; config event covers count */ })
 }
 
+/** Wire a settings change handler (e.g., from dat.GUI) to automatically push to engine. */
+export function registerAutoPush(engine: SimulationEngine, keys: string[]): void {
+    const handler = () => { pushSettingsToEngine(engine) }
+    // naive polling-free approach: define property setters for listed keys
+    for (const k of keys) {
+        if (!(k in settings)) continue
+        const desc = Object.getOwnPropertyDescriptor(settings, k)
+        if (desc?.set) continue // already accessor
+        let value = (settings as Record<string, unknown>)[k]
+        Object.defineProperty(settings, k, {
+            configurable: true,
+            enumerable: true,
+            get() { return value },
+            set(v) { value = v; handler() }
+        })
+    }
+}
+
 /** Construct a brand new engine from current settings (one-way). */
 export function createEngineFromSettings(): SimulationEngine {
     const cfg = fromSettings(settings)

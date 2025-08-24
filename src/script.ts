@@ -9,7 +9,7 @@ import type { Diagnostics } from './core/simulation/diagnostics.js'
 // Experimental engine
 import { SimulationEngine } from './engine/SimulationEngine.js'
 import { fromSettings } from './engine/config/types.js'
-import { initSettingsSync, pushSettingsToEngine } from './engine/settingsSync.js'
+import { initSettingsSync, pushSettingsToEngine, registerAutoPush } from './engine/settingsSync.js'
 // global variables
 interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
 interface ControlsLike { update(): void }
@@ -273,9 +273,20 @@ docReady(() => {
     engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
     simState = engine.getState()
     initSettingsSync(engine)
+    // Auto-push: wrap selected mutable settings with setters triggering engine.updateConfig
+    registerAutoPush(engine, [
+      'particleCount', 'spaceBoundaryX', 'spaceBoundaryY', 'spaceBoundaryZ',
+      'dt', 'cutoffDistance', 'if_apply_LJpotential', 'if_apply_gravitation', 'if_apply_coulombForce',
+      'EPSILON', 'DELTA', 'G', 'K', 'kB'
+    ])
   } else {
     simState = engine.getState()
     initSettingsSync(engine)
+    registerAutoPush(engine, [
+      'particleCount', 'spaceBoundaryX', 'spaceBoundaryY', 'spaceBoundaryZ',
+      'dt', 'cutoffDistance', 'if_apply_LJpotential', 'if_apply_gravitation', 'if_apply_coulombForce',
+      'EPSILON', 'DELTA', 'G', 'K', 'kB'
+    ])
   }
   engine.on('frame', ({ time: t }) => { time = t; applyVisualUpdates() })
   engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
