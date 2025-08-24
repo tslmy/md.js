@@ -8,15 +8,13 @@ import { SimulationState, index3 } from './state.js'
  *  - Forces act like pushes / pulls. Given a force and a particle's mass we derive acceleration (push strength per mass).
  *  - An integrator uses the forces to update velocities & positions over a small timestep dt.
  *  - Different integrators trade implementation simplicity vs. numerical stability (how well they conserve energy over time).
+ *
+ * Contract:
+ *  - Implementations MUST advance state.time by exactly dt.
+ *  - They MAY invoke `recomputeForces` 0+ times (Verlet variants need 1 extra pass).
+ *  - They MUST leave `state.forces` containing the last evaluated force field sum.
  */
-
 export interface Integrator {
-  /**
-   * Perform one timestep update.
-   * @param state Mutable arrays holding positions, velocities and forces.
-   * @param dt   Size of the time increment.
-   * @param recomputeForces Callback the integrator can invoke (0 or more times) to rebuild forces for the current positions.
-   */
   step(state: SimulationState, dt: number, recomputeForces: () => void): void
 }
 

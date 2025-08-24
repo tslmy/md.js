@@ -31,8 +31,9 @@ export interface Diagnostics {
 interface DiagnosticsParams { cutoff: number; kB: number }
 
 /**
- * Compute kinetic energy and per-particle extrema in a single pass.
- * Returns totals to avoid repeated iteration over N.
+ * Internal helper: single pass over all particles to accumulate kinetic energy
+ * and discover max |v| and |F|. Kept separate so alternative diagnostics (e.g.
+ * streaming / incremental) can reuse this logic.
  */
 function computeKineticAndExtrema(state: SimulationState): { kinetic: number; maxSpeed: number; maxForceMag: number } {
   const { velocities, forces, masses, N } = state

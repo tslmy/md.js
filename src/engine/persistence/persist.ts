@@ -10,13 +10,19 @@ import { SimulationEngine } from '../SimulationEngine.js'
 
 /** Serialized representation of engine core state. */
 export interface EngineSnapshot {
+  /** Snapshot schema version (increment when layout changes). */
   version: 1
+  /** Deep clone of the engine configuration at snapshot time. */
   config: EngineConfig
+  /** Simulation time. */
   time: number
-  /** Flat arrays (length 3N or N). */
+  /** Flattened particle positions (xyz * N). */
   positions: number[]
+  /** Flattened particle velocities (xyz * N). */
   velocities: number[]
+  /** Per-particle masses (length N). */
   masses: number[]
+  /** Per-particle charges (length N). */
   charges: number[]
 }
 

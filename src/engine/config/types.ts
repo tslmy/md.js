@@ -23,10 +23,15 @@ export interface EngineForcesConfig {
 }
 
 export interface EnginePhysicalConstants {
+  /** Depth of Lennard-Jones potential well. */
   epsilon: number
+  /** Distance at which LJ potential is zero (σ). */
   sigma: number
+  /** Gravitational constant (scaled units). */
   G: number
+  /** Coulomb constant (scaled units). */
   K: number
+  /** Boltzmann constant for temperature derivation. */
   kB: number
 }
 
@@ -40,7 +45,9 @@ export interface EngineRuntimeConfig {
 }
 
 export interface EngineWorldConfig {
+  /** Number of particles allocated. */
   particleCount: number
+  /** Box extents (currently informational; boundary logic WIP). */
   box: { x: number; y: number; z: number }
 }
 
@@ -111,7 +118,7 @@ export function fromSettings(settings: SettingsLike): EngineConfig {
       sigma: settings.DELTA,
       G: settings.G,
       K: settings.K,
-  kB: settings.kB
+      kB: settings.kB
     }
   }
 }

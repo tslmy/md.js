@@ -1,13 +1,27 @@
 import { createState, type SimulationState } from './state.js'
 
+/**
+ * Plain JSON-friendly snapshot of a {@link SimulationState}. All typed arrays
+ * are flattened into regular JS number arrays so the structure can be
+ * serialized (e.g. structured clone, postMessage, localStorage) without
+ * transferring ownership of the original buffers.
+ */
 export interface SerializedSimulationState {
+  /** Particle count. */
   N: number
+  /** Simulation time. */
   time: number
+  /** Flattened positions (xyz * N). */
   positions: number[]
+  /** Flattened velocities (xyz * N). */
   velocities: number[]
+  /** Flattened forces (xyz * N). */
   forces: number[]
+  /** Per-particle masses (length N). */
   masses: number[]
+  /** Per-particle charges (length N). */
   charges: number[]
+  /** Escape flags (length N). */
   escaped: number[]
 }
 

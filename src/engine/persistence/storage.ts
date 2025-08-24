@@ -9,6 +9,7 @@ import { SimulationEngine } from '../SimulationEngine.js'
 
 const KEY = 'mdJsEngineSnapshot'
 
+/** Serialize and persist the current engine snapshot into localStorage. */
 export function saveToLocal(engine: SimulationEngine): void {
   try {
     const snap = snapshot(engine)
@@ -19,10 +20,13 @@ export function saveToLocal(engine: SimulationEngine): void {
 }
 
 export interface LoadResult {
+  /** Hydrated engine instance (not started). */
   engine: SimulationEngine
+  /** Raw snapshot used for hydration (for UI display / diff). */
   snapshot: EngineSnapshot
 }
 
+/** Attempt to load and hydrate a previously stored snapshot; returns null if absent or invalid. */
 export function loadFromLocal(): LoadResult | null {
   const raw = localStorage.getItem(KEY)
   if (!raw) return null
@@ -39,10 +43,12 @@ export function loadFromLocal(): LoadResult | null {
   }
 }
 
+/** Remove the stored snapshot (no-op if absent). */
 export function clearStoredSnapshot(): void {
   localStorage.removeItem(KEY)
 }
 
+/** Trigger a client-side download of the current snapshot as prettified JSON. */
 export function downloadSnapshot(engine: SimulationEngine): void {
   const data = JSON.stringify(snapshot(engine), null, 2)
   const a = document.createElement('a')

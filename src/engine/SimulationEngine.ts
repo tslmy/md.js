@@ -55,17 +55,16 @@ export interface EngineRunOptions {
 }
 
 /**
- * Experimental high‑level orchestrator for the existing Simulation.
+ * High-level orchestration layer around the low-level {@link Simulation}.
  *
- * Design intent:
- *  - Provide an eventual drop‑in replacement for ad‑hoc logic currently in `script.ts`.
- *  - Abstract force enabling, config updates & frame emission.
- *  - Keep zero behavior change for the legacy path while we migrate.
+ * Responsibilities:
+ *  - Own the authoritative {@link EngineConfig} and apply config patches.
+ *  - Construct & rebuild force field plugins / integrator when configuration changes.
+ *  - Manage a run loop (RAF or setInterval) and emit frame / diagnostics events.
+ *  - Bridge neighbor list strategy selection.
  *
- * Current limitations (to be addressed in subsequent phases):
- *  - No worker offload or neighbor list abstraction yet.
- *  - Force plugins are reconstructed on each config change (cheap for now).
- *  - Diagnostics not emitted (will integrate existing computeDiagnostics soon).
+ * The engine deliberately keeps rendering, UI and persistence concerns in
+ * separate modules (see `persistence/`). It aims to be host/runtime agnostic.
  */
 export class SimulationEngine {
   private config: EngineConfig
@@ -81,6 +80,10 @@ export class SimulationEngine {
   /** Active neighbor list strategy (currently naive only). */
   private neighborStrategy: NeighborListStrategy
 
+  /**
+   * Create a new engine using the provided configuration. Particles are
+   * allocated immediately; caller can optionally seed buffers before running.
+   */
   constructor(cfg: EngineConfig) {
     validateEngineConfig(cfg)
     this.config = cfg
@@ -96,7 +99,7 @@ export class SimulationEngine {
     this.neighborStrategy = requested === 'naive'
       ? createNaiveNeighborStrategy()
       : createCellNeighborStrategy()
-  activateNeighborStrategy(this.neighborStrategy)
+    activateNeighborStrategy(this.neighborStrategy)
   }
 
   /** Subscribe to engine events. Returns an unsubscribe function. */
@@ -118,7 +121,12 @@ export class SimulationEngine {
     return new Simulation(this.state, integrator, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff })
   }
 
-  /** Perform one integration step. Emits a frame event. */
+  /**
+   * Perform a single integration step (even when not running continuously).
+   * Emits a frame event.
+   * Exceptions during force or integration logic are caught and emitted as an
+   * 'error' event; the engine automatically pauses on error.
+   */
   step(): void {
     try {
       // Rebuild neighbor list if strategy requires (future strategies may depend on cutoff changes)
@@ -138,7 +146,11 @@ export class SimulationEngine {
     }
   }
 
-  /** Start continuous stepping. Idempotent. */
+  /**
+   * Begin continuous stepping. Idempotent: calling when already running is a
+   * no-op. Chooses `requestAnimationFrame` by default when available unless
+   * explicitly disabled.
+   */
   run(opts: EngineRunOptions = {}): void {
     if (this.running) return
     this.running = true
@@ -157,6 +169,10 @@ export class SimulationEngine {
   }
 
   /** Pause continuous stepping (manual `step()` still allowed). */
+  /**
+   * Stop continuous stepping. Safe to call multiple times. Manual `step()` is
+   * still permitted while paused.
+   */
   pause(): void {
     if (!this.running) return
     this.running = false
@@ -166,7 +182,11 @@ export class SimulationEngine {
     this.intervalId = null
   }
 
-  /** Patch configuration & rebuild force plugins / integration params. */
+  /**
+   * Shallowly patch the existing configuration and rebuild derived objects
+   * (force plugins, neighbor strategy, integrator parameters). Particle arrays
+   * are preserved; dt & cutoff changes take effect next step.
+   */
   updateConfig(patch: Partial<EngineConfig>): void {
     // Shallow merge on top levels only (good enough for early phase).
     this.config = {
@@ -196,9 +216,13 @@ export class SimulationEngine {
   /** Set simulation time (used during hydration). */
   setTime(t: number): void { this.state.time = t }
 
-  /** Seed initial state arrays (positions, velocities, masses, charges). Call before run(). */
+  /**
+   * Initialize (or overwrite) core state buffers from external typed arrays.
+   * Excess source elements are ignored; missing ones left unchanged. Intended
+   * for hydration / custom scenario setup prior to `run()`.
+   */
   seed(p: { positions?: Float32Array; velocities?: Float32Array; masses?: Float32Array; charges?: Float32Array }): void {
-  // NOTE: We do shallow copies into existing typed arrays; callers keep ownership of source arrays.
+    // NOTE: We do shallow copies into existing typed arrays; callers keep ownership of source arrays.
     if (p.positions) this.state.positions.set(p.positions.subarray(0, this.state.positions.length))
     if (p.velocities) this.state.velocities.set(p.velocities.subarray(0, this.state.velocities.length))
     if (p.masses) this.state.masses.set(p.masses.subarray(0, this.state.masses.length))
