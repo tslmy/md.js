@@ -6,8 +6,6 @@
  */
 import { snapshot, hydrate, type EngineSnapshot } from './persist.js'
 import { SimulationEngine } from '../SimulationEngine.js'
-import { saveUserSettings } from '../../control/persistence/persist.js'
-import { clearVisualDataInLocal } from '../../visual/persistence/visual.js'
 
 const KEY = 'mdJsEngineSnapshot'
 
@@ -30,7 +28,7 @@ export interface LoadResult {
 }
 
 /** Attempt to load and hydrate a previously stored snapshot; returns null if absent or invalid. */
-export function loadFromLocal(): LoadResult | null {
+export function loadEngineFromLocal(): LoadResult | null {
   const raw = localStorage.getItem(KEY)
   if (!raw) return null
   try {
@@ -47,24 +45,6 @@ export function loadFromLocal(): LoadResult | null {
 }
 
 /** Remove the stored snapshot (no-op if absent). */
-export function clearStoredSnapshot(): void {
+export function clearEngineSnapshotInLocal(): void {
   localStorage.removeItem(KEY)
-}
-
-/**
- * Clear any persisted engine snapshot (and legacy state key) then hard-reload the page
- * to construct a fresh universe. Mirrors previous `clearState` behavior.
- */
-export function resetWorld(): void {
-  try {
-    // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
-    saveUserSettings()
-    clearVisualDataInLocal()
-    clearStoredSnapshot()
-  } catch (e) {
-    console.warn('Failed clearing stored snapshot(s):', e)
-  }
-  // Prevent saving the soon-to-be-discarded state during reload
-  try { window.onbeforeunload = null } catch { /* ignore */ }
-  location.reload()
 }

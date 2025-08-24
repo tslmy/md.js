@@ -1,7 +1,7 @@
 import { settings } from './control/settings.js'
 import { init, ifMobileDevice } from './init.js'
 import { toggle } from './control/panel.js'
-import { saveToLocal, loadFromLocal } from './engine/persistence/storage.js'
+import { saveToLocal, loadEngineFromLocal } from './engine/persistence/storage.js'
 import { loadUserSettings, saveUserSettings } from './control/persistence/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persistence/visual.js'
 import * as THREE from 'three'
@@ -333,7 +333,7 @@ docReady(() => {
   // Attempt to hydrate engine first (if snapshot present) BEFORE building visual particle system.
   // Load persisted user settings first so fresh world uses them if no snapshot.
   loadUserSettings()
-  const loaded = loadFromLocal()
+  const loaded = loadEngineFromLocal()
   if (loaded) {
     engine = loaded.engine
     // Mirror loaded config into settings (best-effort) – future: migrate settings <-> engine properly.

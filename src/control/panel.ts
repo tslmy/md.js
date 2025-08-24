@@ -6,8 +6,9 @@ import { GUI } from 'dat.gui'
 import { Object3D } from 'three'
 
 import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults, settings as liveSettings } from './settings.js'
-import { resetWorld, clearStoredSnapshot } from '../engine/persistence/storage.js'
+import { clearEngineSnapshotInLocal } from '../engine/persistence/storage.js'
 import { saveUserSettings } from './persistence/persist.js'
+import { clearVisualDataInLocal } from '../visual/persistence/visual.js'
 
 // Narrow settings type (duck typed from settings.ts export)
 type SettingsLike = typeof liveSettings
@@ -64,11 +65,27 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     const commands = {
         stop: () => { try { (window as unknown as { __pauseEngine?: () => void }).__pauseEngine?.() } catch { /* ignore */ } },
         toggleHUD: () => { toggle('#hud') },
-        newWorld: () => { resetWorld() },
+        newWorld: () => {
+            try {
+                // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
+                saveUserSettings()
+                clearVisualDataInLocal()
+                clearEngineSnapshotInLocal()
+            } catch (e) {
+                console.warn('Failed clearing stored snapshot(s):', e)
+            }
+            // Prevent saving the soon-to-be-discarded state during reload
+            try { window.onbeforeunload = null } catch (e) {
+                console.warn('Failed clearing onbeforeunload handler, and the soon-to-be-discarded state may be saved:', e)
+            }
+            location.reload()
+        },
         randomizeParticles: () => {
-            try { saveUserSettings() } catch { /* ignore */ }
-            try { clearStoredSnapshot() } catch { /* ignore */ }
-            try { window.onbeforeunload = null } catch { /* ignore */ }
+            try { saveUserSettings() } catch (e) { console.warn('Failed saving user settings:', e) }
+            try { clearEngineSnapshotInLocal() } catch (e) { console.warn('Failed clearing stored snapshot:', e) }
+            try { window.onbeforeunload = null } catch (e) {
+                console.warn('Failed clearing onbeforeunload handler, and the soon-to-be-discarded state may be saved:', e)
+            }
             location.reload()
         },
         resetDefaults: () => {
@@ -79,7 +96,7 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
                 boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY
                 boxMesh.scale.z = settings.spaceBoundaryZ / originalSpaceBoundaryZ
             }
-            try { saveUserSettings() } catch { /* ignore */ }
+            try { saveUserSettings() } catch (e) { console.warn('Failed saving user settings:', e) }
         }
     }
     guiFolderWorld.add(commands, 'randomizeParticles').name('New world')
