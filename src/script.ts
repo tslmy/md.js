@@ -4,7 +4,7 @@ import { toggle } from './control/panel.js'
 import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
 import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
-import { Scene, Camera, PerspectiveCamera, WebGLRenderer, Color, Line, Vector3, BufferAttribute } from 'three'
+import { Scene, Camera, PerspectiveCamera, WebGLRenderer, Color, Vector3, BufferAttribute } from 'three'
 // New SoA simulation core imports
 import { createState, seedInitialState, type SimulationState } from './core/simulation/state.js'
 import { generateMassesCharges, generatePositions } from './core/simulation/seeding.js'
@@ -15,7 +15,7 @@ import { fromSettings } from './engine/config/types.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
 import { InstancedArrows } from './visual/InstancedArrows.js'
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
-import { makeTrajectory } from './visual/drawingHelpers.js'
+import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer, applyPbc } from './visual/trajectory.js'
 
 // global variables
 interface StereoEffectLike { render(scene: Scene, camera: Camera): void; setSize?(w: number, h: number): void }
@@ -43,10 +43,8 @@ let sphereCloneMesh: InstancedSpheres | undefined
 
 // Array of per-particle colors.
 const colors: Color[] = []
-// Separate per-particle trajectory Line objects (optional)
-const trajectories: (Line | null)[] = []
+// Trajectories managed in visual/trajectory.ts
 let time = 0
-let lastSnapshotTime = 0
 
 // Expose minimal state for headless smoke tests (non-production usage)
 declare global { interface Window { __mdjs?: { colors: Color[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics }; __pauseEngine?: () => void } }
@@ -58,7 +56,7 @@ function isVisible(el: HTMLElement | null): boolean {
   return !!el && window.getComputedStyle(el).display !== 'none'
 }
 
-// Scaling now derives from diagnostics (maxSpeed & maxForceMag) avoiding per-frame full scans.
+/** Scaling now derives from diagnostics (maxSpeed & maxForceMag) avoiding per-frame full scans. */
 function updateScaleBars(diag: Diagnostics | undefined): void {
   if (!diag) return
   const forceScale = diag.maxForceMag > 0 ? settings.unitArrowLength / diag.maxForceMag : 1
@@ -67,12 +65,6 @@ function updateScaleBars(diag: Diagnostics | undefined): void {
   if (forceEl) forceEl.style.width = `${forceScale * 1000000}px`
   const velEl = document.getElementById('velocity')
   if (velEl) velEl.style.width = `${velScale * 1000000}px`
-}
-
-function updateTrajectoryBuffer(pos: Vector3, trajectory: BufferAttribute, maxLen: number): void {
-  for (let j = 0; j < maxLen - 1; j++) trajectory.copyAt(j, trajectory, j + 1)
-  trajectory.setXYZ(maxLen - 1, pos.x, pos.y, pos.z)
-  trajectory.needsUpdate = true
 }
 
 function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: number; fx: number; fy: number; fz: number; perForce?: Record<string, Float32Array> }): void {
@@ -144,7 +136,7 @@ function updateArrows(diag: Diagnostics, frameOffset: Vector3): void {
 function updateFromSimulation(frameOffset: Vector3): void {
   if (!engine || !simState) return
   const hudVisible = isVisible(document.querySelector('#hud'))
-  const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt)
+  const needsTrajectoryShift = shouldShiftTrajectory(time)
   const perForce = engine.getPerForceContributions()
   for (let i = 0; i < colors.length; i++) updateOneParticle(i, hudVisible, needsTrajectoryShift, frameOffset, perForce)
   if (sphereMesh && simState) updateSpheres(frameOffset)
@@ -226,23 +218,6 @@ function renderCloneSpheres(frameOffset: Vector3): void {
   sphereCloneMesh.commit()
 }
 
-// Removed legacy applyParticleVisualUpdate; loop logic in updateFromSimulation now works directly off SoA arrays.
-
-function applyPbc(pos: Vector3, trajectory: BufferAttribute | null, maxLen: number, bx: number, by: number, bz: number): void {
-  const wrapAxis = (axis: 'x' | 'y' | 'z', boundary: number, adjust: (delta: number) => void) => {
-    while (pos[axis] < -boundary) { pos[axis] += 2 * boundary; adjust(2 * boundary) }
-    while (pos[axis] > boundary) { pos[axis] -= 2 * boundary; adjust(-2 * boundary) }
-  }
-  const adjustFactory = (setter: (i: number, v: number) => void, getter: (i: number) => number) => (delta: number) => {
-    if (!trajectory) return
-    for (let j = 0; j < maxLen; j++) setter(j, getter(j) + delta)
-    trajectory.needsUpdate = true
-  }
-  wrapAxis('x', bx, adjustFactory((i, v) => trajectory?.setX(i, v), i => trajectory?.getX(i) ?? 0))
-  wrapAxis('y', by, adjustFactory((i, v) => trajectory?.setY(i, v), i => trajectory?.getY(i) ?? 0))
-  wrapAxis('z', bz, adjustFactory((i, v) => trajectory?.setZ(i, v), i => trajectory?.getZ(i) ?? 0))
-}
-
 /**
  * Advance simulation one timestep and update visual + diagnostic layers.
  * Split from animate() to keep the frame logic testable and reduce complexity warnings.
@@ -260,7 +235,7 @@ function applyVisualUpdates(): void {
     if (velArrows) velArrows.setVisible(false)
     if (forceArrows) forceArrows.setVisible(false)
   }
-  if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt) lastSnapshotTime = time
+  if (shouldShiftTrajectory(time)) markTrajectorySnapshot(time)
   // Temperature from diagnostics (fallback to 0 if undefined) & track peak
   if (lastDiagnostics) {
     const T = lastDiagnostics.temperature
@@ -386,27 +361,8 @@ docReady(() => {
   engine.run({ useRaf: true })
   // Create arrow visualizers once state & scene are ready
   if (simState) {
-    // Allocate placeholder slots for trajectories (kept even if disabled to preserve indices)
-    if (trajectories.length === 0) {
-      for (let i = 0; i < simState.N; i++) trajectories.push(null)
-    }
-    // Create trajectory Line objects if feature enabled and not yet created
-    if (settings.if_showTrajectory) {
-      for (let i = 0; i < simState.N; i++) {
-        if (!trajectories[i]) {
-          const i3 = 3 * i
-          const pos = new Vector3(simState.positions[i3], simState.positions[i3 + 1], simState.positions[i3 + 2])
-          const color = colors[i] || new Color(0xffffff)
-          const line = makeTrajectory(color, pos, settings.maxTrajectoryLength)
-          scene.add(line)
-          trajectories[i] = line
-        }
-        if (trajectories[i]) trajectories[i]!.visible = settings.if_showTrajectory
-      }
-    } else {
-      // Hide existing trajectories if feature toggled off
-      for (const t of trajectories) { if (t) t.visible = false }
-    }
+    // Ensure trajectories created/hidden per settings
+    ensureTrajectories(simState, colors, scene)
     velArrows = new InstancedArrows(simState.N, { color: 0x0066ff })
     forceArrows = new InstancedArrows(simState.N, { color: 0xff3300 })
     velArrows.addTo(scene); forceArrows.addTo(scene)
