@@ -5,7 +5,7 @@ import Stats from 'Stats';
 import { StereoEffect } from 'StereoEffect';
 import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ } from './settings.js';
 import { drawBox } from './drawingHelpers.js';
-import { clearState } from './stateStorage.js';
+import { resetWorld } from './engine/persistence/storage.js';
 import { makeClonePositionsList, createParticleSystem, particleMaterialForClones } from './particleSystem.js';
 import * as dat from 'dat.gui';
 const ifMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -186,7 +186,7 @@ function initializeGuiControls(settings, group, boxMesh) {
         toggleHUD: () => {
             toggle('#hud');
         },
-        clearState
+        clearState: resetWorld
     };
     const guiFolderCommands = gui.addFolder('Commands'); // controls, buttons
     guiFolderCommands.add(commands, 'clearState').name('New world');

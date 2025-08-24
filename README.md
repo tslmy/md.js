@@ -33,6 +33,7 @@ What am I looking at?
 
 [dm]: https://mdjs.netlify.app/
 [pbc]: https://en.wikipedia.org/wiki/Periodic_boundary_conditions
+
 ## Feature Highlights
 
 * Multiple pairwise force fields (individually toggleable):
@@ -72,7 +73,7 @@ Located under `src/core/simulation` & `src/core/forces`:
 * `particleSystem.ts` – Builds particles, trajectories, ghost clones (for PBC visualization), HUD rows, and mirrors simulation data into Three.js constructs.
 * `script.ts` – Entry point: initializes scene (delegates to `init.js`), seeds state, subscribes to engine events to mirror SoA data into Three.js buffers, updates HUD & persistence.
 * `settings.ts` – Central tweakable parameters + feature flags; deliberately verbose / “kitchen sink” for experimentation.
-* `stateStorage.ts` – Browser `localStorage` persistence (simple versioned schema checking).
+* (Deprecated) `stateStorage.ts` replaced by engine snapshot persistence (`src/engine/persistence/{persist,storage}.ts`).
 
 ### 4. Public (Test) Surface
 
@@ -136,7 +137,8 @@ src/
   particleSystem.ts  (Three.js particle + trajectory construction)
   script.ts          (runtime wiring & main loop)
   settings.ts        (central config)
-  stateStorage.ts    (persistence)
+  engine/persistence/persist.ts    (engine snapshot serializer)
+  engine/persistence/storage.ts    (browser localStorage helpers)
 ```
 
 ## Configuration & Tuning
@@ -168,12 +170,16 @@ Aggregate runner (`npm test`) executes all and reports PASS/FAIL summary. Covera
 
 ## Persistence Details
 
-On `beforeunload` a snapshot of every particle (color, position, velocity, force, mass, charge) and timestamps is stored in `localStorage` under `mdJsState`. On next load, a lightweight validation step guards against malformed data before rehydration; missing or invalid data triggers a fresh universe.
+On `beforeunload` the engine emits a compact JSON snapshot (`EngineSnapshot`) saved to `localStorage` under `mdJsEngineSnapshot` via `engine/persistence/storage.ts`. The snapshot contains:
 
-Remove persisted state manually via DevTools:
+* Config (forces enabled, constants, dt, cutoff, world size)
+* Time
+* Positions, velocities (flattened 3N arrays) and masses, charges (N each)
+
+On load, `loadFromLocal()` attempts to hydrate the engine. If parsing or version validation fails, a fresh universe is created. To clear stored state:
 
 ```js
-localStorage.removeItem('mdJsState')
+localStorage.removeItem('mdJsEngineSnapshot')
 ```
 
 ## Contributing

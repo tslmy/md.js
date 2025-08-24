@@ -10,7 +10,7 @@ import {
   originalSpaceBoundaryZ
 } from './settings.js'
 import { drawBox } from './drawingHelpers.js'
-import { clearState } from './stateStorage.js'
+import { resetWorld } from './engine/persistence/storage.js'
 import {
   makeClonePositionsList
   ,
@@ -268,7 +268,7 @@ function initializeGuiControls (settings, group, boxMesh) {
     toggleHUD: () => {
       toggle('#hud')
     },
-    clearState
+  clearState: resetWorld
   }
   const guiFolderCommands = gui.addFolder('Commands') // controls, buttons
   guiFolderCommands.add(commands, 'clearState').name('New world')

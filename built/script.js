@@ -1,6 +1,6 @@
 import { settings } from './settings.js';
 import { init, ifMobileDevice, toggle } from './init.js';
-import { saveState } from './stateStorage.js';
+import { saveToLocal, loadFromLocal } from './engine/persistence/storage.js';
 import * as THREE from 'three';
 // New SoA simulation core imports
 import { createState } from './core/simulation/state.js';
@@ -269,6 +269,19 @@ function docReady(fn) {
 }
 docReady(() => {
     console.log('Ready.');
+    // Attempt to hydrate engine first (if snapshot present) BEFORE building visual particle system.
+    const loaded = loadFromLocal();
+    if (loaded) {
+        engine = loaded.engine;
+        // Mirror loaded config into settings (best-effort) – future: migrate settings <-> engine properly.
+        settings.particleCount = loaded.snapshot.config.world.particleCount;
+        settings.spaceBoundaryX = loaded.snapshot.config.world.box.x;
+        settings.spaceBoundaryY = loaded.snapshot.config.world.box.y;
+        settings.spaceBoundaryZ = loaded.snapshot.config.world.box.z;
+        settings.dt = loaded.snapshot.config.runtime.dt;
+        settings.cutoffDistance = loaded.snapshot.config.runtime.cutoff;
+        time = loaded.snapshot.time;
+    }
     const values = init(settings, particles, time, lastSnapshotTime);
     scene = values[0];
     particleSystem = values[1];
@@ -278,30 +291,33 @@ docReady(() => {
     stats = values[5];
     temperaturePanel = values[6];
     effect = values[7];
-    // Build SoA simulation state from existing particle objects
-    simState = createState({
-        particleCount: settings.particleCount,
-        box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ },
-        dt: settings.dt,
-        cutoff: settings.cutoffDistance
-    });
-    // Seed arrays
-    for (let i = 0; i < particles.length; i++) {
-        const i3 = 3 * i;
-        simState.positions[i3] = particles[i].position.x;
-        simState.positions[i3 + 1] = particles[i].position.y;
-        simState.positions[i3 + 2] = particles[i].position.z;
-        // Seed velocities from captured initialVelocities array exported by particleSystem module (if present on window for tests)
-        const maybe = window?.initialVelocities || [];
-        simState.velocities[i3] = maybe[i3] || 0;
-        simState.velocities[i3 + 1] = maybe[i3 + 1] || 0;
-        simState.velocities[i3 + 2] = maybe[i3 + 2] || 0;
-        simState.masses[i] = particles[i].mass;
-        simState.charges[i] = particles[i].charge;
+    if (!engine) {
+        // Fresh run: construct engine from particles
+        simState = createState({
+            particleCount: settings.particleCount,
+            box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ },
+            dt: settings.dt,
+            cutoff: settings.cutoffDistance
+        });
+        for (let i = 0; i < particles.length; i++) {
+            const i3 = 3 * i;
+            simState.positions[i3] = particles[i].position.x;
+            simState.positions[i3 + 1] = particles[i].position.y;
+            simState.positions[i3 + 2] = particles[i].position.z;
+            const maybe = window?.initialVelocities || [];
+            simState.velocities[i3] = maybe[i3] || 0;
+            simState.velocities[i3 + 1] = maybe[i3 + 1] || 0;
+            simState.velocities[i3 + 2] = maybe[i3 + 2] || 0;
+            simState.masses[i] = particles[i].mass;
+            simState.charges[i] = particles[i].charge;
+        }
+        engine = new SimulationEngine(fromSettings(settings));
+        engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges });
+        simState = engine.getState();
     }
-    engine = new SimulationEngine(fromSettings(settings));
-    engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges });
-    simState = engine.getState();
+    else {
+        simState = engine.getState();
+    }
     engine.on('frame', ({ time: t }) => { time = t; applyVisualUpdates(); });
     engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs)
         window.__mdjs.diagnostics = d; });
@@ -310,15 +326,8 @@ docReady(() => {
     // Expose simulation state (read-only for tests; mutation not supported outside test harness)
     window.__mdjs = { particles, settings, simState, diagnostics: lastDiagnostics };
     // Install full-state persistence handler (overrides placeholder in init.js)
-    window.onbeforeunload = () => {
-        try {
-            const snapshot = captureState();
-            saveState(snapshot);
-        }
-        catch (e) {
-            console.log('Failed to persist state:', e);
-        }
-    };
+    window.onbeforeunload = () => { if (engine)
+        saveToLocal(engine); };
     // bind keyboard event:
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Tab') {
@@ -327,27 +336,5 @@ docReady(() => {
         }
     });
 });
-// Build a complete snapshot matching SavedState interface for persistence.
-function captureState() {
-    const particleCount = particles.length;
-    const particleColors = [];
-    const particlePositions = [];
-    const particleForces = [];
-    const particleVelocities = [];
-    const particleMasses = [];
-    const particleCharges = [];
-    if (simState) {
-        for (let i = 0; i < particleCount; i++) {
-            const p = particles[i];
-            particleColors.push(p.color.r, p.color.g, p.color.b);
-            particlePositions.push(p.position.x, p.position.y, p.position.z);
-            const i3 = 3 * i;
-            particleForces.push({ x: simState.forces[i3], y: simState.forces[i3 + 1], z: simState.forces[i3 + 2] });
-            particleVelocities.push({ x: simState.velocities[i3], y: simState.velocities[i3 + 1], z: simState.velocities[i3 + 2] });
-            particleMasses.push(simState.masses[i]);
-            particleCharges.push(simState.charges[i]);
-        }
-    }
-    return { particleCount, particleColors, particlePositions, particleForces, particleVelocities, particleMasses, particleCharges, time, lastSnapshotTime };
-}
+// Legacy captureState removed – engine snapshot now covers persistence.
 //# sourceMappingURL=script.js.map

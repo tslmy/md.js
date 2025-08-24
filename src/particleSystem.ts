@@ -9,7 +9,6 @@ import * as THREE from 'three'
 interface TrajectoryRingMeta { write: number; length: number; count: number }
 interface TrajectoryLine extends THREE.Line { userData: { trajectoryRing?: TrajectoryRingMeta } }
 import { generateTexture } from './drawingHelpers.js'
-import { loadState, previousState } from './stateStorage.js'
 // Type alias for settings shape (imported dynamically); avoids circular dep.
 type Settings = typeof import('./settings.js').settings
 const texture = new THREE.Texture(generateTexture())
@@ -201,9 +200,6 @@ function makeTrajectory(
   line.userData.trajectoryRing = { write: 0, length: maxTrajectoryLength, count: 0 }
   return line
 }
-function objectToVector(obj: { x: number, y: number, z: number }): THREE.Vector3 {
-  return new THREE.Vector3(obj.x, obj.y, obj.z)
-}
 
 function createParticleSystem(
   group: THREE.Object3D,
@@ -302,32 +298,9 @@ function createParticleSystem(
 }
 
 function populateFromPreviousOrFresh(particles: Particle[], particlesGeometry: THREE.BufferGeometry, scene: THREE.Scene, settings: Settings): boolean {
-  if (loadState()) {
-    console.log('State from previous session loaded.')
-    const prev = previousState()
-    const particleCountToRead = (prev.particleCount < settings.particleCount || settings.if_override_particleCount_setting_with_lastState)
-      ? prev.particleCount
-      : settings.particleCount
-    for (let i = 0; i < particleCountToRead; i++) {
-      const color = new THREE.Color(prev.particleColors[3 * i], prev.particleColors[3 * i + 1], prev.particleColors[3 * i + 2])
-      addParticle({
-        color,
-        position: new THREE.Vector3().fromArray(prev.particlePositions, 3 * i),
-        velocity: objectToVector(prev.particleVelocities[i]),
-        mass: prev.particleMasses[i],
-        charge: prev.particleCharges[i],
-        particles,
-        geometry: particlesGeometry,
-        scene,
-        showTrajectory: settings.if_showTrajectory,
-        maxTrajectoryLength: settings.maxTrajectoryLength
-      })
-    }
-    const diff = settings.particleCount - prev.particleCount
-    if (diff < 0) console.log('Dropping', -diff, 'particles from stored state (exceeds current target).')
-    else if (diff > 0) console.log('Creating only', diff, 'new particles in addition to loaded', prev.particleCount)
-    return true
-  }
+  // Legacy localStorage based particle persistence removed; engine snapshot hydrate path
+  // now owns persistence (handled earlier in bootstrap before particle creation).
+  // Always create a fresh universe here.
   console.log('Creating new universe. md.js will be creating all', settings.particleCount, 'particles from scratch.')
   if (settings.if_makeSun) {
     addParticle({

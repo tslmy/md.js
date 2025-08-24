@@ -30,5 +30,7 @@ export function hydrate(snap) {
     eng.setTime(snap.time);
     return eng;
 }
+// NOTE: This module intentionally does not touch browser storage. See `storage.ts` for
+// localStorage integration helpers to avoid coupling core snapshot logic to a host API.
 // (Removed deprecated configFromSettings helper; construct EngineConfig via fromSettings directly where needed.)
 //# sourceMappingURL=persist.js.map

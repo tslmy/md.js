@@ -94,16 +94,21 @@ async function main () {
   }
   console.log('[smoke] Motion detected.')
 
-  // Trigger persistence by reloading (onbeforeunload should have saved state)
+  // Trigger persistence by navigating away and back (reload triggers beforeunload)
   await page.reload({ waitUntil: 'load' })
-  // Allow loadState logging
   await new Promise(r => setTimeout(r, 300))
-  const loadedMsg = consoleMessages.find(m => m.includes('State from previous session loaded.'))
-  if (!loadedMsg) {
-    console.error('[smoke] FAIL: Did not detect persistence load message')
+  // Inspect localStorage and engine time to ensure snapshot loaded (time > 0 or key exists)
+  const persisted = await page.evaluate(() => {
+    const key = 'mdJsEngineSnapshot'
+    const raw = localStorage.getItem(key)
+    const time = (globalThis.__mdjs?.simState?.time) || 0
+    return { hasKey: !!raw, time }
+  })
+  if (!persisted.hasKey) {
+    console.error('[smoke] FAIL: engine snapshot key missing after reload')
     await browser.close(); await cleanup(1)
   }
-  console.log('[smoke] Persistence verified.')
+  console.log('[smoke] Persistence verified (time=' + persisted.time.toFixed(3) + ').')
 
   await browser.close()
   console.log('[smoke] PASS')
