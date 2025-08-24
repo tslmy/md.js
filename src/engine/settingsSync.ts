@@ -1,9 +1,17 @@
 import { SimulationEngine } from './SimulationEngine.js'
-import { fromSettings, type EngineConfig } from './config/types.js'
+import { type EngineConfig } from './config/types.js'
 import { settings } from '../settings.js'
 
 // Guard to avoid recursive push->engine->config event->pull->property set->push loops.
 let suppressAutoPush = false
+
+/** Keys that participate in automatic push/pull with the engine. */
+export const AUTO_PUSH_KEYS = [
+    'particleCount', 'spaceBoundaryX', 'spaceBoundaryY', 'spaceBoundaryZ',
+    'dt', 'cutoffDistance', 'if_apply_LJpotential', 'if_apply_gravitation', 'if_apply_coulombForce',
+    'EPSILON', 'DELTA', 'G', 'K', 'kB'
+] as const
+export type AutoPushKey = typeof AUTO_PUSH_KEYS[number]
 
 /**
  * Two-way synchronization helpers between legacy mutable `settings` object
@@ -75,29 +83,29 @@ export function initSettingsSync(engine: SimulationEngine): void {
 }
 
 /** Wire a settings change handler (e.g., from dat.GUI) to automatically push to engine. */
-export function registerAutoPush(engine: SimulationEngine, keys: string[]): void {
-    const handler = () => { pushSettingsToEngine(engine) }
-    // naive polling-free approach: define property setters for listed keys
+export function registerAutoPush(engine: SimulationEngine, keys: readonly AutoPushKey[]): void {
+    // Debounce pushes so slider drags don't spam reconfiguration.
+    let t: number | undefined
+    const handler = () => {
+        if (suppressAutoPush) return
+        if (t !== undefined) window.clearTimeout(t)
+        t = window.setTimeout(() => { t = undefined; pushSettingsToEngine(engine) }, 50)
+    }
     for (const k of keys) {
         if (!(k in settings)) continue
         const desc = Object.getOwnPropertyDescriptor(settings, k)
-        if (desc?.set) continue // already accessor
+        if (desc?.set) continue // already accessor installed
         let value = (settings as Record<string, unknown>)[k]
         Object.defineProperty(settings, k, {
             configurable: true,
             enumerable: true,
             get() { return value },
             set(v) {
-                if (value === v) { value = v; return }
+                if (Object.is(value, v)) { value = v; return }
                 value = v
-                if (!suppressAutoPush) handler()
+                handler()
             }
         })
     }
 }
-
-/** Construct a brand new engine from current settings (one-way). */
-export function createEngineFromSettings(): SimulationEngine {
-    const cfg = fromSettings(settings)
-    return new SimulationEngine(cfg)
-}
+// (Removed unused createEngineFromSettings; engine construction handled in script bootstrap.)
