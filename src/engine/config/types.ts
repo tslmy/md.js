@@ -42,6 +42,8 @@ export interface EngineRuntimeConfig {
   cutoff: number
   /** Integrator selection (defaults to velocityVerlet). */
   integrator?: 'velocityVerlet' | 'euler'
+  /** Enable periodic boundary condition wrapping (positions confined to box). */
+  pbc?: boolean
 }
 
 export interface EngineWorldConfig {
@@ -94,6 +96,7 @@ interface SettingsLike {
   if_apply_LJpotential?: boolean
   if_apply_gravitation?: boolean
   if_apply_coulombForce?: boolean
+  if_use_periodic_boundary_condition?: boolean
   EPSILON: number; DELTA: number; G: number; K: number; kB: number
   integrator?: 'velocityVerlet' | 'euler'
   neighborStrategy?: 'naive' | 'cell'
@@ -106,6 +109,7 @@ interface SettingsLike {
 export function fromSettings(settings: SettingsLike): EngineConfig {
   const runtime: EngineRuntimeConfig = { dt: settings.dt, cutoff: settings.cutoffDistance }
   if (settings.integrator) runtime.integrator = settings.integrator
+  if (settings.if_use_periodic_boundary_condition != null) runtime.pbc = settings.if_use_periodic_boundary_condition
   return {
     world: { particleCount: settings.particleCount, box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ } },
     runtime,

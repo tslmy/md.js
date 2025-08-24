@@ -152,7 +152,9 @@ export class SimulationEngine {
       if (this.neighborStrategy.rebuildEveryStep) {
         this.neighborStrategy.rebuild(this.state, this.config.runtime.cutoff)
       }
-      this.sim.step()
+  this.sim.step()
+  // Apply periodic wrapping to physical positions (teleport) if enabled.
+  if (this.config.runtime.pbc) this.wrapPositions()
       this.stepCount++
       this.emitter.emit('frame', { time: this.state.time, state: this.state, step: this.stepCount })
       if (this.stepCount % this.diagnosticsEvery === 0) {
@@ -162,6 +164,30 @@ export class SimulationEngine {
     } catch (e) {
       this.pause()
       this.emitter.emit('error', e as Error)
+    }
+  }
+
+  /** Minimum-image like wrap: keep each coordinate inside [-box.a, box.a]. */
+  private wrapPositions(): void {
+    const { positions, N } = this.state
+    const { box } = this.config.world
+    const Lx = box.x, Ly = box.y, Lz = box.z
+    const spanX = 2 * Lx, spanY = 2 * Ly, spanZ = 2 * Lz
+    for (let i = 0; i < N; i++) {
+      const base = 3 * i
+      // Use while for large excursions (unlikely) but typically executes 0 or 1 iteration.
+      let x = positions[base]
+      while (x < -Lx) x += spanX
+      while (x > Lx) x -= spanX
+      positions[base] = x
+      let y = positions[base + 1]
+      while (y < -Ly) y += spanY
+      while (y > Ly) y -= spanY
+      positions[base + 1] = y
+      let z = positions[base + 2]
+      while (z < -Lz) z += spanZ
+      while (z > Lz) z -= spanZ
+      positions[base + 2] = z
     }
   }
 
