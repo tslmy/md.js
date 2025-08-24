@@ -13,8 +13,8 @@ import type { Diagnostics } from './core/simulation/diagnostics.js'
 import { SimulationEngine } from './engine/SimulationEngine.js'
 import { fromSettings } from './engine/config/types.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
-import { InstancedArrows } from './visual/three/InstancedArrows.js'
-import { InstancedSpheres } from './visual/three/InstancedSpheres.js'
+import { InstancedArrows } from './visual/InstancedArrows.js'
+import { InstancedSpheres } from './visual/InstancedSpheres.js'
 import { Vector3 } from 'three'
 
 // global variables
