@@ -85,15 +85,6 @@ export function clearStoredSnapshot(): void {
   localStorage.removeItem(KEY)
 }
 
-/** Trigger a client-side download of the current snapshot as prettified JSON. */
-export function downloadSnapshot(engine: SimulationEngine): void {
-  const data = JSON.stringify(snapshot(engine), null, 2)
-  const a = document.createElement('a')
-  a.href = 'data:application/json,' + encodeURIComponent(data)
-  a.download = new Date().toISOString() + '-mdjs-snapshot.json'
-  a.click()
-}
-
 /**
  * Clear any persisted engine snapshot (and legacy state key) then hard-reload the page
  * to construct a fresh universe. Mirrors previous `clearState` behavior.
