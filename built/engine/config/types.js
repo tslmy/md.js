@@ -32,10 +32,14 @@ export function validateEngineConfig(cfg) {
     if (cfg.runtime.integrator && cfg.runtime.integrator !== 'velocityVerlet' && cfg.runtime.integrator !== 'euler') {
         throw new Error('Unsupported integrator ' + cfg.runtime.integrator);
     }
-    if (cfg.neighbor?.strategy && cfg.neighbor.strategy !== 'naive')
+    if (cfg.neighbor?.strategy && !['naive', 'cell'].includes(cfg.neighbor.strategy))
         throw new Error('Unsupported neighbor strategy ' + cfg.neighbor.strategy);
 }
-export function legacySettingsToEngineConfig(settings) {
+/**
+ * Convert the UI `settings` object into an EngineConfig. This is a thin mapping
+ * layer isolating the engine from the sprawling kitchen‑sink settings object.
+ */
+export function fromSettings(settings) {
     return {
         world: {
             particleCount: settings.particleCount,

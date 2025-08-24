@@ -6,7 +6,7 @@ import { Gravity } from '../core/forces/gravity.js';
 import { Coulomb } from '../core/forces/coulomb.js';
 import { validateEngineConfig } from './config/types.js';
 import { computeDiagnostics } from '../core/simulation/diagnostics.js';
-import { createNaiveNeighborStrategy, activateNeighborStrategy } from '../core/neighbor/neighborList.js';
+import { createNaiveNeighborStrategy, activateNeighborStrategy, createCellNeighborStrategy } from '../core/neighbor/neighborList.js';
 /**
  * Lightweight event emitter (internal). Kept minimal to avoid pulling in a dependency.
  */
@@ -68,7 +68,9 @@ export class SimulationEngine {
             cutoff: cfg.runtime.cutoff
         });
         this.sim = this.buildSimulation();
-        this.neighborStrategy = createNaiveNeighborStrategy();
+        this.neighborStrategy = this.config.neighbor?.strategy === 'cell'
+            ? createCellNeighborStrategy()
+            : createNaiveNeighborStrategy();
         activateNeighborStrategy(this.neighborStrategy);
     }
     /** Direct access for transitional code (read‑only usage only). */
@@ -153,6 +155,10 @@ export class SimulationEngine {
         validateEngineConfig(this.config);
         // Currently we do NOT recreate state; only forces & dt/cutoff are applied.
         this.sim = this.buildSimulation();
+        if (patch.neighbor?.strategy && patch.neighbor.strategy !== this.neighborStrategy.name) {
+            this.neighborStrategy = patch.neighbor.strategy === 'cell' ? createCellNeighborStrategy() : createNaiveNeighborStrategy();
+            activateNeighborStrategy(this.neighborStrategy);
+        }
         this.emitter.emit('config', this.getConfig());
     }
     /** Return active ForceField instances (read-only usage). */

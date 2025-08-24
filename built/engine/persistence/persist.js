@@ -1,5 +1,4 @@
 import { SimulationEngine } from '../SimulationEngine.js';
-import { legacySettingsToEngineConfig } from '../config/types.js';
 /** Capture a snapshot of the current engine state (copying arrays). */
 export function snapshot(engine) {
     const st = engine.getState();
@@ -31,8 +30,5 @@ export function hydrate(snap) {
     eng.setTime(snap.time);
     return eng;
 }
-/** Convenience: derive config from legacy settings and then serialize. */
-export function configFromLegacy(settings) {
-    return legacySettingsToEngineConfig(settings);
-}
+// (Removed deprecated configFromSettings helper; construct EngineConfig via fromSettings directly where needed.)
 //# sourceMappingURL=persist.js.map

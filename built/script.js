@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { createState } from './core/simulation/state.js';
 // Experimental engine
 import { SimulationEngine } from './engine/SimulationEngine.js';
-import { legacySettingsToEngineConfig } from './engine/config/types.js';
+import { fromSettings } from './engine/config/types.js';
 let camera;
 let scene;
 let renderer;
@@ -299,7 +299,7 @@ docReady(() => {
         simState.masses[i] = particles[i].mass;
         simState.charges[i] = particles[i].charge;
     }
-    engine = new SimulationEngine(legacySettingsToEngineConfig(settings));
+    engine = new SimulationEngine(fromSettings(settings));
     engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges });
     simState = engine.getState();
     engine.on('frame', ({ time: t }) => { time = t; applyVisualUpdates(); });
