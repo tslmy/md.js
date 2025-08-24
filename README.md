@@ -71,9 +71,12 @@ Located under `src/core/simulation` & `src/core/forces`:
 
 ### 3. Visualization & UI Layer
 
-* `particleSystem.ts` – Builds particles, trajectories, ghost clones (for PBC visualization), HUD rows, and mirrors simulation data into Three.js constructs.
-* `script.ts` – Entry point: initializes scene (delegates to `init.js`), seeds state, subscribes to engine events to mirror SoA data into Three.js buffers, updates HUD & persistence.
-* `settings.ts` – Central tweakable parameters + feature flags; deliberately verbose / “kitchen sink” for experimentation.
+* `particleSystem.ts` – Seeds particle metadata (color, mass, charge, initial velocity), creates optional trajectory lines & HUD rows (no longer builds a legacy THREE.Points cloud or clone sprites).
+* `view/three/InstancedSpheres.ts` – Batched instanced sphere renderer (primary + PBC clone copies for visualization).
+* `view/three/InstancedArrows.ts` – Batched instanced arrows (velocity & net force) with per‑frame normalization & capping.
+* `init.ts` – Scene bootstrap: lights, camera, renderer, GUI.
+* `script.ts` – Runtime wiring: calls `init.ts`, constructs / hydrates engine, mirrors SoA state into instanced meshes, HUD & persistence.
+* `settings.ts` – Central tweakable parameters + feature flags; intentionally verbose / “kitchen sink” for experimentation.
 
 ### 4. Public (Test) Surface
 
@@ -121,9 +124,8 @@ python -m http.server --directory .
 npm run build       # tsc compile -> built/
 npm run watch       # incremental rebuild
 npm run typecheck   # strict type checking (no emit)
-npm test            # run aggregated test suite
-npm run test:cov    # full test suite + c8 coverage report
-npm run smoke       # quick headless Puppeteer sanity test
+npm test            # run vitest suite (headless + browser harness)
+npm run test:cov    # full test suite + v8 coverage report
 npm run clean       # remove build output
 ```
 
@@ -134,11 +136,15 @@ src/
   core/
     simulation/ (state, integrators, driver, serialization)
     forces/     (coulomb, gravity, lennardJones, interfaces)
-  particleSystem.ts  (Three.js particle + trajectory construction)
-  script.ts          (runtime wiring & main loop)
-  settings.ts        (central config)
-  engine/persistence/persist.ts    (engine snapshot serializer)
-  engine/persistence/storage.ts    (browser localStorage helpers)
+  engine/
+    SimulationEngine.ts
+    config/ (fieldBindings, types)
+    persistence/ (persist, storage)
+  view/three/ (InstancedSpheres, InstancedArrows)
+  particleSystem.ts   (particle & HUD seeding)
+  init.ts             (scene + GUI setup)
+  script.ts           (entrypoint wiring & render loop hooks)
+  settings.ts         (central config)
 ```
 
 ## Configuration & Tuning
@@ -156,17 +162,16 @@ Hot‑reloading values via the UI updates behavior immediately; persisted snapsh
 
 ## Tests & Quality Gates
 
-Test scripts (see `scripts/`):
+Vitest suite lives in `tests/` and covers:
 
-* `smoke` – Headless Puppeteer: particles move, persistence log appears.
-* `forcestest` / `force-sym` – Validate force computation, antisymmetry, zero net force.
-* `energy` – Track energy drift (numerical stability sanity check).
-* `pairs` – Pair iteration correctness.
-* `centerstest` & negative variant – Behavior of “center the sun” reference frame.
-* `persist` – Save / restore end‑to‑end.
-* `coretest` – Core simulation unit style checks.
+* Force symmetry & correctness (`forces.test.ts`, `pairs.test.ts`).
+* Neighbor list strategies & cell sizing (`neighbor*.test.ts`).
+* Engine config validation & persistence (`configValidation.test.ts`, `persistence.test.ts`, `enginePersist.test.ts`).
+* Energy / diagnostics drift (`energy.test.ts`).
+* Browser harness smoke (`browser.test.ts`) ensuring particles advance & HUD wiring.
+* Contribution / integration surfaces (`simulationContrib.test.ts`, `engine.test.ts`).
 
-Aggregate runner (`npm test`) executes all and reports PASS/FAIL summary. Coverage (`npm run test:cov`) generates `coverage/lcov-report/`.
+Run `npm test` for fast feedback; `npm run test:cov` emits coverage to `coverage/lcov-report/`.
 
 ## Persistence Details
 
@@ -191,7 +196,7 @@ Ideas / PRs welcome. Low‑friction areas:
 * Performance: introduce cell / neighbor lists replacing O(N²) in `forEachPair`.
 * WebWorker offload for force computation – serialize/hydrate state via `serialize.ts`.
 * UI polish / responsive layout / VR ergonomics.
-* Typing & cleanup: remove legacy OO duplication once SoA path fully drives rendering.
+* Further typing & refactors (e.g. optional WebWorker offload) are welcome; the older THREE.Points path has already been removed in favor of instanced rendering.
 
 Coding conventions:
 
