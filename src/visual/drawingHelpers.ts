@@ -1,4 +1,6 @@
-'use strict'
+/**
+ * Helper functions for drawing shapes with THREE.js.
+ */
 
 import { Scene, Mesh, BoxGeometry, MeshBasicMaterial, BufferAttribute, BufferGeometry, Color, Line, LineBasicMaterial, Vector3 } from 'three'
 
