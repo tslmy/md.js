@@ -426,8 +426,8 @@ docReady(() => {
     scene.traverse(obj => { if ((obj as unknown as { isPoints?: boolean }).isPoints) obj.visible = false })
     // Initialize sphere transforms/colors immediately
     updateSpheres(new Vector3(0, 0, 0))
-    // Restore visual trajectories if present (after ensuring lines exist)
-    if (settings.if_showTrajectory) loadVisualDataFromLocal(trajectories)
+    // Attempt to restore persisted visual data (colors always; trajectories only if enabled)
+    loadVisualDataFromLocal(settings.if_showTrajectory ? trajectories : [], colors)
   }
   // Expose handle for automated headless tests
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)
@@ -438,7 +438,8 @@ docReady(() => {
     try { saveSettingsToLocal() } catch { /* ignore */ }
     if (engine) {
       // Collect trajectory buffers (if any) for persistence
-      if (settings.if_showTrajectory) { saveVisualDataToLocal(trajectories) }
+      // Always persist colors (and trajectories if present) regardless of toggle state
+      saveVisualDataToLocal(trajectories, colors)
       saveToLocal(engine)
     }
   }

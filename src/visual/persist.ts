@@ -1,25 +1,32 @@
-import { BufferAttribute, Line } from 'three'
+import { BufferAttribute, Line, Color } from 'three'
 
 /** LocalStorage key for visual (non-engine) data. */
 export const VISUAL_SNAPSHOT_KEY = 'mdJsVisualSnapshot'
 
 export interface VisualDataSnapshot {
-    version: 1
+    /** Snapshot schema version. v1: trajectories only. v2: adds colors array. */
+    version: 1 | 2
     /** Trajectory length (# points) per particle. Assumed consistent across all particles that have a trajectory. */
     maxTrajectoryLength: number
     /** Per-particle flattened xyz triples (length = 3 * maxTrajectoryLength). Empty array if particle had no trajectory. */
     trajectories: number[][]
+    /** (v2+) Per-particle color hex values (0xRRGGBB). */
+    colors?: number[]
 }
 
 /** Capture current trajectory buffer attributes into a serializable snapshot. */
-export function captureVisualData(trajectories: (Line | null)[]): VisualDataSnapshot | null {
+export function captureVisualData(trajectories: (Line | null)[], colors?: Color[]): VisualDataSnapshot | null {
     if (!trajectories.length) return null
     // Find first trajectory to determine length
     let maxLen = 0
     for (const t of trajectories) {
         if (t) { maxLen = (t.geometry.getAttribute('position') as BufferAttribute).count; break }
     }
-    if (!maxLen) return { version: 1, maxTrajectoryLength: 0, trajectories: trajectories.map(() => []) }
+    if (!maxLen) {
+        const base: VisualDataSnapshot = { version: colors ? 2 : 1, maxTrajectoryLength: 0, trajectories: trajectories.map(() => []) }
+        if (colors) base.colors = colors.map(c => c.getHex())
+        return base
+    }
     const trajectoriesData: number[][] = trajectories.map(t => {
         if (!t) return []
         const attr = t.geometry.getAttribute('position') as BufferAttribute
@@ -32,16 +39,23 @@ export function captureVisualData(trajectories: (Line | null)[]): VisualDataSnap
         }
         return out
     })
-    return { version: 1, maxTrajectoryLength: maxLen, trajectories: trajectoriesData }
+    const snap: VisualDataSnapshot = { version: colors ? 2 : 1, maxTrajectoryLength: maxLen, trajectories: trajectoriesData }
+    if (colors) snap.colors = colors.map(c => c.getHex())
+    return snap
 }
 
 /** Apply a visual snapshot's trajectory data back onto existing particle trajectories (if compatible). */
-export function applyVisualData(snapshot: VisualDataSnapshot, targets: (Line | null)[]): void {
-    if (snapshot.version !== 1) return
+export function applyVisualData(snapshot: VisualDataSnapshot, targets: (Line | null)[], colors?: Color[]): void {
+    if (snapshot.version !== 1 && snapshot.version !== 2) return
+    restoreTrajectories(snapshot, targets)
+    if (snapshot.version === 2) restoreColors(snapshot, colors, targets)
+}
+
+function restoreTrajectories(snapshot: VisualDataSnapshot, targets: (Line | null)[]): void {
     const { maxTrajectoryLength, trajectories } = snapshot
-    for (let i = 0; i < trajectories.length && i < targets.length; i++) {
-        const arr = trajectories[i]
-        const t = targets[i]
+    const cap = Math.min(trajectories.length, targets.length)
+    for (let i = 0; i < cap; i++) {
+        const arr = trajectories[i]; const t = targets[i]
         if (!t || arr.length === 0) continue
         const attr = t.geometry.getAttribute('position') as BufferAttribute
         if (attr.count !== maxTrajectoryLength || arr.length !== 3 * maxTrajectoryLength) continue
@@ -53,24 +67,42 @@ export function applyVisualData(snapshot: VisualDataSnapshot, targets: (Line | n
     }
 }
 
+function restoreColors(snapshot: VisualDataSnapshot, colors?: Color[], trajectories?: (Line | null)[]): void {
+    if (!colors || !snapshot.colors) return
+    const hexes = snapshot.colors
+    const cap = Math.min(hexes.length, colors.length)
+    for (let i = 0; i < cap; i++) {
+        const hex = hexes[i]
+        if (!Number.isFinite(hex)) continue
+        colors[i].setHex(hex)
+        // Update trajectory line material if present
+        const mat = trajectories?.[i]?.material as { color?: Color } | undefined
+        mat?.color?.setHex(hex)
+        try {
+            const cell = document.querySelector<HTMLElement>(`#tabularInfo > tbody > tr:nth-child(${i + 1}) > td.particle`)
+            if (cell) cell.style.color = '#' + hex.toString(16).padStart(6, '0')
+        } catch { /* ignore */ }
+    }
+}
+
 /** Persist visual data snapshot to localStorage (no-op outside browser). */
-export function saveVisualDataToLocal(trajectories: (Line | null)[]): void {
+export function saveVisualDataToLocal(trajectories: (Line | null)[], colors?: Color[]): void {
     try {
         if (typeof localStorage === 'undefined') return
-        const snap = captureVisualData(trajectories)
+        const snap = captureVisualData(trajectories, colors)
         if (!snap) return
         localStorage.setItem(VISUAL_SNAPSHOT_KEY, JSON.stringify(snap))
     } catch { /* ignore */ }
 }
 
 /** Load and apply visual data snapshot from localStorage if present. */
-export function loadVisualDataFromLocal(targets: (Line | null)[]): boolean {
+export function loadVisualDataFromLocal(targets: (Line | null)[], colors?: Color[]): boolean {
     try {
         if (typeof localStorage === 'undefined') return false
         const raw = localStorage.getItem(VISUAL_SNAPSHOT_KEY)
         if (!raw) return false
         const snap = JSON.parse(raw) as VisualDataSnapshot
-        applyVisualData(snap, targets)
+        applyVisualData(snap, targets, colors)
         return true
     } catch { return false }
 }
