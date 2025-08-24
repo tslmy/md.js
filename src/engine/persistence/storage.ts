@@ -6,8 +6,71 @@
  */
 import { snapshot, hydrate, type EngineSnapshot } from './persist.js'
 import { SimulationEngine } from '../SimulationEngine.js'
+import { settings } from '../../settings.js'
 
 const KEY = 'mdJsEngineSnapshot'
+const SETTINGS_KEY = 'mdJsUserSettings'
+
+interface PersistedSettings {
+  particleCount: number
+  spaceBoundaryX: number
+  spaceBoundaryY: number
+  spaceBoundaryZ: number
+  cutoffDistance: number
+  dt: number
+  if_apply_LJpotential: boolean
+  if_apply_gravitation: boolean
+  if_apply_coulombForce: boolean
+  EPSILON: number; DELTA: number; G: number; K: number; kB: number
+}
+
+function captureSettings(): PersistedSettings {
+  return {
+    particleCount: settings.particleCount,
+    spaceBoundaryX: settings.spaceBoundaryX,
+    spaceBoundaryY: settings.spaceBoundaryY,
+    spaceBoundaryZ: settings.spaceBoundaryZ,
+    cutoffDistance: settings.cutoffDistance,
+    dt: settings.dt,
+    if_apply_LJpotential: !!settings.if_apply_LJpotential,
+    if_apply_gravitation: !!settings.if_apply_gravitation,
+    if_apply_coulombForce: !!settings.if_apply_coulombForce,
+    EPSILON: settings.EPSILON,
+    DELTA: settings.DELTA,
+    G: settings.G,
+    K: settings.K,
+    kB: settings.kB
+  }
+}
+
+/** Persist current UI settings (subset used to build a new world). */
+export function saveUserSettings(): void {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(captureSettings())) } catch { /* ignore */ }
+}
+
+/** Load persisted settings into mutable settings object (if present). */
+export function loadUserSettings(): boolean {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (!raw) return false
+    const data = JSON.parse(raw) as PersistedSettings
+    settings.particleCount = data.particleCount
+    settings.spaceBoundaryX = data.spaceBoundaryX
+    settings.spaceBoundaryY = data.spaceBoundaryY
+    settings.spaceBoundaryZ = data.spaceBoundaryZ
+    settings.cutoffDistance = data.cutoffDistance
+    settings.dt = data.dt
+    settings.if_apply_LJpotential = data.if_apply_LJpotential
+    settings.if_apply_gravitation = data.if_apply_gravitation
+    settings.if_apply_coulombForce = data.if_apply_coulombForce
+    settings.EPSILON = data.EPSILON
+    settings.DELTA = data.DELTA
+    settings.G = data.G
+    settings.K = data.K
+    settings.kB = data.kB
+    return true
+  } catch { return false }
+}
 
 /** Serialize and persist the current engine snapshot into localStorage. */
 export function saveToLocal(engine: SimulationEngine): void {
@@ -63,6 +126,8 @@ export function downloadSnapshot(engine: SimulationEngine): void {
  */
 export function resetWorld(): void {
   try {
+  // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
+  saveUserSettings()
     clearStoredSnapshot()
     // Remove legacy key for users upgrading mid-session
     localStorage.removeItem('mdJsState')

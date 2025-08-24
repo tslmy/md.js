@@ -1,6 +1,6 @@
 import { settings } from './settings.js'
 import { init, ifMobileDevice, toggle } from './init.js'
-import { saveToLocal, loadFromLocal } from './engine/persistence/storage.js'
+import { saveToLocal, loadFromLocal, loadUserSettings, saveUserSettings } from './engine/persistence/storage.js'
 import * as THREE from 'three'
 import { Particle } from './particleSystem.js'
 // New SoA simulation core imports
@@ -223,6 +223,8 @@ docReady(() => {
   console.log('Ready.')
 
   // Attempt to hydrate engine first (if snapshot present) BEFORE building visual particle system.
+  // Load persisted user settings first so fresh world uses them if no snapshot.
+  loadUserSettings()
   const loaded = loadFromLocal()
   if (loaded) {
     engine = loaded.engine
@@ -282,7 +284,7 @@ docReady(() => {
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)
   window.__mdjs = { particles, settings, simState, diagnostics: lastDiagnostics }
   // Install full-state persistence handler (overrides placeholder in init.js)
-  window.onbeforeunload = () => { if (engine) saveToLocal(engine) }
+  window.onbeforeunload = () => { try { saveUserSettings() } catch { /* ignore */ } if (engine) saveToLocal(engine) }
   // bind keyboard event:
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Tab') {
