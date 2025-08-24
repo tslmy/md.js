@@ -1,71 +1,33 @@
-import { Color, Vector3, Line, Scene } from 'three'
-import { makeTrajectory } from './visual/drawingHelpers.js'
+import { Color, Vector3, Scene } from 'three'
+import { registerSeedPosition, clearSeedPositions } from './core/simulation/state.js'
 // Type alias for settings shape (imported dynamically); avoids circular dep.
 type Settings = typeof import('./control/settings.js').settings
 
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength']
 
-class Particle {
-  color: Color
-  mass: number
-  charge: number
-  trajectory: Line | null
-  isEscaped: boolean = false
-  constructor(color: Color, mass: number, charge: number, trajectory: Line | null) {
-    this.color = color
-    this.mass = mass
-    this.charge = charge
-    this.trajectory = trajectory
-    this.isEscaped = false
-  }
-}
+class Particle { constructor(public color: Color, public isEscaped: boolean = false) { } }
 
-/** Seeded world-space positions (ordered to correspond with `particles`). */
-export const seededPositions: Vector3[] = []
+// (initial positions now tracked centrally in simulation/state via registerSeedPosition)
 
-function addParticle(
-  color: Color,
-  position: Vector3,
-  mass: number,
-  charge: number,
-  ctx: {
-    particles: Particle[]
-    scene: Scene
-    showTrajectory: boolean
-    maxTrajectoryLength: number
-  }
-): void {
-  const { particles, scene, showTrajectory, maxTrajectoryLength } = ctx
-  let trajectory: Line | null = null
-  if (showTrajectory) {
-    trajectory = makeTrajectory(color, position, maxTrajectoryLength)
-    scene.add(trajectory)
-  }
-  const particle = new Particle(color, mass, charge, trajectory)
-  particles.push(particle)
-  seededPositions.push(position.clone())
-  addParticleToTable(color, mass, charge)
+function addParticle(color: Color, position: Vector3, ctx: { particles: Particle[] }): void {
+  const { particles } = ctx
+  particles.push(new Particle(color))
+  registerSeedPosition(position)
+  addParticleToTable(color)
 }
 
 /**
  * There's a table that displays particle information.
  * This function adds a row to that table for each particle.
  */
-function addParticleToTable(color: Color, mass: number, charge: number) {
+function addParticleToTable(color: Color) {
   const tableRow = document.createElement('tr')
   const particleColumn = document.createElement('td')
   particleColumn.classList.add('particle')
   particleColumn.innerText = '⬤'
   particleColumn.style.color = '#' + color.getHexString()
   tableRow.appendChild(particleColumn)
-  const massColumn = document.createElement('td')
-  massColumn.classList.add('mass')
-  massColumn.innerText = `${Math.round(mass * 10) / 10}`
-  tableRow.appendChild(massColumn)
-  const chargeColumn = document.createElement('td')
-  chargeColumn.classList.add('mass')
-  chargeColumn.innerText = `${Math.round(charge * 10) / 10}`
-  tableRow.appendChild(chargeColumn)
+  // mass & charge columns removed (HUD now updated from state arrays)
   for (const columnName of columnNames) {
     const column = document.createElement('td')
     column.classList.add(columnName)
@@ -80,38 +42,16 @@ function addParticleToTable(color: Color, mass: number, charge: number) {
  */
 function seedParticles(particles: Particle[], scene: Scene, settings: Settings): void {
   // reset any prior seeding (e.g. hot reload) to avoid stale growth
-  if (seededPositions.length) seededPositions.splice(0, seededPositions.length)
+  clearSeedPositions()
   if (settings.if_makeSun) {
-    addParticle(
-      new Color(0, 0, 0),
-      new Vector3(0, 0, 0),
-      settings.sunMass,
-      0,
-      {
-        particles,
-        scene,
-        showTrajectory: settings.if_showTrajectory,
-        maxTrajectoryLength: settings.maxTrajectoryLength
-      }
-    )
+    addParticle(new Color(0, 0, 0), new Vector3(0, 0, 0), { particles })
   }
   for (let i = particles.length; i < settings.particleCount; i++) {
     const position = new Vector3(
       random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
       random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
       random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ))
-    addParticle(
-      new Color(Math.random(), Math.random(), Math.random()),
-      position,
-      random(settings.massLowerBound, settings.massUpperBound),
-      sample<number>(settings.availableCharges),
-      {
-        particles,
-        scene,
-        showTrajectory: settings.if_showTrajectory,
-        maxTrajectoryLength: settings.maxTrajectoryLength
-      }
-    )
+    addParticle(new Color(Math.random(), Math.random(), Math.random()), position, { particles })
   }
 }
 
@@ -120,8 +60,5 @@ function random(min: number, max: number): number {
   return Math.random() * (max - min) + min
 }
 
-function sample<Type>(l: Type[]): Type {
-  return l[~~(Math.random() * l.length)]
-}
 
 export { seedParticles, Particle }

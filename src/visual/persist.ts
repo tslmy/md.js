@@ -1,5 +1,4 @@
-import { BufferAttribute } from 'three'
-import type { Particle } from '../particleSystem.js'
+import { BufferAttribute, Line } from 'three'
 
 /** LocalStorage key for visual (non-engine) data. */
 export const VISUAL_SNAPSHOT_KEY = 'mdJsVisualSnapshot'
@@ -13,17 +12,17 @@ export interface VisualDataSnapshot {
 }
 
 /** Capture current trajectory buffer attributes into a serializable snapshot. */
-export function captureVisualData(particles: Particle[]): VisualDataSnapshot | null {
-    if (!particles.length) return null
+export function captureVisualData(trajectories: (Line | null)[]): VisualDataSnapshot | null {
+    if (!trajectories.length) return null
     // Find first trajectory to determine length
     let maxLen = 0
-    for (const p of particles) {
-        if (p.trajectory) { maxLen = (p.trajectory.geometry.getAttribute('position') as BufferAttribute).count; break }
+    for (const t of trajectories) {
+        if (t) { maxLen = (t.geometry.getAttribute('position') as BufferAttribute).count; break }
     }
-    if (!maxLen) return { version: 1, maxTrajectoryLength: 0, trajectories: particles.map(() => []) }
-    const trajectories: number[][] = particles.map(p => {
-        if (!p.trajectory) return []
-        const attr = p.trajectory.geometry.getAttribute('position') as BufferAttribute
+    if (!maxLen) return { version: 1, maxTrajectoryLength: 0, trajectories: trajectories.map(() => []) }
+    const trajectoriesData: number[][] = trajectories.map(t => {
+        if (!t) return []
+        const attr = t.geometry.getAttribute('position') as BufferAttribute
         const out = new Array(attr.count * 3)
         for (let i = 0; i < attr.count; i++) {
             const k = 3 * i
@@ -33,18 +32,18 @@ export function captureVisualData(particles: Particle[]): VisualDataSnapshot | n
         }
         return out
     })
-    return { version: 1, maxTrajectoryLength: maxLen, trajectories }
+    return { version: 1, maxTrajectoryLength: maxLen, trajectories: trajectoriesData }
 }
 
 /** Apply a visual snapshot's trajectory data back onto existing particle trajectories (if compatible). */
-export function applyVisualData(snapshot: VisualDataSnapshot, particles: Particle[]): void {
+export function applyVisualData(snapshot: VisualDataSnapshot, targets: (Line | null)[]): void {
     if (snapshot.version !== 1) return
     const { maxTrajectoryLength, trajectories } = snapshot
-    for (let i = 0; i < trajectories.length && i < particles.length; i++) {
+    for (let i = 0; i < trajectories.length && i < targets.length; i++) {
         const arr = trajectories[i]
-        const p = particles[i]
-        if (!p.trajectory || !arr.length) continue
-        const attr = p.trajectory.geometry.getAttribute('position') as BufferAttribute
+        const t = targets[i]
+        if (!t || arr.length === 0) continue
+        const attr = t.geometry.getAttribute('position') as BufferAttribute
         if (attr.count !== maxTrajectoryLength || arr.length !== 3 * maxTrajectoryLength) continue
         for (let j = 0; j < maxTrajectoryLength; j++) {
             const k = 3 * j
@@ -55,23 +54,23 @@ export function applyVisualData(snapshot: VisualDataSnapshot, particles: Particl
 }
 
 /** Persist visual data snapshot to localStorage (no-op outside browser). */
-export function saveVisualDataToLocal(particles: Particle[]): void {
+export function saveVisualDataToLocal(trajectories: (Line | null)[]): void {
     try {
         if (typeof localStorage === 'undefined') return
-        const snap = captureVisualData(particles)
+        const snap = captureVisualData(trajectories)
         if (!snap) return
         localStorage.setItem(VISUAL_SNAPSHOT_KEY, JSON.stringify(snap))
     } catch { /* ignore */ }
 }
 
 /** Load and apply visual data snapshot from localStorage if present. */
-export function loadVisualDataFromLocal(particles: Particle[]): boolean {
+export function loadVisualDataFromLocal(targets: (Line | null)[]): boolean {
     try {
         if (typeof localStorage === 'undefined') return false
         const raw = localStorage.getItem(VISUAL_SNAPSHOT_KEY)
         if (!raw) return false
         const snap = JSON.parse(raw) as VisualDataSnapshot
-        applyVisualData(snap, particles)
+        applyVisualData(snap, targets)
         return true
     } catch { return false }
 }

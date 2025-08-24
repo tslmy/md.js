@@ -83,3 +83,46 @@ export function zeroForces(state: SimulationState): void {
  * Equivalent to `i * 3` – provided for readability at call sites.
  */
 export function index3(i: number): number { return 3 * i }
+
+/**
+ * Populate a freshly created SimulationState's positions / masses / charges from
+ * provided arrays of vectors & scalar properties. Extra entries are ignored; missing
+ * ones leave remaining state entries at their defaults (0 position, mass=0, charge=0).
+ *
+ * @param state Target simulation state (typically just created by createState()).
+ * @param seed Object containing parallel arrays. Each array length should be >= N to fully seed.
+ */
+export function seedInitialState(state: SimulationState, seed: { positions?: { x: number; y: number; z: number }[]; masses?: number[]; charges?: number[] }): void {
+  const { N } = state
+  const posSrc = seed.positions
+  if (posSrc) {
+    for (let i = 0; i < N && i < posSrc.length; i++) {
+      const i3 = 3 * i
+      const p = posSrc[i]
+      state.positions[i3] = p.x
+      state.positions[i3 + 1] = p.y
+      state.positions[i3 + 2] = p.z
+    }
+  }
+  const mSrc = seed.masses
+  if (mSrc) {
+    for (let i = 0; i < N && i < mSrc.length; i++) state.masses[i] = mSrc[i]
+  }
+  const cSrc = seed.charges
+  if (cSrc) {
+    for (let i = 0; i < N && i < cSrc.length; i++) state.charges[i] = cSrc[i]
+  }
+}
+
+// --- Transitional seeding utilities (visual layer -> core) ---
+/** Internal mutable stash of initially generated world-space positions. */
+const _seededPositions: { x: number; y: number; z: number }[] = []
+
+/** Register a newly generated initial position (called by particleSystem seeding). */
+export function registerSeedPosition(p: { x: number; y: number; z: number }): void { _seededPositions.push({ x: p.x, y: p.y, z: p.z }) }
+
+/** Clear previously registered seed positions (e.g. hot reload / re-init). */
+export function clearSeedPositions(): void { _seededPositions.length = 0 }
+
+/** Read-only view of accumulated seeded positions. */
+export function getSeedPositions(): { x: number; y: number; z: number }[] { return _seededPositions }

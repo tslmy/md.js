@@ -5,9 +5,10 @@ import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
 import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
 import * as THREE from 'three'
-import { Particle, seededPositions } from './particleSystem.js'
+import { Particle } from './particleSystem.js'
 // New SoA simulation core imports
-import { createState, type SimulationState } from './core/simulation/state.js'
+import { createState, seedInitialState, getSeedPositions, type SimulationState } from './core/simulation/state.js'
+import { generateMassesCharges } from './core/simulation/seeding.js'
 import type { Diagnostics } from './core/simulation/diagnostics.js'
 // Experimental engine
 import { SimulationEngine } from './engine/SimulationEngine.js'
@@ -15,6 +16,7 @@ import { fromSettings } from './engine/config/types.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
 import { InstancedArrows } from './visual/InstancedArrows.js'
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
+import { makeTrajectory } from './visual/drawingHelpers.js'
 import { Vector3 } from 'three'
 
 // global variables
@@ -44,6 +46,8 @@ let sphereMesh: InstancedSpheres | undefined
 let sphereCloneMesh: InstancedSpheres | undefined
 
 const particles: Particle[] = []
+// Separate per-particle trajectory Line objects (optional)
+const trajectories: (THREE.Line | null)[] = []
 let time = 0
 let lastSnapshotTime = 0
 
@@ -161,7 +165,6 @@ function updateFromSimulation(frameOffset: THREE.Vector3): void {
 function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3, perForce: Record<string, Float32Array>): void {
   if (!simState) return
   const { positions, velocities, forces, masses } = simState
-  const p = particles[i]
   // Prefer authoritative escaped flag from core state over legacy per-Particle flag.
   if (simState.escaped && simState.escaped[i] === 1) return
   const i3 = 3 * i
@@ -169,8 +172,9 @@ function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift:
   let py = positions[i3 + 1] - frameOffset.y
   let pz = positions[i3 + 2] - frameOffset.z
   // We'll update p.position after applying frame offset / PBC so tests & UI see displayed coordinates.
-  const trajectoryAttr = (settings.if_showTrajectory && p.trajectory)
-    ? p.trajectory.geometry.getAttribute('position') as THREE.BufferAttribute
+  const traj = settings.if_showTrajectory ? trajectories[i] : null
+  const trajectoryAttr = (settings.if_showTrajectory && traj)
+    ? traj.geometry.getAttribute('position') as THREE.BufferAttribute
     : null
   if (settings.if_use_periodic_boundary_condition) {
     _tmpDir.set(px, py, pz)
@@ -335,6 +339,7 @@ docReady(() => {
   loadSettingsFromLocal()
   const loaded = loadEngineFromLocal()
   if (loaded) {
+    console.log('Engine loaded from localStorage.')
     engine = loaded.engine
     // Mirror loaded config into settings (best-effort) – future: migrate settings <-> engine properly.
     settings.particleCount = loaded.snapshot.config.world.particleCount
@@ -358,6 +363,7 @@ docReady(() => {
   effect = values[7]
 
   if (!engine) {
+    console.log('No engine found, creating a new one.')
     // Fresh run: construct engine from particles
     simState = createState({
       particleCount: settings.particleCount,
@@ -365,31 +371,49 @@ docReady(() => {
       dt: settings.dt,
       cutoff: settings.cutoffDistance
     })
-    for (let i = 0; i < particles.length; i++) {
-      const i3 = 3 * i
-      const src = seededPositions[i]
-      simState.positions[i3] = src.x
-      simState.positions[i3 + 1] = src.y
-      simState.positions[i3 + 2] = src.z
-      simState.masses[i] = particles[i].mass
-      simState.charges[i] = particles[i].charge
-    }
+    // Reintroduce randomized mass / charge seeding (core SoA ownership)
+    const { masses: seedMasses, charges: seedCharges } = generateMassesCharges({
+      N: simState.N,
+      massLower: settings.massLowerBound,
+      massUpper: settings.massUpperBound,
+      chargeOptions: settings.availableCharges,
+      sunMass: settings.sunMass,
+      makeSun: settings.if_makeSun
+    })
+    seedInitialState(simState, { positions: getSeedPositions(), masses: seedMasses, charges: seedCharges })
     engine = new SimulationEngine(fromSettings(settings))
     engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
-    simState = engine.getState()
-    initSettingsSync(engine)
-    // Auto-push: wrap selected mutable settings with setters triggering engine.updateConfig
-    registerAutoPush(engine, AUTO_PUSH_KEYS)
-  } else {
-    simState = engine.getState()
-    initSettingsSync(engine)
-    registerAutoPush(engine, AUTO_PUSH_KEYS)
   }
+  simState = engine.getState()
+  initSettingsSync(engine)
+  // Auto-push: wrap selected mutable settings with setters triggering engine.updateConfig
+  registerAutoPush(engine, AUTO_PUSH_KEYS)
   engine.on('frame', ({ time: t }) => { time = t; applyVisualUpdates() })
   engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
   engine.run({ useRaf: true })
   // Create arrow visualizers once state & scene are ready
   if (simState) {
+    // Allocate placeholder slots for trajectories (kept even if disabled to preserve indices)
+    if (trajectories.length === 0) {
+      for (let i = 0; i < simState.N; i++) trajectories.push(null)
+    }
+    // Create trajectory Line objects if feature enabled and not yet created
+    if (settings.if_showTrajectory) {
+      for (let i = 0; i < simState.N; i++) {
+        if (!trajectories[i]) {
+          const i3 = 3 * i
+            const pos = new THREE.Vector3(simState.positions[i3], simState.positions[i3 + 1], simState.positions[i3 + 2])
+            const color = particles[i]?.color || new THREE.Color(0xffffff)
+            const line = makeTrajectory(color, pos, settings.maxTrajectoryLength)
+            scene.add(line)
+            trajectories[i] = line
+        }
+        if (trajectories[i]) trajectories[i]!.visible = settings.if_showTrajectory
+      }
+    } else {
+      // Hide existing trajectories if feature toggled off
+      for (const t of trajectories) { if (t) t.visible = false }
+    }
     velArrows = new InstancedArrows(simState.N, { color: 0x0066ff })
     forceArrows = new InstancedArrows(simState.N, { color: 0xff3300 })
     velArrows.addTo(scene); forceArrows.addTo(scene)
@@ -405,8 +429,8 @@ docReady(() => {
     scene.traverse(obj => { if ((obj as unknown as { isPoints?: boolean }).isPoints) obj.visible = false })
     // Initialize sphere transforms/colors immediately
     updateSpheres(new THREE.Vector3(0, 0, 0))
-    // Restore visual trajectories if present
-    loadVisualDataFromLocal(particles)
+  // Restore visual trajectories if present (after ensuring lines exist)
+  if (settings.if_showTrajectory) loadVisualDataFromLocal(trajectories)
   }
   // Expose handle for automated headless tests
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)
@@ -417,7 +441,7 @@ docReady(() => {
     try { saveSettingsToLocal() } catch { /* ignore */ }
     if (engine) {
       // Collect trajectory buffers (if any) for persistence
-      if (settings.if_showTrajectory) { saveVisualDataToLocal(particles) }
+      if (settings.if_showTrajectory) { saveVisualDataToLocal(trajectories) }
       saveToLocal(engine)
     }
   }
