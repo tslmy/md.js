@@ -223,3 +223,29 @@ engine.on('frame', f => {/* update visuals */})
 engine.on('diagnostics', d => {/* show energy, temperature */})
 engine.run()
 ```
+
+### Neighbor List Strategies
+
+The engine can swap the pair iteration backend used by all force fields:
+
+* `naive` (default) – classic O(N²) loop over unordered pairs with early distance cutoff.
+* `cell` – experimental uniform linked‑cell grid. Partitions space into cubic cells of edge ≈ cutoff and only inspects the 27 neighboring cells per particle. For roughly uniform densities this trends toward O(N) scaling.
+
+Configuration (when constructing or patching engine config):
+
+```ts
+const cfg = legacySettingsToEngineConfig(settings)
+cfg.neighbor = { strategy: 'cell' } // or 'naive'
+const engine = new SimulationEngine(cfg)
+
+// Switch at runtime:
+engine.updateConfig({ neighbor: { strategy: 'naive' } })
+```
+
+Current limitations of `cell`:
+
+* Heuristic cubic bounding box (no explicit world extents yet); particles wandering far are clamped to edge cells (still correct, a bit more pair work near edges).
+* Always rebuilds every step (no Verlet “skin” optimization yet).
+* No periodic wrapping; adding PBC requires mapping neighbor lookups across opposite faces.
+
+Planned improvements: configurable box, rebuild cadence based on max displacement, optional Verlet shell, and a benchmarking harness to report pair counts & timings.
