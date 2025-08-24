@@ -8,8 +8,7 @@ import Stats from 'Stats'
 // @ts-expect-error external import map module (no types)
 import { StereoEffect } from 'StereoEffect'
 import { drawBox } from './visual/drawingHelpers.js'
-import { seedParticles } from './particleSystem.js'
-import type { Particle } from './particleSystem.js'
+import { seedColorsAndPopulateTable } from './visual/coloringAndDataSheet.js'
 import { initializeGuiControls } from './control/panel.js'
 import { settings as liveSettings } from './control/settings.js'
 
@@ -26,7 +25,7 @@ function fullscreen(): void {
   else if (b.webkitRequestFullscreen) b.webkitRequestFullscreen()
 }
 
-export function init(settings: SettingsLike, particles: Particle[]): [THREE.Scene, null, THREE.PerspectiveCamera, THREE.WebGLRenderer, OrbitControls, Stats, { update: (t: number, max: number) => void }, StereoEffect | undefined] {
+export function init(settings: SettingsLike, colors: THREE.Color[]): [THREE.Scene, null, THREE.PerspectiveCamera, THREE.WebGLRenderer, OrbitControls, Stats, { update: (t: number, max: number) => void }, StereoEffect | undefined] {
   const scene = new THREE.Scene()
   if (settings.if_useFog) scene.fog = new THREE.Fog(0xffffff, 0, 20)
   // Optional wireframe box
@@ -38,7 +37,7 @@ export function init(settings: SettingsLike, particles: Particle[]): [THREE.Scen
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(5, 10, 7); scene.add(dirLight)
   scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 0.4))
 
-  seedParticles(particles, scene, settings) // seed utility expects full settings export shape
+  seedColorsAndPopulateTable(colors, settings.particleCount, settings.if_makeSun) // seed utility expects full settings export shape
 
   const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 1_000_000)
   camera.position.set(0, 2, 10)

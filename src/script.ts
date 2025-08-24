@@ -5,10 +5,9 @@ import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
 import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
 import * as THREE from 'three'
-import { Particle } from './particleSystem.js'
 // New SoA simulation core imports
-import { createState, seedInitialState, getSeedPositions, type SimulationState } from './core/simulation/state.js'
-import { generateMassesCharges } from './core/simulation/seeding.js'
+import { createState, seedInitialState, type SimulationState } from './core/simulation/state.js'
+import { generateMassesCharges, generatePositions } from './core/simulation/seeding.js'
 import type { Diagnostics } from './core/simulation/diagnostics.js'
 // Experimental engine
 import { SimulationEngine } from './engine/SimulationEngine.js'
@@ -33,8 +32,6 @@ let controls: ControlsLike | undefined
 let temperaturePanel: TemperaturePanelLike
 let stats: StatsLike
 let maxTemperature = 0
-// Legacy THREE.Points based sprite system removed (replaced by instanced spheres)
-// (legacy particleSystem removed)
 // New SoA simulation objects
 let engine: SimulationEngine | undefined
 let simState: SimulationState | undefined
@@ -45,19 +42,15 @@ let forceArrows: InstancedArrows | undefined
 let sphereMesh: InstancedSpheres | undefined
 let sphereCloneMesh: InstancedSpheres | undefined
 
-const particles: Particle[] = []
+// Array of per-particle colors.
+const colors: THREE.Color[] = []
 // Separate per-particle trajectory Line objects (optional)
 const trajectories: (THREE.Line | null)[] = []
 let time = 0
 let lastSnapshotTime = 0
 
 // Expose minimal state for headless smoke tests (non-production usage)
-declare global {
-  interface Window {
-    __mdjs?: { particles: Particle[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics }
-    __pauseEngine?: () => void
-  }
-}
+declare global { interface Window { __mdjs?: { colors: THREE.Color[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics }; __pauseEngine?: () => void } }
 
 /**
  * el: the DOM element you'd like to test for visibility.
@@ -158,7 +151,7 @@ function updateFromSimulation(frameOffset: THREE.Vector3): void {
   const hudVisible = isVisible(document.querySelector('#hud'))
   const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt)
   const perForce = engine.getPerForceContributions()
-  for (let i = 0; i < particles.length; i++) updateOneParticle(i, hudVisible, needsTrajectoryShift, frameOffset, perForce)
+  for (let i = 0; i < colors.length; i++) updateOneParticle(i, hudVisible, needsTrajectoryShift, frameOffset, perForce)
   if (sphereMesh && simState) updateSpheres(frameOffset)
 }
 
@@ -206,7 +199,7 @@ function renderPrimarySpheres(frameOffset: THREE.Vector3): void {
     tmpPos.set(positions[i3] - frameOffset.x, positions[i3 + 1] - frameOffset.y, positions[i3 + 2] - frameOffset.z)
     const m = masses[i] || 1
     const radius = 0.08 * Math.cbrt(m / 10)
-    sphereMesh.update(i, tmpPos, radius, particles[i]?.color || new THREE.Color(0xffffff))
+    sphereMesh.update(i, tmpPos, radius, colors[i] || new THREE.Color(0xffffff))
   }
   sphereMesh.commit()
 }
@@ -231,7 +224,7 @@ function renderCloneSpheres(frameOffset: THREE.Vector3): void {
       )
       const m = masses[i] || 1
       const radius = 0.08 * Math.cbrt(m / 10)
-      sphereCloneMesh.update(baseIndex + i, clonePos, radius, particles[i]?.color || new THREE.Color(0xffffff))
+      sphereCloneMesh.update(baseIndex + i, clonePos, radius, colors[i] || new THREE.Color(0xffffff))
     }
     baseIndex += N
   }
@@ -352,7 +345,7 @@ docReady(() => {
     // Trajectories persisted separately (visual aid) – defer restore after visuals ready.
   }
 
-  const values = init(settings, particles)
+  const values = init(settings, colors)
   scene = values[0]
   // values[1] was a legacy placeholder (always null) – removed
   camera = values[2]
@@ -380,7 +373,12 @@ docReady(() => {
       sunMass: settings.sunMass,
       makeSun: settings.if_makeSun
     })
-    seedInitialState(simState, { positions: getSeedPositions(), masses: seedMasses, charges: seedCharges })
+    const seedPositions = generatePositions({
+      N: simState.N,
+      bounds: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ },
+      makeSun: settings.if_makeSun
+    })
+    seedInitialState(simState, { positions: seedPositions, masses: seedMasses, charges: seedCharges })
     engine = new SimulationEngine(fromSettings(settings))
     engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
   }
@@ -402,11 +400,11 @@ docReady(() => {
       for (let i = 0; i < simState.N; i++) {
         if (!trajectories[i]) {
           const i3 = 3 * i
-            const pos = new THREE.Vector3(simState.positions[i3], simState.positions[i3 + 1], simState.positions[i3 + 2])
-            const color = particles[i]?.color || new THREE.Color(0xffffff)
-            const line = makeTrajectory(color, pos, settings.maxTrajectoryLength)
-            scene.add(line)
-            trajectories[i] = line
+          const pos = new THREE.Vector3(simState.positions[i3], simState.positions[i3 + 1], simState.positions[i3 + 2])
+          const color = colors[i] || new THREE.Color(0xffffff)
+          const line = makeTrajectory(color, pos, settings.maxTrajectoryLength)
+          scene.add(line)
+          trajectories[i] = line
         }
         if (trajectories[i]) trajectories[i]!.visible = settings.if_showTrajectory
       }
@@ -429,12 +427,12 @@ docReady(() => {
     scene.traverse(obj => { if ((obj as unknown as { isPoints?: boolean }).isPoints) obj.visible = false })
     // Initialize sphere transforms/colors immediately
     updateSpheres(new THREE.Vector3(0, 0, 0))
-  // Restore visual trajectories if present (after ensuring lines exist)
-  if (settings.if_showTrajectory) loadVisualDataFromLocal(trajectories)
+    // Restore visual trajectories if present (after ensuring lines exist)
+    if (settings.if_showTrajectory) loadVisualDataFromLocal(trajectories)
   }
   // Expose handle for automated headless tests
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)
-  window.__mdjs = { particles, settings, simState, diagnostics: lastDiagnostics }
+  window.__mdjs = { colors: colors, settings, simState, diagnostics: lastDiagnostics }
   window.__pauseEngine = () => { engine?.pause() }
   // Install full-state persistence handler (overrides placeholder in init.js)
   window.onbeforeunload = () => {

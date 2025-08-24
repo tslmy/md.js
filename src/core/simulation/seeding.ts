@@ -50,3 +50,33 @@ export function generateMassesCharges(opts: MassChargeSeedOptions): MassChargeSe
     }
     return { masses, charges }
 }
+
+// ---------------- Position generation ----------------
+export interface PositionSeedOptions {
+    /** Number of particles to generate (N). Includes sun if makeSun true. */
+    N: number
+    /** Half-extent bounds in each axis. */
+    bounds: { x: number; y: number; z: number }
+    /** Whether to include a sun at index 0 (0,0,0). */
+    makeSun?: boolean
+    /** RNG for reproducibility. */
+    rng?: () => number
+}
+
+export function generatePositions(opts: PositionSeedOptions): { x: number; y: number; z: number }[] {
+    const { N, bounds, makeSun, rng = Math.random } = opts
+    const out: { x: number; y: number; z: number }[] = new Array(N)
+    let start = 0
+    if (makeSun && N > 0) {
+        out[0] = { x: 0, y: 0, z: 0 }
+        start = 1
+    }
+    for (let i = start; i < N; i++) {
+        out[i] = {
+            x: (rng() * 2 - 1) * bounds.x,
+            y: (rng() * 2 - 1) * bounds.y,
+            z: (rng() * 2 - 1) * bounds.z
+        }
+    }
+    return out
+}

@@ -114,15 +114,4 @@ export function seedInitialState(state: SimulationState, seed: { positions?: { x
   }
 }
 
-// --- Transitional seeding utilities (visual layer -> core) ---
-/** Internal mutable stash of initially generated world-space positions. */
-const _seededPositions: { x: number; y: number; z: number }[] = []
-
-/** Register a newly generated initial position (called by particleSystem seeding). */
-export function registerSeedPosition(p: { x: number; y: number; z: number }): void { _seededPositions.push({ x: p.x, y: p.y, z: p.z }) }
-
-/** Clear previously registered seed positions (e.g. hot reload / re-init). */
-export function clearSeedPositions(): void { _seededPositions.length = 0 }
-
-/** Read-only view of accumulated seeded positions. */
-export function getSeedPositions(): { x: number; y: number; z: number }[] { return _seededPositions }
+// (Removed transitional seeded position registry; positions now generated directly via generatePositions during initialization.)
