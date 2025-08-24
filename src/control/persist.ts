@@ -1,4 +1,4 @@
-import { settings } from '../../control/settings.js'
+import { settings } from './settings.js'
 const SETTINGS_KEY = 'mdJsUserSettings'
 
 // We now persist the full settings object (JSON-serializable fields only) for broader config retention.

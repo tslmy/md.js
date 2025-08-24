@@ -1,9 +1,9 @@
 import { settings } from './control/settings.js'
 import { init, ifMobileDevice } from './init.js'
 import { toggle } from './control/panel.js'
-import { saveToLocal, loadEngineFromLocal } from './engine/persistence/persist.js'
-import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persistence/persist.js'
-import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persistence/visual.js'
+import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
+import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
+import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
 import * as THREE from 'three'
 import { Particle } from './particleSystem.js'
 // New SoA simulation core imports

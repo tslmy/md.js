@@ -6,9 +6,9 @@ import { GUI } from 'dat.gui'
 import { Object3D } from 'three'
 
 import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults, settings as liveSettings } from './settings.js'
-import { clearEngineSnapshotInLocal } from '../engine/persistence/persist.js'
-import { saveSettingsToLocal } from './persistence/persist.js'
-import { clearVisualDataInLocal } from '../visual/persistence/visual.js'
+import { clearEngineSnapshotInLocal } from '../engine/persist.js'
+import { saveSettingsToLocal } from './persist.js'
+import { clearVisualDataInLocal } from '../visual/persist.js'
 
 // Narrow settings type (duck typed from settings.ts export)
 type SettingsLike = typeof liveSettings

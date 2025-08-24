@@ -5,8 +5,8 @@
  * visualization or HUD specific data. The snapshot is a plain JSON‑serializable
  * object (typed arrays flattened) suitable for localStorage or postMessage.
  */
-import type { EngineConfig } from '../config/types.js'
-import { SimulationEngine } from '../SimulationEngine.js'
+import type { EngineConfig } from './config/types.js'
+import { SimulationEngine } from './SimulationEngine.js'
 const KEY = 'mdJsEngineSnapshot'
 
 /** Serialized representation of engine core state. */
