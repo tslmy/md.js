@@ -53,32 +53,45 @@ What am I looking at?
 
 The code base separates a **physics engine** (data + force/integration pipeline) from the **visualization layer** (Three.js scene graph + HUD) via an event boundary.
 
-### 1. Simulation Core (Structure‑of‑Arrays)
+### Simulation Core (`src/core/`)
 
-Located under `src/core/simulation` & `src/core/forces`:
+This module is responsible for the physics computation. To physicists/chemists without a programming background, the most relevant part is perhaps the `force/` folder, which hosts scripts that each defines a force field. At any given timestep, instantaneous quantities of all particles (namely, velocities, positions, and forces) are described by a `SimulationState`. An integrator then iterates through all force fields to update the velocities and the positions at each timestep. That's the basic idea of all simulation software of molecular dynamics.
 
 * `state.ts` – Structure‑of‑Arrays (`positions`, `velocities`, `forces`, `masses`, `charges`, flags). Functions: `createState`, `zeroForces`.
 * `Simulation.ts` – Low‑level timestep driver used internally by the high‑level engine.
 * `integrators.ts` – Integrator strategies (currently Explicit Euler & Velocity Verlet). Verlet is the default for better energy behavior.
-* `forces/*.ts` – Individual `ForceField` implementations (Lennard‑Jones, Gravity, Coulomb) composed at runtime. Each uses a naïve O(N²) pair loop with an early distance cutoff. Optimization path: spatial hashing / cell lists / neighbor lists.
 * `serialize.ts` – Serialize / hydrate typed arrays to plain objects (future: use for cross‑tab sharing or worker offloading).
+* `forces/*.ts` – Individual `ForceField` implementations (Lennard‑Jones, Gravity, Coulomb) composed at runtime. Each uses a naïve O(N²) pair loop with an early distance cutoff.
+* `neighbor/*.ts` – Neighbor list strategies. Neighbor list is a trick that reduces computation stress in sacrafice of often negiligble accuracy at long ranges.
 
-### 2. Engine Orchestration
+### Engine Orchestration (`src/engine/`)
 
-* `engine/SimulationEngine.ts` – High‑level orchestrator: owns mutable SoA state, rebuilds force plugin list on config changes, emits `frame` & `diagnostics` events, and shields the rest of the app from direct mutation.
-* `engine/config/fieldBindings.ts` – Declarative mapping between legacy mutable `settings` keys and structured `EngineConfig` paths; replaces ad‑hoc push/pull logic for consolidation.
-* `engine/persistence/persist.ts` – Snapshot / hydrate utilities (JSON‑serializable) for future cross‑tab or worker scenarios.
+* `SimulationEngine.ts` – High‑level orchestrator: owns mutable SoA state, rebuilds force plugin list on config changes, emits `frame` & `diagnostics` events, and shields the rest of the app from direct mutation.
+* `config/fieldBindings.ts` – Declarative mapping between legacy mutable `settings` keys and structured `EngineConfig` paths; replaces ad‑hoc push/pull logic for consolidation.
+* `persist.ts` – Snapshot / hydrate utilities (JSON‑serializable) for future cross‑tab or worker scenarios.
 
-### 3. Visualization & UI Layer
+### Visualization & UI Layer
 
-* `particleSystem.ts` – Seeds particle metadata (color, mass, charge, initial velocity), creates optional trajectory lines & HUD rows (no longer builds a legacy THREE.Points cloud or clone sprites).
-* `visual/three/InstancedSpheres.ts` – Batched instanced sphere renderer (primary + PBC clone copies for visualization).
-* `visual/three/InstancedArrows.ts` – Batched instanced arrows (velocity & net force) with per‑frame normalization & capping.
+This layer is made up of several modules and some top-level scripts. The top-level scripts in `src/` are:
+
+* `particleSystem.ts` – Seeds particle metadata (color, mass, and charge), creates optional trajectory lines & HUD rows.
 * `init.ts` – Scene bootstrap: lights, camera, renderer, GUI.
 * `script.ts` – Runtime wiring: calls `init.ts`, constructs / hydrates engine, mirrors SoA state into instanced meshes, HUD & persistence.
-* `settings.ts` – Central tweakable parameters + feature flags; intentionally verbose / “kitchen sink” for experimentation.
 
-### 4. Public (Test) Surface
+A "control and settings" module sits under `src/control/`:
+
+* `panel.ts` - Intializes a panel UI and wires controls to corresponding settings (such as physical constants and feature toggles) & commands (such as re-initializing the world and halting a simulation mid-way).
+* `settings.ts` – Central tweakable parameters + feature flags; intentionally verbose / “kitchen sink” for experimentation.
+* `persist.ts` - Stores and loads settings.
+
+A 3D rendering module is located at `src/visual/`:
+
+* `InstancedSpheres.ts` – Batched instanced sphere renderer (primary + PBC clone copies for visualization).
+* `InstancedArrows.ts` – Batched instanced arrows (velocity & net force) with per‑frame normalization & capping.
+* `drawingHelpers.ts` - Helper functions that plot boxes and lines. Tightly coupled to THREE.js currently.
+* `persist.ts` - Stores and loads information about visual aids, such as trejectories and particle colors (WIP). Note that velocity & net force arrows are not persisted, because they can be derived from simulation state data that are persisted in the engine module.
+
+### Public (Test) Surface
 
 When running in a browser the following is exposed for **debug & automated smoke tests only** (not a stable API):
 
@@ -131,24 +144,6 @@ npm run test:cov    # full test suite + v8 coverage report
 npm run clean       # remove build output
 ```
 
-### File Layout (selected)
-
-```text
-src/
-  core/
-    simulation/ (state, integrators, driver, serialization)
-    forces/     (coulomb, gravity, lennardJones, interfaces)
-  engine/
-    SimulationEngine.ts
-    config/ (fieldBindings, types)
-    persistence/ (persist, storage)
-  visual/three/ (InstancedSpheres, InstancedArrows)
-  particleSystem.ts   (particle & HUD seeding)
-  init.ts             (scene + GUI setup)
-  script.ts           (entrypoint wiring & render loop hooks)
-  settings.ts         (central config)
-```
-
 ## Configuration & Tuning
 
 Key tunables (see `settings.ts`):
@@ -188,6 +183,8 @@ On load, `loadFromLocal()` attempts to hydrate the engine. If parsing or version
 ```js
 localStorage.removeItem('mdJsEngineSnapshot')
 ```
+
+All modules, except the stateless math-only module `core`, has a `persist.ts` that is responsible for its own data persistence.
 
 ## Contributing
 
