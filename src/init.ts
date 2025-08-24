@@ -8,7 +8,7 @@ import Stats from 'Stats'
 // @ts-expect-error external import map module (no types)
 import { StereoEffect } from 'StereoEffect'
 import { drawBox } from './visual/drawingHelpers.js'
-import { seedColorsAndPopulateTable } from './visual/coloringAndDataSheet.js'
+import { initHud } from './visual/coloringAndDataSheet.js'
 import { initializeGuiControls } from './control/panel.js'
 import { settings as liveSettings } from './control/settings.js'
 
@@ -37,7 +37,7 @@ export function init(settings: SettingsLike, colors: THREE.Color[]): [THREE.Scen
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(5, 10, 7); scene.add(dirLight)
   scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 0.4))
 
-  seedColorsAndPopulateTable(colors, settings.particleCount, settings.if_makeSun) // seed utility expects full settings export shape
+  initHud(settings.particleCount, colors, settings.if_makeSun)
 
   const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 1_000_000)
   camera.position.set(0, 2, 10)

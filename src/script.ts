@@ -16,7 +16,7 @@ import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEY
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
 import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer, applyPbc } from './visual/trajectory.js'
 import { createArrows, updateScaleBars, finalizeArrows, type ArrowSet } from './visual/arrows.js'
-import { updateHudRow } from './visual/coloringAndDataSheet.js'
+import { getHud } from './visual/coloringAndDataSheet.js'
 
 // global variables
 interface StereoEffectLike { render(scene: Scene, camera: Camera): void; setSize?(w: number, h: number): void }
@@ -95,7 +95,7 @@ function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift:
   const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2]
   // Store final (display) position for tests & capture
   // (no longer caching display-space positions)
-  if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, charge: charges[i] || 0, vx, vy, vz, fx, fy, fz, perForce })
+  if (hudVisible) getHud()?.update(i, { mass: masses[i] || 1, charge: charges[i] || 0, vx, vy, vz, fx, fy, fz, perForce })
 }
 
 function updateSpheres(frameOffset: Vector3): void {
