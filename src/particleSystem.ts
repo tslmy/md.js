@@ -157,4 +157,4 @@ function sample<Type>(l: Type[]): Type {
   return l[~~(Math.random() * l.length)]
 }
 
-export { seedParticles, makeClonePositionsList, Particle }
+export { seedParticles, Particle }
