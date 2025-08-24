@@ -108,15 +108,17 @@ Run locally:
 git clone https://github.com/tslmy/md.js.git
 cd md.js
 npm install
-npm start   # builds then serves via Python http.server
-# then open http://127.0.0.1:8000/
+npm start   # builds then serves via 'serve'
+# open http://127.0.0.1:8000/
 ```
 
-Any static server works; module scripts require HTTP (not file://). You can also just run:
+For iterative development with auto‑rebuild + restart you can use:
 
 ```bash
-python -m http.server --directory .
+npm run dev  # rebuilds on changes then restarts static server
 ```
+
+Under the hood this uses the off‑the‑shelf `serve` package (no custom server code). You can still use any other static server.
 
 ### Dev Workflow Commands
 
