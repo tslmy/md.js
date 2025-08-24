@@ -1,6 +1,7 @@
 import { settings } from './control/settings.js'
 import { init, ifMobileDevice, toggle } from './init.js'
-import { saveToLocal, loadFromLocal, loadUserSettings, saveUserSettings } from './engine/persistence/storage.js'
+import { saveToLocal, loadFromLocal } from './engine/persistence/storage.js'
+import { loadUserSettings, saveUserSettings } from './control/persistence/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persistence/visual.js'
 import * as THREE from 'three'
 import { Particle } from './particleSystem.js'
