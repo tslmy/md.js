@@ -48,6 +48,33 @@ export function activateNeighborStrategy(strategy: NeighborListStrategy): void {
 
 // ---------------- Cell (uniform grid) strategy (basic) ----------------
 
+/**
+ * Internal structure for the uniform cell (aka "linked‑cell") neighbor list strategy.
+ *
+ * Design (current minimal version):
+ *  - Space is partitioned into a cubic lattice of axis‑aligned cells of edge length ~= cutoff.
+ *  - Each cell stores a singly linked list of particle indices (heads[] + next[] arrays) – a classic SoA pattern.
+ *  - During pair iteration we only inspect the 27 Moore‑neighborhood (cell itself + adjacent cells),
+ *    which guarantees that any pair whose separation r <= cutoff lies either in the same cell or a neighbor cell
+ *    (because cell edge >= cutoff, a particle cannot "skip" past a neighbor cell without exceeding the distance).
+ *
+ * Simplifications / Assumptions (to be revisited):
+ *  - We approximate the simulation box as a cube with side length 4*cutoff centered at origin (L = 2*cutoff radius each side).
+ *    This keeps code independent from a formal world box for now; out‑of‑range particles are clamped into edge cells.
+ *  - No periodic wrapping yet; periodic boundary support will require mapping neighbor lookups across opposite faces.
+ *  - Rebuild occurs every step (rebuildEveryStep: true). Later we can support Verlet shell (buffer) to rebuild less often.
+ *  - Cell size fixed = cutoff; a tuned factor (e.g. half or using skin distance) could improve balance between cell count and neighbor checks.
+ *
+ * Complexity:
+ *  - Rebuild: O(N) to assign each particle to a cell.
+ *  - Pair iteration: O(N + M) where M is number of candidate pairs in 27 neighborhoods.
+ *    For roughly uniform density this trends toward linear scaling in N (contrast naive O(N^2)).
+ *
+ * Memory:
+ *  - heads: #cells (Int32 each)
+ *  - next: N (Int32 each)
+ *  - We intentionally avoid per‑cell dynamic arrays to stay GC‑free.
+ */
 interface CellListData {
   cellSize: number
   dims: [number, number, number]
@@ -64,6 +91,11 @@ function cellIndex(ix: number, iy: number, iz: number, dims: [number, number, nu
 }
 
 /** Create cell list buffers sized for current box & cutoff. */
+/**
+ * Allocate & initialize cell list buffers sized for a heuristic cubic region.
+ * NOTE: The heuristic picks n = floor( (4*cutoff) / cutoff ) = ~4 cells per axis (unless cutoff tiny).
+ * This is intentionally coarse; a future revision should derive from actual world box extents.
+ */
 function createCellList(state: SimulationState, cutoff: number): CellListData {
   const cellSize = cutoff
   const L = cutoff * 2
@@ -73,6 +105,11 @@ function createCellList(state: SimulationState, cutoff: number): CellListData {
 }
 
 /** Rebuild particle -> cell linked lists. */
+/**
+ * Rebuild stage: assigns every particle to exactly one cell by *prepending* it to that cell's linked list.
+ * We clamp positions into the [0, n-1] index range per axis to keep indices valid when particles drift outside heuristic bounds.
+ * This clamping induces slight over‑approximation of neighbor candidates for escaped particles but preserves correctness.
+ */
 function rebuildCellList(state: SimulationState, cutoff: number, data: CellListData): void {
   const { positions, N } = state
   const { cellSize, dims, heads, next } = data
@@ -96,6 +133,16 @@ function rebuildCellList(state: SimulationState, cutoff: number, data: CellListD
 }
 
 /** Iterate pairs using 27-neighborhood. */
+/**
+ * Iterate candidate pairs by scanning each cell and its 26 neighbors.
+ * We enforce an ordering rule to avoid duplicates:
+ *   - If neighborIdx === baseIdx we only emit (a,b) with b > a.
+ *   - For distinct cells we emit all (a,b) (because each cell pair is visited exactly once in this traversal order).
+ *
+ * Correctness argument (no missed pairs): For any two particles p,q within distance cutoff, place them in cells Cp,Cq.
+ * Because cell edge >= cutoff, either Cp == Cq or Cp and Cq share a face/edge/corner => Cq in Moore neighborhood of Cp.
+ * Thus the (Cp neighborhood) scan will encounter q when processing Cp.
+ */
 function cellForEachPair(state: SimulationState, cutoff: number, handler: (i: number, j: number, dx: number, dy: number, dz: number, r2: number) => void, data: CellListData): void {
   const cutoff2 = cutoff * cutoff
   const { positions } = state
@@ -134,6 +181,15 @@ function cellForEachPair(state: SimulationState, cutoff: number, handler: (i: nu
   }
 }
 
+/**
+ * Factory for the cell neighbor list strategy.
+ * Exposed surface mirrors the naive variant so the engine can switch transparently.
+ * Future improvements roadmap:
+ *  - Periodic boundary wrapping (map neighbor lookups across boundaries)
+ *  - Adaptive / user‑provided world box & dynamic reboxing
+ *  - Verlet shell (skin) distance to rebuild less frequently (track max displacement)
+ *  - SIMD / WASM batch distance checks
+ */
 export function createCellNeighborStrategy(): NeighborListStrategy {
   let data: CellListData | null = null
   return {
