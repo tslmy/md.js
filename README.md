@@ -73,7 +73,6 @@ Located under `src/core/simulation` & `src/core/forces`:
 * `particleSystem.ts` – Builds particles, trajectories, ghost clones (for PBC visualization), HUD rows, and mirrors simulation data into Three.js constructs.
 * `script.ts` – Entry point: initializes scene (delegates to `init.js`), seeds state, subscribes to engine events to mirror SoA data into Three.js buffers, updates HUD & persistence.
 * `settings.ts` – Central tweakable parameters + feature flags; deliberately verbose / “kitchen sink” for experimentation.
-* Legacy `stateStorage.ts` fully removed; engine snapshot persistence (`src/engine/persistence/{persist,storage}.ts`) now also records escaped flags.
 
 ### 4. Public (Test) Surface
 
@@ -250,8 +249,10 @@ engine.updateConfig({ neighbor: { strategy: 'naive' } }) // or switch back to ce
 
 Current limitations of `cell`:
 
-* Heuristic cubic bounding box (no explicit world extents yet); particles wandering far are clamped to edge cells (still correct, a bit more pair work near edges).
-* Always rebuilds every step (no Verlet “skin” optimization yet).
-* No periodic wrapping; adding PBC requires mapping neighbor lookups across opposite faces.
+* Always rebuilds every step (no displacement tracking / Verlet “skin” yet) – unnecessary work when particles move little.
+* No periodic wrapping inside the pair iterator; physics distances are not minimum‑image corrected (visual layer does its own wrapping for display only).
+* Grid resolution still fixed to cell size ≈ cutoff; no adaptive sizing / tuning factor.
 
-Planned improvements: configurable box, rebuild cadence based on max displacement, optional Verlet shell, and a benchmarking harness to report pair counts & timings.
+Recently addressed: the grid now sizes from the configured world box extents instead of a heuristic cube.
+
+Planned improvements: rebuild cadence based on max displacement + skin distance, optional periodic boundary (minimum image) support, adaptive / tuned cell size, and a micro‑benchmark harness (pair counts & timings) to guide optimizations.
