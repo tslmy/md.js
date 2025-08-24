@@ -1,13 +1,13 @@
 // Engine snapshot / hydrate integration test.
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { legacySettingsToEngineConfig } from '../built/engine/config/types.js'
+import { fromSettings } from '../built/engine/config/types.js'
 import { snapshot, hydrate } from '../built/engine/persistence/persist.js'
 import { settings } from '../built/settings.js'
 
 function fail(msg) { console.error('[engine-persist] FAIL:', msg); process.exit(1) }
 
 // Ensure engine flag independent; we build config explicitly.
-const cfg = legacySettingsToEngineConfig(settings)
+const cfg = fromSettings(settings)
 const engine = new SimulationEngine(cfg)
 
 // Seed with simple pattern for determinism.

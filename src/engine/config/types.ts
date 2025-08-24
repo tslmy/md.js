@@ -79,8 +79,8 @@ export function validateEngineConfig(cfg: EngineConfig): void {
   if (cfg.neighbor?.strategy && !['naive', 'cell'].includes(cfg.neighbor.strategy)) throw new Error('Unsupported neighbor strategy ' + cfg.neighbor.strategy)
 }
 
-/** Provide a basic default mapping from legacy settings to new config. */
-interface LegacySettingsLike {
+/** Shape of the mutable UI `settings` object. */
+interface SettingsLike {
   particleCount: number
   spaceBoundaryX: number; spaceBoundaryY: number; spaceBoundaryZ: number
   dt: number; cutoffDistance: number
@@ -90,7 +90,11 @@ interface LegacySettingsLike {
   EPSILON: number; DELTA: number; G: number; K: number; kB: number
 }
 
-export function legacySettingsToEngineConfig(settings: LegacySettingsLike): EngineConfig {
+/**
+ * Convert the UI `settings` object into an EngineConfig. This is a thin mapping
+ * layer isolating the engine from the sprawling kitchen‑sink settings object.
+ */
+export function fromSettings(settings: SettingsLike): EngineConfig {
   return {
     world: {
       particleCount: settings.particleCount,
@@ -107,7 +111,7 @@ export function legacySettingsToEngineConfig(settings: LegacySettingsLike): Engi
       sigma: settings.DELTA,
       G: settings.G,
       K: settings.K,
-      kB: settings.kB
+  kB: settings.kB
     }
   }
 }

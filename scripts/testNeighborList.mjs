@@ -1,12 +1,12 @@
 // Verify neighbor list scaffold (naive) matches direct O(N^2) pair enumeration.
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { legacySettingsToEngineConfig } from '../built/engine/config/types.js'
+import { fromSettings } from '../built/engine/config/types.js'
 import { settings } from '../built/settings.js'
 import { forEachPair, setPairIterationImpl } from '../built/core/forces/forceInterfaces.js'
 
 function fail(msg) { console.error('[neighbor] FAIL:', msg); process.exit(1) }
 
-const cfg = legacySettingsToEngineConfig(settings)
+const cfg = fromSettings(settings)
 cfg.world.particleCount = 6
 cfg.forces.gravity = false
 cfg.forces.coulomb = false

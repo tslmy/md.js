@@ -1,11 +1,11 @@
 // Test engine config patching (forces toggling & integrator switch).
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { legacySettingsToEngineConfig } from '../built/engine/config/types.js'
+import { fromSettings } from '../built/engine/config/types.js'
 import { settings } from '../built/settings.js'
 
 function fail(msg) { console.error('[engine-config] FAIL:', msg); process.exit(1) }
 
-const cfg = legacySettingsToEngineConfig(settings)
+const cfg = fromSettings(settings)
 cfg.world.particleCount = 3
 cfg.forces.gravity = false
 cfg.forces.coulomb = false

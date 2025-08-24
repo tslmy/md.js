@@ -1,11 +1,11 @@
 // Engine diagnostics emission test.
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { legacySettingsToEngineConfig } from '../built/engine/config/types.js'
+import { fromSettings } from '../built/engine/config/types.js'
 import { settings } from '../built/settings.js'
 
 function fail(msg) { console.error('[engine-diagnostics] FAIL:', msg); process.exit(1) }
 
-const cfg = legacySettingsToEngineConfig(settings)
+const cfg = fromSettings(settings)
 cfg.world.particleCount = 4
 const engine = new SimulationEngine(cfg)
 const st = engine.getState()

@@ -216,9 +216,9 @@ Example minimal usage (already what `script.ts` does):
 
 ```ts
 import { SimulationEngine } from './engine/SimulationEngine.js'
-import { legacySettingsToEngineConfig } from './engine/config/types.js'
+import { fromSettings } from './engine/config/types.js'
 import { settings } from './settings.js'
-const engine = new SimulationEngine(legacySettingsToEngineConfig(settings))
+const engine = new SimulationEngine(fromSettings(settings))
 engine.on('frame', f => {/* update visuals */})
 engine.on('diagnostics', d => {/* show energy, temperature */})
 engine.run()
@@ -234,7 +234,7 @@ The engine can swap the pair iteration backend used by all force fields:
 Configuration (when constructing or patching engine config):
 
 ```ts
-const cfg = legacySettingsToEngineConfig(settings)
+const cfg = fromSettings(settings)
 cfg.neighbor = { strategy: 'cell' } // or 'naive'
 const engine = new SimulationEngine(cfg)
 

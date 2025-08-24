@@ -7,7 +7,7 @@
  */
 import type { EngineConfig } from '../config/types.js'
 import { SimulationEngine } from '../SimulationEngine.js'
-import { legacySettingsToEngineConfig } from '../config/types.js'
+import { fromSettings } from '../config/types.js'
 
 /** Serialized representation of engine core state. */
 export interface EngineSnapshot {
@@ -54,6 +54,6 @@ export function hydrate(snap: EngineSnapshot): SimulationEngine {
 }
 
 /** Convenience: derive config from legacy settings and then serialize. */
-export function configFromLegacy(settings: any): EngineConfig { // eslint-disable-line @typescript-eslint/no-explicit-any
-  return legacySettingsToEngineConfig(settings)
+export function configFromSettings(settings: any): EngineConfig { // eslint-disable-line @typescript-eslint/no-explicit-any
+  return fromSettings(settings)
 }

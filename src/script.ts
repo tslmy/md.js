@@ -9,7 +9,7 @@ import { createState, type SimulationState } from './core/simulation/state.js'
 import type { Diagnostics } from './core/simulation/diagnostics.js'
 // Experimental engine
 import { SimulationEngine } from './engine/SimulationEngine.js'
-import { legacySettingsToEngineConfig } from './engine/config/types.js'
+import { fromSettings } from './engine/config/types.js'
 // global variables
 interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
 interface ControlsLike { update(): void }
@@ -296,7 +296,7 @@ docReady(() => {
     simState.masses[i] = particles[i].mass
     simState.charges[i] = particles[i].charge
   }
-  engine = new SimulationEngine(legacySettingsToEngineConfig(settings))
+  engine = new SimulationEngine(fromSettings(settings))
   engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
   simState = engine.getState()
   engine.on('frame', ({ time: t }) => { time = t; applyVisualUpdates() })
