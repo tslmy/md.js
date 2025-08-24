@@ -40,7 +40,7 @@ What am I looking at?
   * Lennard‑Jones (ε, σ)
   * Newtonian gravitation (G)
   * Coulomb / electrostatics (K, integer charges)
-* [Periodic boundary conditions][pbc] (wrap in x/y/z) – visualized via ghost copies.
+* [Periodic boundary conditions][pbc] (wrap in x/y/z) – physical position wrapping + minimum‑image forces, with semi‑transparent ghost copies for the 26 neighbor cells.
 * Configurable world size, particle count, masses, charges, timestep `dt`, cutoff radius.
 * Optional constant temperature mode (simple velocity rescale, off by default).
 * Trajectories with fading color gradients.
@@ -61,8 +61,8 @@ This module is responsible for the physics computation. To physicists/chemists w
 * `Simulation.ts` – Low‑level timestep driver used internally by the high‑level engine.
 * `integrators.ts` – Integrator strategies (currently Explicit Euler & Velocity Verlet). Verlet is the default for better energy behavior.
 * `serialize.ts` – Serialize / hydrate typed arrays to plain objects (future: use for cross‑tab sharing or worker offloading).
-* `forces/*.ts` – Individual `ForceField` implementations (Lennard‑Jones, Gravity, Coulomb) composed at runtime. Each uses a naïve O(N²) pair loop with an early distance cutoff.
-* `neighbor/*.ts` – Neighbor list strategies. Neighbor list is a trick that reduces computation stress in sacrafice of often negiligble accuracy at long ranges.
+* `forces/*.ts` – Individual `ForceField` implementations (Lennard‑Jones, Gravity, Coulomb). Pair displacements use minimum‑image wrapping when PBC enabled.
+* `neighbor/*.ts` – Neighbor list strategies (naive O(N²) and uniform cell list) with periodic indexing + minimum‑image support when PBC active.
 
 ### Engine Orchestration (`src/engine/`)
 
@@ -107,14 +107,26 @@ window.__mdjs = {
 // const { positions } = window.__mdjs.simState; const x0 = positions[0]; const y0 = positions[1]; const z0 = positions[2]
 ```
 
-### Simulation Step (Velocity Verlet)
+### Simulation Step (Velocity Verlet + PBC)
 
 1. Zero force accumulator arrays.
-2. For each enabled force, loop unordered pairs (i<j) within the cutoff and accumulate antisymmetric forces.
+2. For each enabled force, iterate unordered pairs within cutoff (neighbor strategy) using minimum‑image displacement if PBC enabled; accumulate antisymmetric forces.
 3. Integrator first pass: advance positions + half‑step velocities.
-4. Recompute forces at new positions.
+4. Recompute forces at new (possibly wrapped) positions.
 5. Integrator second pass: finish velocity update.
-6. Visualization layer copies the updated SoA arrays into Three.js buffers and rescales arrows.
+6. Wrap positions back into primary box ([-Lx,Lx], etc.) if PBC active.
+7. Visualization updates instanced meshes and renders semi‑transparent ghost copies for spatial context.
+
+### Periodic Boundary Conditions
+
+Enabling `if_use_periodic_boundary_condition` (UI) / `runtime.pbc` (engine) now affects PHYSICS, not just visuals:
+
+* Positions: wrapped after every integration step.
+* Forces: use minimum‑image convention (component folded into (−L, L]).
+* Neighbor lists: cell strategy performs periodic cell indexing & minimum‑image deltas without duplicate pair inflation.
+* Visuals: 26 ghost cell images rendered at 50% opacity.
+
+Guideline: choose cutoff ≤ min(box half‑lengths) so minimum‑image is unambiguous.
 
 ## Getting Started
 
@@ -231,7 +243,7 @@ Example minimal usage (already what `script.ts` does):
 import { SimulationEngine } from './engine/SimulationEngine.js'
 import { fromSettings } from './engine/config/types.js'
 import { settings } from './settings.js'
-const engine = new SimulationEngine(fromSettings(settings))
+const engine = new SimulationEngine(fromSettings(settings)) // includes runtime.pbc derived from settings.if_use_periodic_boundary_condition
 engine.on('frame', f => {/* update visuals */})
 engine.on('diagnostics', d => {/* show energy, temperature */})
 engine.run()
@@ -257,10 +269,13 @@ engine.updateConfig({ neighbor: { strategy: 'naive' } }) // or switch back to ce
 
 Current limitations of `cell`:
 
-* Always rebuilds every step (no displacement tracking / Verlet “skin” yet) – unnecessary work when particles move little.
-* No periodic wrapping inside the pair iterator; physics distances are not minimum‑image corrected (visual layer does its own wrapping for display only).
-* Grid resolution still fixed to cell size ≈ cutoff; no adaptive sizing / tuning factor.
+* Always rebuilds every step (no displacement tracking / Verlet “skin” yet).
+* Fixed cell size = cutoff (no tuning factor yet).
+* Assumes orthorhombic axis‑aligned box for minimum‑image math.
 
-Recently addressed: the grid now sizes from the configured world box extents instead of a heuristic cube.
+Recently addressed:
 
-Planned improvements: rebuild cadence based on max displacement + skin distance, optional periodic boundary (minimum image) support, adaptive / tuned cell size, and a micro‑benchmark harness (pair counts & timings) to guide optimizations.
+* Periodic indexing + minimum‑image force distances implemented.
+* Grid sizing derives from world box extents.
+
+Planned improvements: displacement‑tracked rebuild cadence, adaptive (skin) shell, tuned cell size factor, micro‑benchmark harness (pair counts & timings), off‑main‑thread force pipeline.

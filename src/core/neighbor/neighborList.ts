@@ -2,7 +2,7 @@
  * Current implementation delegates to naive O(N^2) but records structure for future cell lists.
  */
 import type { SimulationState } from '../simulation/state.js'
-import { setPairIterationImpl, PairIterationImpl } from '../forces/forceInterfaces.js'
+import { getPeriodicBox, setPairIterationImpl, PairIterationImpl } from '../forces/forceInterfaces.js'
 
 export interface NeighborListStrategy {
   /** Human-readable identifier. */
@@ -19,7 +19,7 @@ export interface NeighborListStrategy {
 export function createNaiveNeighborStrategy(): NeighborListStrategy {
   return {
     name: 'naive',
-    rebuild() {/* noop */},
+    rebuild() {/* noop */ },
     forEachPair: (state, cutoff, handler) => {
       // Use temporary override-free logic replicating previous naive implementation
       const { N, positions } = state
@@ -148,37 +148,58 @@ function cellForEachPair(state: SimulationState, cutoff: number, handler: (i: nu
   const { positions } = state
   const { heads, next, dims } = data
   const [nx, ny, nz] = dims
-  const neighborsOf = (ix: number, iy: number, iz: number, cb: (neighborIdx: number) => void) => {
-    for (let dxCell = -1; dxCell <= 1; dxCell++) {
-      const jx = ix + dxCell; if (jx < 0 || jx >= nx) continue
-      for (let dyCell = -1; dyCell <= 1; dyCell++) {
-        const jy = iy + dyCell; if (jy < 0 || jy >= ny) continue
-        for (let dzCell = -1; dzCell <= 1; dzCell++) {
-          const jz = iz + dzCell; if (jz < 0 || jz >= nz) continue
-          cb(cellIndex(jx, jy, jz, dims))
-        }
-      }
-    }
+  const { enabled: pbcEnabled, x: bx, y: by, z: bz } = getPeriodicBox()
+  const spanX = 2 * bx, spanY = 2 * by, spanZ = 2 * bz
+  const usePbc = pbcEnabled && bx > 0 && by > 0 && bz > 0
+  const wrapDelta = (d: number, half: number, span: number) => {
+    if (d > half) return d - span
+    if (d < -half) return d + span
+    return d
   }
-  const visitCellPair = (baseIdx: number, neighborIdx: number) => {
+  const emitPairsForCells = (baseIdx: number, neighborIdx: number) => {
     for (let a = heads[baseIdx]; a !== -1; a = next[a]) {
       const a3 = 3 * a
       const ax = positions[a3]; const ay = positions[a3 + 1]; const az = positions[a3 + 2]
       for (let b = heads[neighborIdx]; b !== -1; b = next[b]) {
         if (neighborIdx === baseIdx && b <= a) continue
+        if (neighborIdx < baseIdx) continue
         const b3 = 3 * b
-        const dx = ax - positions[b3]
-        const dy = ay - positions[b3 + 1]
-        const dz = az - positions[b3 + 2]
+        let dx = ax - positions[b3]
+        let dy = ay - positions[b3 + 1]
+        let dz = az - positions[b3 + 2]
+        if (usePbc) {
+          dx = wrapDelta(dx, bx, spanX)
+          dy = wrapDelta(dy, by, spanY)
+          dz = wrapDelta(dz, bz, spanZ)
+        }
         const r2 = dx * dx + dy * dy + dz * dz
         if (r2 <= cutoff2) handler(a, b, dx, dy, dz, r2)
       }
     }
   }
-  for (let ix = 0; ix < nx; ix++) for (let iy = 0; iy < ny; iy++) for (let iz = 0; iz < nz; iz++) {
-    const baseIdx = cellIndex(ix, iy, iz, dims)
-    neighborsOf(ix, iy, iz, neighborIdx => visitCellPair(baseIdx, neighborIdx))
+  const visitNeighborhood = (ix: number, iy: number, iz: number) => {
+    for (let dxCell = -1; dxCell <= 1; dxCell++) {
+      let jx = ix + dxCell
+      if (usePbc) { jx = (jx + nx) % nx } else if (jx < 0 || jx >= nx) continue
+      for (let dyCell = -1; dyCell <= 1; dyCell++) {
+        let jy = iy + dyCell
+        if (usePbc) { jy = (jy + ny) % ny } else if (jy < 0 || jy >= ny) continue
+        for (let dzCell = -1; dzCell <= 1; dzCell++) {
+          let jz = iz + dzCell
+          if (usePbc) { jz = (jz + nz) % nz } else if (jz < 0 || jz >= nz) continue
+          const baseIdx = cellIndex(ix, iy, iz, dims)
+          const neighborIdx = cellIndex(jx, jy, jz, dims)
+          // Avoid processing self cell 27 times under PBC (only handle center offset once)
+          if (neighborIdx === baseIdx && (dxCell !== 0 || dyCell !== 0 || dzCell !== 0)) continue
+          emitPairsForCells(baseIdx, neighborIdx)
+        }
+      }
+    }
   }
+  for (let ix = 0; ix < nx; ix++)
+    for (let iy = 0; iy < ny; iy++)
+      for (let iz = 0; iz < nz; iz++)
+        visitNeighborhood(ix, iy, iz)
 }
 
 /**

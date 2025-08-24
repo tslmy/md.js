@@ -35,17 +35,40 @@ export type PairHandler = (i: number, j: number, dx: number, dy: number, dz: num
 export type PairIterationImpl = (state: SimulationState, cutoff: number, handler: PairHandler) => void
 
 // Default naive implementation (module-local so tests can still wrap via setter)
+// Periodic box (half-lengths) for minimum-image distances (engine configured).
+let _pbcEnabled = false
+let _bx = 0; let _by = 0; let _bz = 0
+export function setPeriodicBox(box: { x: number; y: number; z: number }, enabled: boolean): void {
+  _pbcEnabled = enabled; _bx = box.x; _by = box.y; _bz = box.z
+}
+export function getPeriodicBox(): { enabled: boolean; x: number; y: number; z: number } {
+  return { enabled: _pbcEnabled, x: _bx, y: _by, z: _bz }
+}
+
 let pairImpl: PairIterationImpl = function naive(state, cutoff, handler) {
   const { N, positions } = state
   const cutoff2 = cutoff * cutoff
+  const usePbc = _pbcEnabled
+  const bx = _bx, by = _by, bz = _bz
+  const spanX = 2 * bx, spanY = 2 * by, spanZ = 2 * bz
+  const wrap = (d: number, half: number, span: number) => {
+    if (d > half) return d - span
+    if (d < -half) return d + span
+    return d
+  }
   for (let i = 0; i < N; i++) {
     const i3 = index3(i)
     const ix = positions[i3]; const iy = positions[i3 + 1]; const iz = positions[i3 + 2]
     for (let j = i + 1; j < N; j++) {
       const j3 = index3(j)
-      const dx = ix - positions[j3]
-      const dy = iy - positions[j3 + 1]
-      const dz = iz - positions[j3 + 2]
+      let dx = ix - positions[j3]
+      let dy = iy - positions[j3 + 1]
+      let dz = iz - positions[j3 + 2]
+      if (usePbc) {
+        dx = wrap(dx, bx, spanX)
+        dy = wrap(dy, by, spanY)
+        dz = wrap(dz, bz, spanZ)
+      }
       const r2 = dx * dx + dy * dy + dz * dz
       if (r2 <= cutoff2) handler(i, j, dx, dy, dz, r2)
     }

@@ -9,6 +9,7 @@ import { validateEngineConfig } from './config/types.js'
 import { computeDiagnostics, type Diagnostics } from '../core/simulation/diagnostics.js'
 import type { ForceField } from '../core/forces/forceInterfaces.js'
 import { createNaiveNeighborStrategy, activateNeighborStrategy, type NeighborListStrategy, createCellNeighborStrategy } from '../core/neighbor/neighborList.js'
+import { setPeriodicBox } from '../core/forces/forceInterfaces.js'
 
 /**
  * Lightweight event emitter (internal). Kept minimal to avoid pulling in a dependency.
@@ -137,7 +138,10 @@ export class SimulationEngine {
       forces.push(new Coulomb({ K: this.config.constants.K, softening }))
     }
     const integrator = this.config.runtime.integrator === 'euler' ? EulerIntegrator : VelocityVerlet
-    return new Simulation(this.state, integrator, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff })
+    const sim = new Simulation(this.state, integrator, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff })
+    // Update periodic box parameters for force minimum-image distances.
+    setPeriodicBox(this.config.world.box, !!this.config.runtime.pbc)
+    return sim
   }
 
   /**
@@ -152,9 +156,9 @@ export class SimulationEngine {
       if (this.neighborStrategy.rebuildEveryStep) {
         this.neighborStrategy.rebuild(this.state, this.config.runtime.cutoff)
       }
-  this.sim.step()
-  // Apply periodic wrapping to physical positions (teleport) if enabled.
-  if (this.config.runtime.pbc) this.wrapPositions()
+      this.sim.step()
+      // Apply periodic wrapping to physical positions (teleport) if enabled.
+      if (this.config.runtime.pbc) this.wrapPositions()
       this.stepCount++
       this.emitter.emit('frame', { time: this.state.time, state: this.state, step: this.stepCount })
       if (this.stepCount % this.diagnosticsEvery === 0) {
@@ -248,6 +252,8 @@ export class SimulationEngine {
       this.resizeParticleCount(patch.world.particleCount)
     }
     this.sim = this.buildSimulation()
+    // Refresh periodic box config (box or pbc flag may have changed)
+    setPeriodicBox(this.config.world.box, !!this.config.runtime.pbc)
     const boxChanged = !!patch.world?.box
     if ((patch.neighbor?.strategy && patch.neighbor.strategy !== this.neighborStrategy.name) || (boxChanged && this.neighborStrategy.name === 'cell')) {
       // Recreate strategy if type switched, or box changed for cell strategy.

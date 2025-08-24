@@ -28,7 +28,7 @@ export class InstancedSpheres {
         // (name must match attribute we inject into shader below)
         geo.setAttribute('instanceColor', this.colorAttr)
 
-    const mat = new MeshPhongMaterial({ color: 0xffffff, shininess: 40, opacity, transparent, depthWrite })
+        const mat = new MeshPhongMaterial({ color: 0xffffff, shininess: 40, opacity, transparent, depthWrite })
         mat.onBeforeCompile = (shader) => {
             // Inject instanceColor varying
             shader.vertexShader = shader.vertexShader
