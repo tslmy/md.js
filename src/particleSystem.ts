@@ -52,11 +52,19 @@ function addParticle(opts: AddParticleOpts): void {
   const particle = new Particle(color, position, mass, charge, trajectory)
   particles.push(particle)
   initialVelocities.push(velocity.x, velocity.y, velocity.z)
+  addParticleToTable(color, mass, charge)
+}
+
+/**
+ * There's a table that displays particle information.
+ * This function adds a row to that table for each particle.
+ */
+function addParticleToTable(color: Color, mass: number, charge: number) {
   const tableRow = document.createElement('tr')
   const particleColumn = document.createElement('td')
   particleColumn.classList.add('particle')
   particleColumn.innerText = '⬤'
-  particleColumn.style.color = color.getStyle()
+  particleColumn.style.color = '#' + color.getHexString()
   tableRow.appendChild(particleColumn)
   const massColumn = document.createElement('td')
   massColumn.classList.add('mass')
