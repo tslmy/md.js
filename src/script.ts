@@ -47,37 +47,15 @@ function isVisible(el: HTMLElement | null): boolean {
 
 // Legacy force application removed in favor of SoA simulation core.
 
-// Derive arrow scaling directly from SoA state (forces & velocities)
-function rescaleForceScaleBarFromState(state: SimulationState | undefined): number {
-  if (!state) return 1
-  const { forces, N } = state
-  let maxMag = 0
-  for (let i = 0; i < N; i++) {
-    const i3 = 3 * i
-    const mag = Math.hypot(forces[i3], forces[i3 + 1], forces[i3 + 2])
-    if (mag > maxMag) maxMag = mag
-  }
-  if (maxMag === 0) maxMag = 1
-  const scale = settings.unitArrowLength / maxMag
+// Scaling now derives from diagnostics (maxSpeed & maxForceMag) avoiding per-frame full scans.
+function updateScaleBars(diag: Diagnostics | undefined): void {
+  if (!diag) return
+  const forceScale = diag.maxForceMag > 0 ? settings.unitArrowLength / diag.maxForceMag : 1
+  const velScale = diag.maxSpeed > 0 ? settings.unitArrowLength / diag.maxSpeed : 1
   const forceEl = document.getElementById('force')
-  if (forceEl) forceEl.style.width = `${scale * 1000000}px`
-  return scale
-}
-
-function rescaleVelocityScaleBarFromState(state: SimulationState | undefined): number {
-  if (!state) return 1
-  const { velocities, N } = state
-  let maxSpeed = 0
-  for (let i = 0; i < N; i++) {
-    const i3 = 3 * i
-    const speed = Math.hypot(velocities[i3], velocities[i3 + 1], velocities[i3 + 2])
-    if (speed > maxSpeed) maxSpeed = speed
-  }
-  if (maxSpeed === 0) maxSpeed = 1
-  const scale = settings.unitArrowLength / maxSpeed
+  if (forceEl) forceEl.style.width = `${forceScale * 1000000}px`
   const velEl = document.getElementById('velocity')
-  if (velEl) velEl.style.width = `${scale * 1000000}px`
-  return scale
+  if (velEl) velEl.style.width = `${velScale * 1000000}px`
 }
 
 // ArrowHelpers removed; future instanced arrow system will centralize vector -> transform logic.
@@ -117,7 +95,7 @@ function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: 
 const _tmpDir = new THREE.Vector3()
 const _tmpFrom = new THREE.Vector3()
 
-function updateFromSimulation(_arrowScaleForces: number, _arrowScaleForVelocities: number, frameOffset: THREE.Vector3): void {
+function updateFromSimulation(frameOffset: THREE.Vector3): void {
   if (!engine || !simState || !particleSystem) return
   const hudVisible = isVisible(document.querySelector('#hud'))
   const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt)
@@ -131,7 +109,8 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   if (!simState) return
   const { positions, velocities, forces, masses } = simState
   const p = particles[i]
-  if (p.isEscaped) return
+  // Prefer authoritative escaped flag from core state over legacy per-Particle flag.
+  if (simState.escaped && simState.escaped[i] === 1) return
   const i3 = 3 * i
   let px = positions[i3] - frameOffset.x
   let py = positions[i3 + 1] - frameOffset.y
@@ -177,12 +156,16 @@ function applyPbc(pos: THREE.Vector3, trajectory: THREE.BufferAttribute | null, 
  * Split from animate() to keep the frame logic testable and reduce complexity warnings.
  */
 function applyVisualUpdates(): void {
-  const arrowScaleForces = rescaleForceScaleBarFromState(simState)
-  const arrowScaleVel = rescaleVelocityScaleBarFromState(simState)
+  updateScaleBars(lastDiagnostics)
   const frameOffset = computeFrameOffset()
-  updateFromSimulation(arrowScaleForces, arrowScaleVel, frameOffset)
+  updateFromSimulation(frameOffset)
   if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt) lastSnapshotTime = time
-  statistics(temperaturePanel, maxTemperature)
+  // Temperature from diagnostics (fallback to 0 if undefined) & track peak
+  if (lastDiagnostics) {
+    const T = lastDiagnostics.temperature
+    if (T > maxTemperature) maxTemperature = T
+    temperaturePanel.update(T, maxTemperature)
+  }
   update(); render(renderer, effect); stats.update()
 }
 
@@ -209,24 +192,6 @@ function computeFrameOffset(): THREE.Vector3 {
   return new THREE.Vector3(0, 0, 0)
 }
 
-function calculateTemperature(): number {
-  if (!simState) return 0
-  const { velocities, masses, N } = simState
-  let sum = 0
-  for (let i = 0; i < N; i++) {
-    const i3 = 3 * i
-    const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2]
-    sum += (masses[i] || 1) * (vx * vx + vy * vy + vz * vz)
-  }
-  const temperature = sum / settings.kB / (3 * settings.particleCount - 3)
-  if (temperature > maxTemperature) maxTemperature = temperature
-  return temperature
-}
-
-function statistics(panel: { update: (t: number, max: number) => void }, maxTemperature: number): void {
-  const temperature = calculateTemperature()
-  panel.update(temperature, maxTemperature)
-}
 
 function update(): void {
   // (removed stale resize comment)
