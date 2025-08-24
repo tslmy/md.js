@@ -2,7 +2,7 @@ import { settings } from './settings.js'
 import { init, ifMobileDevice, toggle } from './init.js'
 import { saveToLocal, loadFromLocal, loadUserSettings, saveUserSettings } from './engine/persistence/storage.js'
 import * as THREE from 'three'
-import { Particle } from './particleSystem.js'
+import { Particle, makeClonePositionsList } from './particleSystem.js'
 // New SoA simulation core imports
 import { createState, type SimulationState } from './core/simulation/state.js'
 import type { Diagnostics } from './core/simulation/diagnostics.js'
@@ -11,6 +11,7 @@ import { SimulationEngine } from './engine/SimulationEngine.js'
 import { fromSettings } from './engine/config/types.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
 import { InstancedArrows } from './view/three/InstancedArrows.js'
+import { InstancedSpheres } from './view/three/InstancedSpheres.js'
 // global variables
 interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
 interface ControlsLike { update(): void }
@@ -25,7 +26,8 @@ let controls: ControlsLike | undefined
 let temperaturePanel: TemperaturePanelLike
 let stats: StatsLike
 let maxTemperature = 0
-let particleSystem: THREE.Points | undefined
+// Legacy THREE.Points based sprite system removed (replaced by instanced spheres)
+// (legacy particleSystem removed)
 // New SoA simulation objects
 let engine: SimulationEngine | undefined
 let simState: SimulationState | undefined
@@ -33,6 +35,8 @@ let lastDiagnostics: Diagnostics | undefined
 // Batched per-particle arrows (velocity = blue, force = red)
 let velArrows: InstancedArrows | undefined
 let forceArrows: InstancedArrows | undefined
+let sphereMesh: InstancedSpheres | undefined
+let sphereCloneMesh: InstancedSpheres | undefined
 
 const particles: Particle[] = []
 let time = 0
@@ -141,16 +145,15 @@ function updateArrows(diag: Diagnostics, frameOffset: THREE.Vector3): void {
 }
 
 function updateFromSimulation(frameOffset: THREE.Vector3): void {
-  if (!engine || !simState || !particleSystem) return
+  if (!engine || !simState) return
   const hudVisible = isVisible(document.querySelector('#hud'))
   const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt)
-  const posAttr = particleSystem.geometry.attributes.position as THREE.BufferAttribute
   const perForce = engine.getPerForceContributions()
-  for (let i = 0; i < particles.length; i++) updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, perForce)
-  posAttr.needsUpdate = true
+  for (let i = 0; i < particles.length; i++) updateOneParticle(i, hudVisible, needsTrajectoryShift, frameOffset, perForce)
+  if (sphereMesh && simState) updateSpheres(frameOffset)
 }
 
-function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3, perForce: Record<string, Float32Array>): void {
+function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: THREE.Vector3, perForce: Record<string, Float32Array>): void {
   if (!simState) return
   const { positions, velocities, forces, masses } = simState
   const p = particles[i]
@@ -161,7 +164,6 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   let py = positions[i3 + 1] - frameOffset.y
   let pz = positions[i3 + 2] - frameOffset.z
   // We'll update p.position after applying frame offset / PBC so tests & UI see displayed coordinates.
-  posAttr.setXYZ(i, px, py, pz)
   const trajectoryAttr = (settings.if_showTrajectory && p.trajectory)
     ? p.trajectory.geometry.getAttribute('position') as THREE.BufferAttribute
     : null
@@ -169,7 +171,7 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
     _tmpDir.set(px, py, pz)
     applyPbc(_tmpDir, trajectoryAttr, settings.maxTrajectoryLength, settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ)
     px = _tmpDir.x; py = _tmpDir.y; pz = _tmpDir.z
-    posAttr.setXYZ(i, px, py, pz)
+    // position updated in particle only; point sprite removed
   }
   if (trajectoryAttr && needsTrajectoryShift) updateTrajectoryBuffer({ position: _tmpFrom.set(px, py, pz) } as Particle, trajectoryAttr, settings.maxTrajectoryLength)
   const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2]
@@ -177,6 +179,54 @@ function updateOneParticle(i: number, posAttr: THREE.BufferAttribute, hudVisible
   // Mirror final (display) position for tests & capture
   p.position.set(px, py, pz)
   if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz, perForce })
+}
+
+function updateSpheres(frameOffset: THREE.Vector3): void {
+  if (!simState || !sphereMesh) return
+  renderPrimarySpheres(frameOffset)
+  renderCloneSpheres(frameOffset)
+}
+
+function renderPrimarySpheres(frameOffset: THREE.Vector3): void {
+  if (!simState || !sphereMesh) return
+  const { positions, masses, N, escaped } = simState
+  const tmpPos = new THREE.Vector3()
+  for (let i = 0; i < N; i++) {
+    if (escaped && escaped[i] === 1) { sphereMesh.update(i, tmpPos.set(0, -9999, 0), 0.0001, new THREE.Color(0x333333)); continue }
+    const i3 = 3 * i
+    tmpPos.set(positions[i3] - frameOffset.x, positions[i3 + 1] - frameOffset.y, positions[i3 + 2] - frameOffset.z)
+    const m = masses[i] || 1
+    const radius = 0.08 * Math.cbrt(m / 10)
+    sphereMesh.update(i, tmpPos, radius, particles[i]?.color || new THREE.Color(0xffffff))
+  }
+  sphereMesh.commit()
+}
+
+function renderCloneSpheres(frameOffset: THREE.Vector3): void {
+  if (!simState || !sphereCloneMesh) return
+  const visible = settings.if_use_periodic_boundary_condition
+  sphereCloneMesh.setVisible(visible)
+  if (!visible) return
+  const { positions, masses, N, escaped } = simState
+  const cloneOffsets = makeClonePositionsList(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ)
+  const clonePos = new THREE.Vector3()
+  let baseIndex = 0
+  for (const offset of cloneOffsets) {
+    for (let i = 0; i < N; i++) {
+      if (escaped && escaped[i] === 1) { sphereCloneMesh.update(baseIndex + i, clonePos.set(0, -9999, 0), 0.0001, new THREE.Color(0x333333)); continue }
+      const i3 = 3 * i
+      clonePos.set(
+        positions[i3] - frameOffset.x + offset.x,
+        positions[i3 + 1] - frameOffset.y + offset.y,
+        positions[i3 + 2] - frameOffset.z + offset.z
+      )
+      const m = masses[i] || 1
+      const radius = 0.08 * Math.cbrt(m / 10)
+      sphereCloneMesh.update(baseIndex + i, clonePos, radius, particles[i]?.color || new THREE.Color(0xffffff))
+    }
+    baseIndex += N
+  }
+  sphereCloneMesh.commit()
 }
 
 // Removed legacy applyParticleVisualUpdate; loop logic in updateFromSimulation now works directly off SoA arrays.
@@ -292,9 +342,8 @@ docReady(() => {
   }
 
   const values = init(settings, particles, time, lastSnapshotTime)
-
   scene = values[0]
-  particleSystem = values[1] as THREE.Points
+  // values[1] (legacy particleSystem) ignored
   camera = values[2]
   renderer = values[3]
   controls = values[4]
@@ -343,6 +392,16 @@ docReady(() => {
     velArrows.addTo(scene); forceArrows.addTo(scene)
     velArrows.setVisible(settings.if_showArrows)
     forceArrows.setVisible(settings.if_showArrows)
+    sphereMesh = new InstancedSpheres(simState.N, { baseRadius: 0.1 })
+    sphereMesh.addTo(scene)
+    // Clone spheres (26 neighbor cells)
+    const cloneOffsets = makeClonePositionsList(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ)
+    sphereCloneMesh = new InstancedSpheres(simState.N * cloneOffsets.length, { baseRadius: 0.1 })
+    sphereCloneMesh.addTo(scene)
+    // Hide any legacy point-sprite based objects (main + periodic clones) to avoid lingering dots.
+    scene.traverse(obj => { if ((obj as unknown as { isPoints?: boolean }).isPoints) obj.visible = false })
+    // Initialize sphere transforms/colors immediately
+    updateSpheres(new THREE.Vector3(0, 0, 0))
   }
   // Expose handle for automated headless tests
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)

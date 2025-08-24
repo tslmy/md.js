@@ -51,6 +51,15 @@ function init (settings,
       scene
     )
   }
+  // Basic lighting for Phong/standard shaded meshes (instanced spheres & arrows if switched later)
+  // Added after box so lights affect all subsequently added objects.
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.35)
+  scene.add(ambientLight)
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
+  dirLight.position.set(5, 10, 7)
+  scene.add(dirLight)
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x222233, 0.4)
+  scene.add(hemiLight)
   const group = new THREE.Object3D()
   const particleSystem = createParticleSystem(
     group,
