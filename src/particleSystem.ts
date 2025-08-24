@@ -1,5 +1,5 @@
 import { Color, Vector3, Line, Scene } from 'three'
-import { makeTrajectory } from './drawingHelpers.js'
+import { makeTrajectory } from './visual/drawingHelpers.js'
 // Type alias for settings shape (imported dynamically); avoids circular dep.
 type Settings = typeof import('./settings.js').settings
 

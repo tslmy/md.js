@@ -8,7 +8,7 @@ import Stats from 'Stats'
 // @ts-expect-error external import map module (no types)
 import { StereoEffect } from 'StereoEffect'
 import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults, settings as liveSettings } from './settings.js'
-import { drawBox } from './drawingHelpers.js'
+import { drawBox } from './visual/drawingHelpers.js'
 import { resetWorld, clearStoredSnapshot, saveUserSettings } from './engine/persistence/storage.js'
 import { seedParticles } from './particleSystem.js'
 // @ts-expect-error external import map module (no types)

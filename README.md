@@ -72,8 +72,8 @@ Located under `src/core/simulation` & `src/core/forces`:
 ### 3. Visualization & UI Layer
 
 * `particleSystem.ts` – Seeds particle metadata (color, mass, charge, initial velocity), creates optional trajectory lines & HUD rows (no longer builds a legacy THREE.Points cloud or clone sprites).
-* `view/three/InstancedSpheres.ts` – Batched instanced sphere renderer (primary + PBC clone copies for visualization).
-* `view/three/InstancedArrows.ts` – Batched instanced arrows (velocity & net force) with per‑frame normalization & capping.
+* `visual/three/InstancedSpheres.ts` – Batched instanced sphere renderer (primary + PBC clone copies for visualization).
+* `visual/three/InstancedArrows.ts` – Batched instanced arrows (velocity & net force) with per‑frame normalization & capping.
 * `init.ts` – Scene bootstrap: lights, camera, renderer, GUI.
 * `script.ts` – Runtime wiring: calls `init.ts`, constructs / hydrates engine, mirrors SoA state into instanced meshes, HUD & persistence.
 * `settings.ts` – Central tweakable parameters + feature flags; intentionally verbose / “kitchen sink” for experimentation.
@@ -142,7 +142,7 @@ src/
     SimulationEngine.ts
     config/ (fieldBindings, types)
     persistence/ (persist, storage)
-  view/three/ (InstancedSpheres, InstancedArrows)
+  visual/three/ (InstancedSpheres, InstancedArrows)
   particleSystem.ts   (particle & HUD seeding)
   init.ts             (scene + GUI setup)
   script.ts           (entrypoint wiring & render loop hooks)
