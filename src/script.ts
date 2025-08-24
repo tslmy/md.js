@@ -341,7 +341,7 @@ docReady(() => {
     time = loaded.snapshot.time
   }
 
-  const values = init(settings, particles, time, lastSnapshotTime)
+  const values = init(settings, particles)
   scene = values[0]
   // values[1] (legacy particleSystem) ignored
   camera = values[2]

@@ -1,25 +1,6 @@
 import * as THREE from 'three'
-/**
- * Internal metadata stored on a THREE.Line's built-in `userData` bag.
- * Three.js gives every Object3D a `userData: Record<string, any>` that it does not interpret,
- * except for cloning/serialization. We use it to track a circular (ring) buffer write index
- * for trajectory points so we avoid O(N) shifting each frame. The name "userData" just means
- * "application-owned data" – not related to an end-user or auth concept.
- */
-interface TrajectoryRingMeta { write: number; length: number; count: number }
-interface TrajectoryLine extends THREE.Line { userData: { trajectoryRing?: TrajectoryRingMeta } }
-import { generateTexture } from './drawingHelpers.js'
 // Type alias for settings shape (imported dynamically); avoids circular dep.
 type Settings = typeof import('./settings.js').settings
-const texture = new THREE.Texture(generateTexture())
-texture.needsUpdate = true // important
-const particleMaterialForClones = new THREE.PointsMaterial({
-  // http://jsfiddle.net/7yDGy/1/
-  map: texture,
-  size: 0.2,
-  alphaTest: 0.5,
-  vertexColors: true
-})
 
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength']
 
@@ -47,8 +28,8 @@ class Particle {
   }
 }
 
-// Store initial velocities separately for seeding the SoA simulation state.
-export const initialVelocities: number[] = [] // flat array length 3 * particleCount
+// Store initial velocities separately for seeding the SoA simulation state (optional legacy path).
+export const initialVelocities: number[] = [] // flat array length 3 * particleCount (may remain empty)
 
 interface AddParticleOpts {
   color: THREE.Color
@@ -57,44 +38,20 @@ interface AddParticleOpts {
   mass: number
   charge: number
   particles: Particle[]
-  geometry: THREE.BufferGeometry
   scene: THREE.Scene
   showTrajectory: boolean
   maxTrajectoryLength: number
 }
 function addParticle(opts: AddParticleOpts): void {
-  const { color, position, velocity, mass, charge, particles, geometry, scene, showTrajectory, maxTrajectoryLength } = opts
-  // Create the vertex
-  // Add the vertex to the geometry
-  geometry.attributes.position.setXYZ(
-    particles.length,
-    position.x,
-    position.y,
-    position.z
-  )
-  geometry.attributes.color.setXYZ(
-    particles.length,
-    color.r, color.g, color.b
-  )
-
-  // add trajectories.
-
-  let thisTrajectory: THREE.Line | null = null
+  const { color, position, velocity, mass, charge, particles, scene, showTrajectory, maxTrajectoryLength } = opts
+  let trajectory: THREE.Line | null = null
   if (showTrajectory) {
-    // make colors (http://jsfiddle.net/J7zp4/200/)
-    thisTrajectory = makeTrajectory(
-      color,
-      position,
-      maxTrajectoryLength
-    )
-    scene.add(thisTrajectory)
+    trajectory = makeTrajectory(color, position, maxTrajectoryLength)
+    scene.add(trajectory)
   }
-
-  const particle = new Particle(color, position, mass, charge, thisTrajectory)
+  const particle = new Particle(color, position, mass, charge, trajectory)
   particles.push(particle)
-  // Record initial velocity components for SoA seeding.
   initialVelocities.push(velocity.x, velocity.y, velocity.z)
-  // Make the HUD table.
   const tableRow = document.createElement('tr')
   const particleColumn = document.createElement('td')
   particleColumn.classList.add('particle')
@@ -157,93 +114,26 @@ function makeClonePositionsList(
  *  Make objects that will contain the trajectory points.
  * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
  */
-function makeTrajectory(
-  thisColor: THREE.Color,
-  thisPosition: THREE.Vector3,
-  maxTrajectoryLength: number
-): THREE.Line {
-  const thisGeometry = new THREE.BufferGeometry()
+function makeTrajectory(color: THREE.Color, position: THREE.Vector3, maxLen: number): THREE.Line {
+  const geom = new THREE.BufferGeometry()
+  const pts = new Float32Array(maxLen * 3)
+  const cols = new Float32Array(maxLen * 3)
+  geom.setAttribute('position', new THREE.BufferAttribute(pts, 3))
+  geom.setAttribute('color', new THREE.BufferAttribute(cols, 3))
   const white = new THREE.Color('#FFFFFF')
-  // attributes
-  const points = new Float32Array(maxTrajectoryLength * 3) // 3 vertices per point
-  const colors = new Float32Array(maxTrajectoryLength * 3) // 3 vertices per point
-  thisGeometry.setAttribute('position', new THREE.BufferAttribute(points, 3))
-  thisGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  for (let i = 0; i < maxTrajectoryLength; i++) {
-    // for each vertex of this trajectory:
-    // calculate for how many percent should the color of this vertex be diluted/bleached.
-    const interpolationFactor = (maxTrajectoryLength - i) / maxTrajectoryLength
-    // make the bleached color object by cloning the particle's color and then lerping it with the white color.
-    const thisVertexColor = thisColor.clone().lerp(white, interpolationFactor)
-    // assign this color to this vertex
-    thisGeometry.attributes.color.setXYZ(
-      i,
-      thisVertexColor.r,
-      thisVertexColor.g,
-      thisVertexColor.b
-    )
-    // put this(every) vertex to the same place as the particle started
-    thisGeometry.attributes.position.setXYZ(
-      i,
-      thisPosition.x,
-      thisPosition.y,
-      thisPosition.z
-    )
+  for (let i = 0; i < maxLen; i++) {
+    const t = (maxLen - i) / maxLen
+    const c = color.clone().lerp(white, t)
+      ; (geom.attributes.color as THREE.BufferAttribute).setXYZ(i, c.r, c.g, c.b)
+      ; (geom.attributes.position as THREE.BufferAttribute).setXYZ(i, position.x, position.y, position.z)
   }
-  // finished preparing the geometry for this trajectory
-  const thisTrajectoryMaterial = new THREE.LineBasicMaterial({
-    linewidth: 1,
-    vertexColors: true
-  })
-  const line: TrajectoryLine = new THREE.Line(thisGeometry, thisTrajectoryMaterial) as TrajectoryLine
-  // Attach ring buffer bookkeeping (ignored by Three.js internals, safe to mutate each frame).
-  line.userData.trajectoryRing = { write: 0, length: maxTrajectoryLength, count: 0 }
-  return line
+  return new THREE.Line(geom, new THREE.LineBasicMaterial({ linewidth: 1, vertexColors: true }))
 }
 
-/**
- * Creates and initializes a particle system in a Three.js scene, including the main particle system and its periodic clones.
- *
- * This function sets up the geometry, material, and positions for a collection of particles, optionally adding a central "sun" particle.
- * It ensures the total number of particles matches the specified count in settings, randomizing positions and velocities as needed.
- * The function also creates clones of the particle system at specified offsets to simulate periodic boundary conditions.
- *
- * This is purely for visual effect and does not affect the underlying physics simulation.
- *
- * @param group - The parent Three.js Object3D to which the particle system and its clones will be added.
- * @param particles - The array to store and manage all Particle objects in the system.
- * @param scene - The Three.js scene where the particle system is rendered.
- * @param time - The current simulation time.
- * @param lastSnapshotTime - The time of the last simulation snapshot.
- * @param settings - Configuration options for the particle system, including particle count, boundaries, and physical constants.
- * @returns The main THREE.Points object representing the particle system.
+/** Seed particle metadata (positions/colors/mass/charge + HUD rows & optional trajectories).
+ *  No legacy THREE.Points cloud or clone sprites are created (instanced spheres handle rendering).
  */
-function createParticleSystem(
-  group: THREE.Object3D,
-  particles: Particle[],
-  scene: THREE.Scene,
-  time: number,
-  lastSnapshotTime: number,
-  settings: Settings
-): THREE.Points {
-  // Particles are just individual vertices in a geometry
-  // Create the geometry that will hold all of the vertices
-  const particlesGeometry = new THREE.BufferGeometry()
-  // https://stackoverflow.com/a/31411794/1147061
-  const positions = new Float32Array(settings.particleCount * 3) // 3 vertices per point
-  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  const colors = new Float32Array(settings.particleCount * 3) // 3 vertices per point
-  particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  const particleMaterial = new THREE.PointsMaterial({
-    // http://jsfiddle.net/7yDGy/1/
-    map: texture,
-    blending: THREE.NormalBlending, // required
-    depthTest: true,
-    transparent: true,
-    // opacity: 0.9,
-    size: 0.3,
-    vertexColors: true
-  })
+function seedParticles(particles: Particle[], scene: THREE.Scene, settings: Settings): void {
   if (settings.if_makeSun) {
     addParticle({
       color: new THREE.Color(0, 0, 0),
@@ -252,44 +142,32 @@ function createParticleSystem(
       mass: settings.sunMass,
       charge: 0,
       particles,
-      geometry: particlesGeometry,
       scene,
       showTrajectory: settings.if_showTrajectory,
       maxTrajectoryLength: settings.maxTrajectoryLength
     })
   }
-  // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
   for (let i = particles.length; i < settings.particleCount; i++) {
-    let r: number
     let position: THREE.Vector3
     let velocity: THREE.Vector3
     if (settings.if_makeSun) {
-      // Previously particles were constrained to y=0 plane; now we randomize full 3D position for variety.
       position = new THREE.Vector3(
         random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
         random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
         random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
       )
-      r = position.length()
-      // The speed in the vertical direction should be the orbital speed.
-      // See https://www.physicsclassroom.com/class/circles/Lesson-4/Mathematics-of-Satellite-Motion.
+      const r = position.length()
       const vy = Math.sqrt((settings.G * particles[0].mass) / r)
       velocity = new THREE.Vector3(0, vy, 0)
-      // Let's also round-robin the orientation of the orbiting motions with each "planet". It's more fun.
-      if (i % 2 === 0) {
-        velocity.negate()
-      }
+      if (i % 2 === 0) velocity.negate()
     } else {
       position = new THREE.Vector3(
         random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
         random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
         random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
       )
-      r = position.length()
       velocity = new THREE.Vector3(0, 0, 0)
     }
-    // Force should always be initialized to zero. It will be computed properly upon first refresh.
-    // Don't share this object across particles, though -- The values of their components will vary across particles during simulation.
     addParticle({
       color: new THREE.Color(Math.random(), Math.random(), Math.random()),
       position,
@@ -297,32 +175,12 @@ function createParticleSystem(
       mass: random(settings.massLowerBound, settings.massUpperBound),
       charge: sample<number>(settings.availableCharges),
       particles,
-      geometry: particlesGeometry,
       scene,
       showTrajectory: settings.if_showTrajectory,
       maxTrajectoryLength: settings.maxTrajectoryLength
     })
   }
-  // Create the material that will be used to render each vertex of the geometry
-  // Create the particle system
-  const particleSystem = new THREE.Points(particlesGeometry, particleMaterial)
-  particleSystem.position.set(0, 0, 0)
-  group.add(particleSystem)
-  console.log('Particle System created:', particleSystem)
-
-  const clonePositions = makeClonePositionsList(
-    settings.spaceBoundaryX,
-    settings.spaceBoundaryY,
-    settings.spaceBoundaryZ
-  )
-  const cloneTemplate = particleSystem.clone()
-  cloneTemplate.material = particleMaterialForClones
-  clonePositions.forEach((clonePosition) => {
-    const clone = cloneTemplate.clone()
-    clone.position.set(clonePosition.x, clonePosition.y, clonePosition.z)
-    group.add(clone)
-  })
-  return particleSystem
+  try { (window as unknown as { initialVelocities?: number[] }).initialVelocities = initialVelocities } catch { /* ignore */ }
 }
 
 
@@ -334,9 +192,4 @@ function sample<Type>(l: Type[]): Type {
   return l[~~(Math.random() * l.length)]
 }
 
-export {
-  createParticleSystem,
-  makeClonePositionsList,
-  particleMaterialForClones,
-  Particle
-}
+export { seedParticles, makeClonePositionsList, Particle }

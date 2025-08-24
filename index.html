@@ -5,7 +5,8 @@
     <title>Molecular Dynamics</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
     <meta content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" name="viewport">
-    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css"
+        integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
     <script type="importmap">
         {
             "imports": {
@@ -19,44 +20,49 @@
         }
     </script>
     <style>
-    html,
-    body {
-        padding: 0;
-        margin: 0;
-    }
-    .mapscale {
-        position: fixed;
-        left: 30px;
-        height: 5px;
-        width: 0px;
-        border-top:0px solid #000000;
-        border-right:1px solid #000000;
-        border-bottom:1px solid #000000;
-        border-left:1px solid #000000;
-        opacity: .5;
-        font:11px "Lucida Grande",sans-serif;
-        line-height:30px;
-    padding: 0 6px;
-    color: #fff;
-    text-shadow: 0 0 2px rgba(0,0,0,0.6);
-    }
-    .mapscale#force {
-        bottom: 50px;
-    }
-    .mapscale#velocity {
-        bottom: 80px;
-    }
-    #hud {
-        width: 90%;
-        height: 90%;
-        position: fixed;
-        background: rgba(0,0,0,.2);
-        top: 5%;
-        left: 5%;
-        display: none;
-        pointer-events: none;
-    }
-    /* removed empty .particle rule */
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+        }
+
+        .mapscale {
+            position: fixed;
+            left: 30px;
+            height: 5px;
+            width: 0px;
+            border-top: 0px solid #000000;
+            border-right: 1px solid #000000;
+            border-bottom: 1px solid #000000;
+            border-left: 1px solid #000000;
+            opacity: .5;
+            font: 11px "Lucida Grande", sans-serif;
+            line-height: 30px;
+            padding: 0 6px;
+            color: #fff;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+        }
+
+        .mapscale#force {
+            bottom: 50px;
+        }
+
+        .mapscale#velocity {
+            bottom: 80px;
+        }
+
+        #hud {
+            width: 90%;
+            height: 90%;
+            position: fixed;
+            background: rgba(0, 0, 0, .2);
+            top: 5%;
+            left: 5%;
+            display: none;
+            pointer-events: none;
+        }
+
+        /* removed empty .particle rule */
     </style>
 </head>
 

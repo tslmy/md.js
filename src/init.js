@@ -7,11 +7,7 @@ import { StereoEffect } from 'StereoEffect'
 import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults } from './settings.js'
 import { drawBox } from './drawingHelpers.js'
 import { resetWorld, clearStoredSnapshot, saveUserSettings } from './engine/persistence/storage.js'
-import {
-  makeClonePositionsList
-  ,
-  createParticleSystem, particleMaterialForClones
-} from './particleSystem.js'
+import { makeClonePositionsList, seedParticles } from './particleSystem.js'
 
 import * as dat from 'dat.gui'
 
@@ -31,10 +27,7 @@ function fullscreen () {
     document.body.webkitRequestFullscreen()
   }
 }
-function init (settings,
-  particles,
-  time,
-  lastSnapshotTime) {
+function init (settings, particles) {
   // initialize the scene
   const scene = new THREE.Scene()
   //    configure the scene:
@@ -61,17 +54,8 @@ function init (settings,
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0x222233, 0.4)
   scene.add(hemiLight)
   const group = new THREE.Object3D()
-  const particleSystem = createParticleSystem(
-    group,
-    particles,
-    scene,
-    time,
-    lastSnapshotTime,
-    settings
-  )
-  console.log("3D object 'group' created: ", group)
+  seedParticles(particles, scene, settings)
   scene.add(group)
-  console.log(particles)
   // enable settings GUI
   initializeGuiControls(settings, group, boxMesh)
   // initialize the camera
@@ -120,7 +104,7 @@ function init (settings,
   window.addEventListener('resize', () => { resize(camera, effect, renderer) }, false)
   setTimeout(() => { resize(camera, effect, renderer) }, 1)
   // State persistence handled in TypeScript (script.ts) to include full particle data.
-  return [scene, particleSystem, camera, renderer, controls, stats, temperaturePanel, effect]
+  return [scene, null, camera, renderer, controls, stats, temperaturePanel, effect]
 }
 
 function updateClonesPositions (
@@ -185,9 +169,6 @@ function initializeGuiControls (settings, group, boxMesh) {
   guiFolderBoundary
     .add(settings, 'if_use_periodic_boundary_condition')
     .name('Use PBC')
-    .onChange(() => {
-      particleMaterialForClones.visible = settings.if_use_periodic_boundary_condition
-    })
   const guiFolderSize = guiFolderBoundary.addFolder('Custom size')
   guiFolderSize
     .add(settings, 'spaceBoundaryX')
@@ -296,7 +277,6 @@ function initializeGuiControls (settings, group, boxMesh) {
         boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY
         boxMesh.scale.z = settings.spaceBoundaryZ / originalSpaceBoundaryZ
       }
-      particleMaterialForClones.visible = settings.if_use_periodic_boundary_condition
       updateClonesPositions(
         settings.spaceBoundaryX,
         settings.spaceBoundaryY,
