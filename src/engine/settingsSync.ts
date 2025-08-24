@@ -2,6 +2,9 @@ import { SimulationEngine } from './SimulationEngine.js'
 import { fromSettings, type EngineConfig } from './config/types.js'
 import { settings } from '../settings.js'
 
+// Guard to avoid recursive push->engine->config event->pull->property set->push loops.
+let suppressAutoPush = false
+
 /**
  * Two-way synchronization helpers between legacy mutable `settings` object
  * (dat.GUI bound) and the new SimulationEngine configuration/state.
@@ -18,6 +21,7 @@ import { settings } from '../settings.js'
 
 /** Apply selected fields from settings into an EngineConfig patch and send to engine. */
 export function pushSettingsToEngine(engine: SimulationEngine): void {
+    if (suppressAutoPush) return
     const patch: Partial<EngineConfig> = {
         world: { particleCount: settings.particleCount, box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ } },
         runtime: { dt: settings.dt, cutoff: settings.cutoffDistance },
@@ -39,20 +43,25 @@ export function pushSettingsToEngine(engine: SimulationEngine): void {
 
 /** Mirror core engine config changes back into UI settings (subset). */
 export function pullEngineConfigToSettings(cfg: EngineConfig): void {
-    settings.particleCount = cfg.world.particleCount
-    settings.spaceBoundaryX = cfg.world.box.x
-    settings.spaceBoundaryY = cfg.world.box.y
-    settings.spaceBoundaryZ = cfg.world.box.z
-    settings.dt = cfg.runtime.dt
-    settings.cutoffDistance = cfg.runtime.cutoff
-    settings.if_apply_LJpotential = cfg.forces.lennardJones
-    settings.if_apply_gravitation = cfg.forces.gravity
-    settings.if_apply_coulombForce = cfg.forces.coulomb
-    settings.EPSILON = cfg.constants.epsilon
-    settings.DELTA = cfg.constants.sigma
-    settings.G = cfg.constants.G
-    settings.K = cfg.constants.K
-    settings.kB = cfg.constants.kB
+    suppressAutoPush = true
+    try {
+        settings.particleCount = cfg.world.particleCount
+        settings.spaceBoundaryX = cfg.world.box.x
+        settings.spaceBoundaryY = cfg.world.box.y
+        settings.spaceBoundaryZ = cfg.world.box.z
+        settings.dt = cfg.runtime.dt
+        settings.cutoffDistance = cfg.runtime.cutoff
+        settings.if_apply_LJpotential = cfg.forces.lennardJones
+        settings.if_apply_gravitation = cfg.forces.gravity
+        settings.if_apply_coulombForce = cfg.forces.coulomb
+        settings.EPSILON = cfg.constants.epsilon
+        settings.DELTA = cfg.constants.sigma
+        settings.G = cfg.constants.G
+        settings.K = cfg.constants.K
+        settings.kB = cfg.constants.kB
+    } finally {
+        suppressAutoPush = false
+    }
 }
 
 /** Initialize synchronization: one initial push, then subscribe to engine events. */
@@ -78,7 +87,11 @@ export function registerAutoPush(engine: SimulationEngine, keys: string[]): void
             configurable: true,
             enumerable: true,
             get() { return value },
-            set(v) { value = v; handler() }
+            set(v) {
+                if (value === v) { value = v; return }
+                value = v
+                if (!suppressAutoPush) handler()
+            }
         })
     }
 }
