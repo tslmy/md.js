@@ -10,6 +10,9 @@ import { LennardJones } from './core/forces/lennardJones.js';
 import { Gravity } from './core/forces/gravity.js';
 import { Coulomb } from './core/forces/coulomb.js';
 import { computeDiagnostics } from './core/simulation/diagnostics.js';
+// Experimental engine
+import { SimulationEngine } from './engine/SimulationEngine.js';
+import { legacySettingsToEngineConfig } from './engine/config/types.js';
 let camera;
 let scene;
 let renderer;
@@ -21,6 +24,7 @@ let maxTemperature = 0;
 let particleSystem;
 // New SoA simulation objects
 let simulation;
+let engine;
 let simState;
 let lastDiagnostics;
 const particles = [];
@@ -111,12 +115,12 @@ function updateHudRow(i, d) {
 const _tmpDir = new THREE.Vector3();
 const _tmpFrom = new THREE.Vector3();
 function updateFromSimulation(_arrowScaleForces, _arrowScaleForVelocities, frameOffset) {
-    if (!simulation || !simState || !particleSystem)
+    if ((!simulation && !engine) || !simState || !particleSystem)
         return;
     const hudVisible = isVisible(document.querySelector('#hud'));
     const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt);
     const posAttr = particleSystem.geometry.attributes.position;
-    const perForce = simulation.getPerForceContributions();
+    const perForce = simulation ? simulation.getPerForceContributions() : engine.getPerForceContributions();
     for (let i = 0; i < particles.length; i++)
         updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, perForce);
     posAttr.needsUpdate = true;
@@ -181,10 +185,7 @@ function applyPbc(pos, trajectory, maxLen, bx, by, bz) {
  * Advance simulation one timestep and update visual + diagnostic layers.
  * Split from animate() to keep the frame logic testable and reduce complexity warnings.
  */
-function runFrame() {
-    time += settings.dt;
-    if (simulation)
-        simulation.step();
+function applyVisualUpdates() {
     const arrowScaleForces = rescaleForceScaleBarFromState(simState);
     const arrowScaleVel = rescaleVelocityScaleBarFromState(simState);
     const frameOffset = computeFrameOffset();
@@ -192,10 +193,19 @@ function runFrame() {
     if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt)
         lastSnapshotTime = time;
     statistics(temperaturePanel, maxTemperature);
-    updateDiagnostics();
+    if (!engine)
+        updateDiagnostics(); // engine path emits diagnostics itself
     update();
     render(renderer, effect);
     stats.update();
+}
+function runFrame() {
+    if (engine)
+        return; // engine drives its own loop
+    time += settings.dt;
+    if (simulation)
+        simulation.step();
+    applyVisualUpdates();
 }
 /**
  * Determine the frame offset based on the selected reference frame mode.
@@ -317,15 +327,31 @@ docReady(() => {
         simState.masses[i] = particles[i].mass;
         simState.charges[i] = particles[i].charge;
     }
-    const forcePlugins = [];
-    if (settings.if_apply_LJpotential)
-        forcePlugins.push(new LennardJones({ epsilon: settings.EPSILON, sigma: settings.DELTA }));
-    if (settings.if_apply_gravitation)
-        forcePlugins.push(new Gravity({ G: settings.G }));
-    if (settings.if_apply_coulombForce)
-        forcePlugins.push(new Coulomb({ K: settings.K }));
-    simulation = new Simulation(simState, VelocityVerlet, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance });
-    animate();
+    if (settings.useNewEngine) {
+        engine = new SimulationEngine(legacySettingsToEngineConfig(settings));
+        // Seed engine state (SimulationEngine allocates empty arrays internally)
+        engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges });
+        // Replace simState reference with engine's state to ensure downstream views point at the authoritative arrays.
+        simState = engine.getState();
+        engine.on('frame', ({ time: t }) => {
+            time = t;
+            applyVisualUpdates();
+        });
+        engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs)
+            window.__mdjs.diagnostics = d; });
+        engine.run({ useRaf: true });
+    }
+    else {
+        const forcePlugins = [];
+        if (settings.if_apply_LJpotential)
+            forcePlugins.push(new LennardJones({ epsilon: settings.EPSILON, sigma: settings.DELTA }));
+        if (settings.if_apply_gravitation)
+            forcePlugins.push(new Gravity({ G: settings.G }));
+        if (settings.if_apply_coulombForce)
+            forcePlugins.push(new Coulomb({ K: settings.K }));
+        simulation = new Simulation(simState, VelocityVerlet, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance });
+        animate();
+    }
     // Expose handle for automated headless tests
     // Expose simulation state (read-only for tests; mutation not supported outside test harness)
     window.__mdjs = { particles, settings, simState, diagnostics: lastDiagnostics };

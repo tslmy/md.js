@@ -5,6 +5,7 @@ import { LennardJones } from '../core/forces/lennardJones.js';
 import { Gravity } from '../core/forces/gravity.js';
 import { Coulomb } from '../core/forces/coulomb.js';
 import { validateEngineConfig } from './config/types.js';
+import { computeDiagnostics } from '../core/simulation/diagnostics.js';
 /**
  * Lightweight event emitter (internal). Kept minimal to avoid pulling in a dependency.
  */
@@ -53,6 +54,8 @@ export class SimulationEngine {
         this.running = false;
         this.rafId = null;
         this.intervalId = null;
+        /** Emit diagnostics each step (will become configurable). */
+        this.diagnosticsEvery = 1;
         /** Subscribe to engine events. Returns an unsubscribe function. */
         this.on = this.emitter.on.bind(this.emitter);
         validateEngineConfig(cfg);
@@ -86,6 +89,10 @@ export class SimulationEngine {
             this.sim.step();
             this.stepCount++;
             this.emitter.emit('frame', { time: this.state.time, state: this.state, step: this.stepCount });
+            if (this.stepCount % this.diagnosticsEvery === 0) {
+                const d = computeDiagnostics(this.state, this.sim.getForces(), { cutoff: this.config.runtime.cutoff, kB: this.config.constants.kB });
+                this.emitter.emit('diagnostics', d);
+            }
         }
         catch (e) {
             this.pause();
@@ -139,6 +146,21 @@ export class SimulationEngine {
         // Currently we do NOT recreate state; only forces & dt/cutoff are applied.
         this.sim = this.buildSimulation();
         this.emitter.emit('config', this.getConfig());
+    }
+    /** Return active ForceField instances (read-only usage). */
+    getForces() { return this.sim.getForces(); }
+    /** Per-force decomposition (proxy to underlying Simulation). */
+    getPerForceContributions() { return this.sim.getPerForceContributions(); }
+    /** Seed initial state arrays (positions, velocities, masses, charges). Call before run(). */
+    seed(p) {
+        if (p.positions)
+            this.state.positions.set(p.positions.subarray(0, this.state.positions.length));
+        if (p.velocities)
+            this.state.velocities.set(p.velocities.subarray(0, this.state.velocities.length));
+        if (p.masses)
+            this.state.masses.set(p.masses.subarray(0, this.state.masses.length));
+        if (p.charges)
+            this.state.charges.set(p.charges.subarray(0, this.state.charges.length));
     }
 }
 //# sourceMappingURL=SimulationEngine.js.map
