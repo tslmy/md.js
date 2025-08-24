@@ -73,7 +73,7 @@ Located under `src/core/simulation` & `src/core/forces`:
 * `particleSystem.ts` – Builds particles, trajectories, ghost clones (for PBC visualization), HUD rows, and mirrors simulation data into Three.js constructs.
 * `script.ts` – Entry point: initializes scene (delegates to `init.js`), seeds state, subscribes to engine events to mirror SoA data into Three.js buffers, updates HUD & persistence.
 * `settings.ts` – Central tweakable parameters + feature flags; deliberately verbose / “kitchen sink” for experimentation.
-* (Deprecated) `stateStorage.ts` replaced by engine snapshot persistence (`src/engine/persistence/{persist,storage}.ts`).
+* Legacy `stateStorage.ts` fully removed; engine snapshot persistence (`src/engine/persistence/{persist,storage}.ts`) now also records escaped flags.
 
 ### 4. Public (Test) Surface
 

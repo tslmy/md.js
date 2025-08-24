@@ -24,6 +24,8 @@ export interface EngineSnapshot {
   masses: number[]
   /** Per-particle charges (length N). */
   charges: number[]
+  /** Escaped flags (length N, 0|1). */
+  escaped: number[]
 }
 
 /** Capture a snapshot of the current engine state (copying arrays). */
@@ -37,7 +39,8 @@ export function snapshot(engine: SimulationEngine): EngineSnapshot {
     positions: Array.from(st.positions.subarray(0, 3 * N)),
     velocities: Array.from(st.velocities.subarray(0, 3 * N)),
     masses: Array.from(st.masses.subarray(0, N)),
-    charges: Array.from(st.charges.subarray(0, N))
+  charges: Array.from(st.charges.subarray(0, N)),
+  escaped: Array.from(st.escaped.subarray(0, N))
   }
 }
 
@@ -54,6 +57,11 @@ export function hydrate(snap: EngineSnapshot): SimulationEngine {
     masses: Float32Array.from(snap.masses),
     charges: Float32Array.from(snap.charges)
   })
+  // Copy escaped flags directly (engine getState returns live reference)
+  const st = eng.getState()
+  if (snap.escaped?.length === st.escaped.length) {
+    for (let i = 0; i < st.escaped.length; i++) st.escaped[i] = snap.escaped[i] as 0 | 1
+  }
   eng.setTime(snap.time)
   return eng
 }
