@@ -365,10 +365,6 @@ docReady(() => {
       simState.positions[i3] = particles[i].position.x
       simState.positions[i3 + 1] = particles[i].position.y
       simState.positions[i3 + 2] = particles[i].position.z
-      const maybe = (window as unknown as { initialVelocities?: number[] })?.initialVelocities || []
-      simState.velocities[i3] = maybe[i3] || 0
-      simState.velocities[i3 + 1] = maybe[i3 + 1] || 0
-      simState.velocities[i3 + 2] = maybe[i3 + 2] || 0
       simState.masses[i] = particles[i].mass
       simState.charges[i] = particles[i].charge
     }

@@ -28,13 +28,9 @@ class Particle {
   }
 }
 
-// Store initial velocities separately for seeding the SoA simulation state (optional legacy path).
-export const initialVelocities: number[] = [] // flat array length 3 * particleCount (may remain empty)
-
 function addParticle(
   color: Color,
   position: Vector3,
-  velocity: Vector3,
   mass: number,
   charge: number,
   ctx: {
@@ -52,7 +48,6 @@ function addParticle(
   }
   const particle = new Particle(color, position, mass, charge, trajectory)
   particles.push(particle)
-  initialVelocities.push(velocity.x, velocity.y, velocity.z)
   addParticleToTable(color, mass, charge)
 }
 
@@ -112,7 +107,6 @@ function seedParticles(particles: Particle[], scene: Scene, settings: Settings):
     addParticle(
       new Color(0, 0, 0),
       new Vector3(0, 0, 0),
-      new Vector3(0, 0, 0),
       settings.sunMass,
       0,
       {
@@ -124,50 +118,13 @@ function seedParticles(particles: Particle[], scene: Scene, settings: Settings):
     )
   }
   for (let i = particles.length; i < settings.particleCount; i++) {
-    let velocity: Vector3
-    let position: Vector3
-    if (settings.if_makeSun) {
-      /*
-      If we have created a "sun" particle, then all the other particles should have
-      their initial velocities set based on the gravitational influence of the sun.
-
-      Note that this does not guarantee stable or realistic orbits, since we are not
-      taking into account the gravitational influence of other particles or any other
-      forces. This is just to get something going.
-
-      Constrain position to the XZ plane (y = 0) so that a velocity along +Y is perpendicular
-      to the radial vector (approx circular start). Randomizing y would break that.
-      */
-      let x: number, z: number
-      do {
-        x = random(-settings.spaceBoundaryX, settings.spaceBoundaryX)
-        z = random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
-      } while ((x * x + z * z) < 1e-6) // avoid r ~ 0 (at the sun)
-      position = new Vector3(x, 0, z)
-      const r = Math.sqrt(x * x + z * z)
-      const vy = Math.sqrt((settings.G * particles[0].mass) / r)
-      velocity = new Vector3(0, vy, 0)
-      /*
-      We alternate the direction of the velocity for each particle, so that
-      we have approximately the same number of particles moving in each direction.
-      */
-      if (i % 2 === 0) velocity.negate()
-    } else {
-      /*
-      If we have not created a "sun" particle, then all particles can have truly randomized starting position
-      and should have their initial velocities set to zero.
-      */
-      position = new Vector3(
-        random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
-        random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
-        random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
-      )
-      velocity = new Vector3(0, 0, 0)
-    }
+    const position = new Vector3(
+      random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
+      random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
+      random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ))
     addParticle(
       new Color(Math.random(), Math.random(), Math.random()),
       position,
-      velocity,
       random(settings.massLowerBound, settings.massUpperBound),
       sample<number>(settings.availableCharges),
       {
@@ -178,7 +135,6 @@ function seedParticles(particles: Particle[], scene: Scene, settings: Settings):
       }
     )
   }
-  try { (window as unknown as { initialVelocities?: number[] }).initialVelocities = initialVelocities } catch { /* ignore */ }
 }
 
 
