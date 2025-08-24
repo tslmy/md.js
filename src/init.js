@@ -4,13 +4,9 @@ import { OrbitControls } from 'OrbitControls'
 import { DeviceOrientationControls } from 'DeviceOrientationControls'
 import Stats from 'Stats'
 import { StereoEffect } from 'StereoEffect'
-import {
-  originalSpaceBoundaryX,
-  originalSpaceBoundaryY,
-  originalSpaceBoundaryZ
-} from './settings.js'
+import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults } from './settings.js'
 import { drawBox } from './drawingHelpers.js'
-import { resetWorld } from './engine/persistence/storage.js'
+import { resetWorld, clearStoredSnapshot, saveUserSettings } from './engine/persistence/storage.js'
 import {
   makeClonePositionsList
   ,
@@ -262,16 +258,22 @@ function initializeGuiControls (settings, group, boxMesh) {
   guiFolderPlotting.open()
 
   const commands = {
-    stop: () => {
-      settings.ifRun = false
+    stop: () => { settings.ifRun = false },
+    toggleHUD: () => { toggle('#hud') },
+    newWorld: () => { resetWorld() },
+    randomizeParticles: () => {
+      try { saveUserSettings() } catch { /* ignore */ }
+      try { clearStoredSnapshot() } catch { /* ignore */ }
+      // Force reload to regenerate particle positions using current settings.
+      try { window.onbeforeunload = null } catch { /* ignore */ }
+      location.reload()
     },
-    toggleHUD: () => {
-      toggle('#hud')
-    },
-  clearState: resetWorld
+    resetDefaults: () => { resetSettingsToDefaults(); try { saveUserSettings() } catch { /* ignore */ } }
   }
-  const guiFolderCommands = gui.addFolder('Commands') // controls, buttons
-  guiFolderCommands.add(commands, 'clearState').name('New world')
+  // Move New world (randomize) into World building folder
+  guiFolderWorld.add(commands, 'randomizeParticles').name('New world')
+  const guiFolderCommands = gui.addFolder('Commands')
+  guiFolderCommands.add(commands, 'resetDefaults').name('Reset defaults')
   guiFolderCommands.add(commands, 'stop').name('Halt')
   gui.add(commands, 'toggleHUD').name('Show Detail HUD')
   guiFolderCommands.open()

@@ -59,9 +59,19 @@ const settings = {
   kB: 6.02
 }
 
+// Deep clone baseline defaults for reset.
+const _defaultSettings = JSON.parse(JSON.stringify(settings)) as typeof settings
+
+/** Reset all mutable settings back to their original default values. */
+function resetSettingsToDefaults(): void {
+  const fresh = JSON.parse(JSON.stringify(_defaultSettings)) as typeof settings
+  Object.assign(settings, fresh)
+}
+
 export {
   settings,
   originalSpaceBoundaryX,
   originalSpaceBoundaryY,
-  originalSpaceBoundaryZ
+  originalSpaceBoundaryZ,
+  resetSettingsToDefaults
 }
