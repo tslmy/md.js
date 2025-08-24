@@ -2,6 +2,7 @@
 /* eslint-disable no-undef */
 import { spawn, execFileSync } from 'node:child_process'
 import puppeteer from 'puppeteer'
+import { waitForServer } from './testUtil.mjs'
 
 async function main () {
   console.log('[center-neg] Build...')
@@ -10,10 +11,18 @@ async function main () {
   console.log('[center-neg] Start server...')
   const server = spawn('python', ['-m', 'http.server', String(port), '--directory', '.'], { stdio: 'ignore' })
   const cleanup = async (code = 0) => { try { server.kill() } catch { /* ignore */ } process.exit(code) }
-  await new Promise(r => setTimeout(r, 800))
+  
+  // Wait for server to be ready instead of fixed delay
+  try {
+    await waitForServer(port, 15, 200) // 15 retries * 200ms = max 3 seconds
+  } catch (err) {
+    console.error('[center-neg] FAIL: Server startup timeout')
+    await cleanup(1)
+  }
+  
   const browser = await puppeteer.launch({ headless: 'new' })
   const page = await browser.newPage()
-  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 15000 })
+  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 10000 })
   // Disable centering in-page
   await page.evaluate(() => { if (window.__mdjs) window.__mdjs.settings.referenceFrameMode = 'fixed' })
   const start = await page.evaluate(() => {
@@ -26,8 +35,8 @@ async function main () {
     console.error('[center-neg] FAIL: no initial particle 0')
     await browser.close(); await cleanup(1)
   }
-  // Let simulation run (longer for Verlet which can conserve better and may show slower drift)
-  await new Promise(r => setTimeout(r, 1600))
+  // Let simulation run (reduced from 1600ms to 800ms for faster test)
+  await new Promise(r => setTimeout(r, 800))
   const after = await page.evaluate(() => {
     const api = window.__mdjs
     const p0 = api?.particles?.[0]

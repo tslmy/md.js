@@ -185,4 +185,7 @@ dist
 # Serverless Webpack directories
 .webpack/
 
+# TypeScript build output
+built/
+
 # End of https://www.toptal.com/developers/gitignore/api/node,linux,macos,git

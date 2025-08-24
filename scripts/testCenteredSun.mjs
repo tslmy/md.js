@@ -1,6 +1,7 @@
 // Test that the first particle (sun) stays near origin when centering enabled.
 import { spawn, execFileSync } from 'node:child_process'
 import puppeteer from 'puppeteer'
+import { waitForServer } from './testUtil.mjs'
 
 async function main () {
   console.log('[center] Build...')
@@ -9,12 +10,21 @@ async function main () {
   console.log('[center] Start server...')
   const server = spawn('python', ['-m', 'http.server', String(port), '--directory', '.'], { stdio: 'ignore' })
   const cleanup = async (code = 0) => { try { server.kill() } catch { /* intentionally ignore */ } process.exit(code) }
-  await new Promise(r => setTimeout(r, 800))
+  
+  // Wait for server to be ready instead of fixed delay
+  try {
+    await waitForServer(port, 15, 200) // 15 retries * 200ms = max 3 seconds
+  } catch (err) {
+    console.error('[center] FAIL: Server startup timeout')
+    await cleanup(1)
+  }
+  
   const browser = await puppeteer.launch({ headless: 'new' })
   const page = await browser.newPage()
-  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 15000 })
-  // Let simulation run a bit
-  await new Promise(r => setTimeout(r, 400))
+  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 10000 })
+  
+  // Let simulation run a bit - reduced from 400ms to 200ms
+  await new Promise(r => setTimeout(r, 200))
   const data = await page.evaluate(() => {
     // eslint-disable-next-line no-undef
     const api = window.__mdjs

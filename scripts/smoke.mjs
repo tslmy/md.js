@@ -1,8 +1,8 @@
 // Headless smoke test for md.js
 import { spawn, execFileSync } from 'node:child_process'
 import net from 'node:net'
-import http from 'node:http'
 import puppeteer from 'puppeteer'
+import { waitForServer } from './testUtil.mjs'
 
 async function main () {
   console.log('[smoke] Building project...')
@@ -30,22 +30,13 @@ async function main () {
     process.exit(code)
   }
 
-  // Poll for server readiness
-  async function waitForServer (retries = 40) {
-    for (let i = 0; i < retries; i++) {
-      const ok = await new Promise(resolve => {
-        const req = http.request({ method: 'HEAD', host: 'localhost', port, path: '/index.html' }, res => {
-          resolve(res.statusCode >= 200 && res.statusCode < 500)
-        })
-        req.on('error', () => resolve(false))
-        req.end()
-      })
-      if (ok) return
-      await new Promise(r => setTimeout(r, 250))
-    }
-    throw new Error('Server did not become ready')
+  // Use shared server readiness polling with optimized settings
+  try {
+    await waitForServer(port, 20, 150) // 20 retries * 150ms = max 3 seconds
+  } catch (err) {
+    console.error('[smoke] FAIL: Server startup timeout')
+    await cleanup(1)
   }
-  await waitForServer()
 
   const browser = await puppeteer.launch({ headless: 'new' })
   const page = await browser.newPage()
@@ -53,7 +44,7 @@ async function main () {
   page.on('console', msg => consoleMessages.push(msg.text()))
 
   console.log('[smoke] Loading page...')
-  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 20000 })
+  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 15000 })
 
   // Pull initial state
   const initial = await page.evaluate(() => {
@@ -74,8 +65,8 @@ async function main () {
     await browser.close(); await cleanup(1)
   }
 
-  // Let simulation advance a few frames
-  await new Promise(r => setTimeout(r, 500))
+  // Let simulation advance a few frames (reduced from 500ms to 300ms)
+  await new Promise(r => setTimeout(r, 300))
   const after = await page.evaluate(() => {
     const api = (typeof globalThis !== 'undefined' && globalThis.__mdjs) ? globalThis.__mdjs : undefined
     return api?.particles?.slice(0, 5).map(p => ({ x: p.position.x, y: p.position.y, z: p.position.z })) ?? []
@@ -96,8 +87,8 @@ async function main () {
 
   // Trigger persistence by reloading (onbeforeunload should have saved state)
   await page.reload({ waitUntil: 'load' })
-  // Allow loadState logging
-  await new Promise(r => setTimeout(r, 300))
+  // Allow loadState logging (reduced from 300ms to 200ms)
+  await new Promise(r => setTimeout(r, 200))
   const loadedMsg = consoleMessages.find(m => m.includes('State from previous session loaded.'))
   if (!loadedMsg) {
     console.error('[smoke] FAIL: Did not detect persistence load message')
