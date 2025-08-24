@@ -1,11 +1,11 @@
-import { Color, Vector3, Scene } from 'three'
+import { Color, Vector3 } from 'three'
 import { registerSeedPosition, clearSeedPositions } from './core/simulation/state.js'
 // Type alias for settings shape (imported dynamically); avoids circular dep.
 type Settings = typeof import('./control/settings.js').settings
 
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength']
 
-class Particle { constructor(public color: Color, public isEscaped: boolean = false) { } }
+class Particle { constructor(public color: Color) { } }
 
 // (initial positions now tracked centrally in simulation/state via registerSeedPosition)
 
@@ -40,7 +40,7 @@ function addParticleToTable(color: Color) {
 /**
  * Seed particle metadata (positions/colors/mass/charge + HUD rows & optional trajectories).
  */
-function seedParticles(particles: Particle[], scene: Scene, settings: Settings): void {
+function seedParticles(particles: Particle[], settings: Settings): void {
   // reset any prior seeding (e.g. hot reload) to avoid stale growth
   clearSeedPositions()
   if (settings.if_makeSun) {
