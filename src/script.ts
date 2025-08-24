@@ -16,6 +16,7 @@ import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEY
 import { InstancedArrows } from './visual/InstancedArrows.js'
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
 import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer, applyPbc } from './visual/trajectory.js'
+import { updateHudRow } from './visual/coloringAndDataSheet.js'
 
 // global variables
 interface StereoEffectLike { render(scene: Scene, camera: Camera): void; setSize?(w: number, h: number): void }
@@ -65,32 +66,6 @@ function updateScaleBars(diag: Diagnostics | undefined): void {
   if (forceEl) forceEl.style.width = `${forceScale * 1000000}px`
   const velEl = document.getElementById('velocity')
   if (velEl) velEl.style.width = `${velScale * 1000000}px`
-}
-
-function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: number; fx: number; fy: number; fz: number; perForce?: Record<string, Float32Array> }): void {
-  const row = document.querySelector<HTMLElement>(`#tabularInfo > tbody > tr:nth-child(${i + 1})`)
-  if (!row) return
-  const rnd = (v: number) => `${Math.round(v * 100) / 100}`
-  const speed2 = d.vx * d.vx + d.vy * d.vy + d.vz * d.vz
-  const speed = Math.sqrt(speed2)
-  const forceMag = Math.hypot(d.fx, d.fy, d.fz)
-  const set = (cls: string, val: string) => { const el = row.querySelector<HTMLElement>(cls); if (el) el.textContent = val }
-  set('.speed', rnd(speed))
-  set('.kineticEnergy', rnd(speed2 * d.mass * 0.5))
-  set('.TotalForceStrength', rnd(forceMag))
-  if (!d.perForce) return
-  const classMap: Record<string, string> = {
-    lennardJones: '.LJForceStrength',
-    gravity: '.GravitationForceStrength',
-    coulomb: '.CoulombForceStrength'
-  }
-  const i3 = 3 * i
-  for (const [name, arr] of Object.entries(d.perForce)) {
-    const cls = classMap[name]
-    if (!cls) continue
-    const mag = Math.hypot(arr[i3], arr[i3 + 1], arr[i3 + 2])
-    set(cls, rnd(mag))
-  }
 }
 
 const _tmpDir = new Vector3()
