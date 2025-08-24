@@ -1,5 +1,5 @@
 import { BufferAttribute } from 'three'
-import type { Particle } from '../../particleSystem.js'
+import type { Particle } from '../particleSystem.js'
 
 /** LocalStorage key for visual (non-engine) data. */
 export const VISUAL_SNAPSHOT_KEY = 'mdJsVisualSnapshot'
