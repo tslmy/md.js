@@ -1,6 +1,7 @@
 import { settings } from './settings.js'
 import { init, ifMobileDevice, toggle } from './init.js'
 import { saveToLocal, loadFromLocal, loadUserSettings, saveUserSettings } from './engine/persistence/storage.js'
+import { saveVisualDataToLocal, loadVisualDataFromLocal } from './engine/persistence/visual.js'
 import * as THREE from 'three'
 import { Particle } from './particleSystem.js'
 // New SoA simulation core imports
@@ -340,16 +341,7 @@ docReady(() => {
     settings.dt = loaded.snapshot.config.runtime.dt
     settings.cutoffDistance = loaded.snapshot.config.runtime.cutoff
     time = loaded.snapshot.time
-    // Attempt to restore trajectory geometry if present in snapshot extras
-    const trajArrays = loaded.snapshot.trajectories
-    if (trajArrays?.length) {
-      // We'll reconstruct after particles + scene objects created below (need max length + line objects)
-      // Store temporarily on window until after seed
-      ; (window as unknown as { __pendingTraj?: { arrays: number[][]; maxLen: number } }).__pendingTraj = {
-        arrays: trajArrays,
-        maxLen: loaded.snapshot.maxTrajectoryLength || settings.maxTrajectoryLength
-      }
-    }
+    // Trajectories persisted separately (visual aid) – defer restore after visuals ready.
   }
 
   const values = init(settings, particles)
@@ -409,26 +401,8 @@ docReady(() => {
     scene.traverse(obj => { if ((obj as unknown as { isPoints?: boolean }).isPoints) obj.visible = false })
     // Initialize sphere transforms/colors immediately
     updateSpheres(new THREE.Vector3(0, 0, 0))
-    // If a prior snapshot provided trajectories, rebuild them now
-    try {
-      const pending = (window as unknown as { __pendingTraj?: { arrays: number[][]; maxLen: number } }).__pendingTraj
-      if (pending) {
-        const { arrays, maxLen } = pending
-        for (let i = 0; i < arrays.length && i < particles.length; i++) {
-          const arr = arrays[i]
-          if (!arr || arr.length !== maxLen * 3) continue
-          const traj = particles[i].trajectory
-          if (!traj) continue
-          const attr = traj.geometry.getAttribute('position') as THREE.BufferAttribute
-          for (let j = 0; j < maxLen; j++) {
-            const k = 3 * j
-            attr.setXYZ(j, arr[k], arr[k + 1], arr[k + 2])
-          }
-          attr.needsUpdate = true
-        }
-        delete (window as unknown as { __pendingTraj?: unknown }).__pendingTraj
-      }
-    } catch { /* ignore restore errors */ }
+    // Restore visual trajectories if present
+    loadVisualDataFromLocal(particles)
   }
   // Expose handle for automated headless tests
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)
@@ -439,23 +413,8 @@ docReady(() => {
     try { saveUserSettings() } catch { /* ignore */ }
     if (engine) {
       // Collect trajectory buffers (if any) for persistence
-      let trajectories: number[][] | undefined
-      if (settings.if_showTrajectory) {
-        trajectories = particles.map(p => {
-          if (!p.trajectory) return []
-          const attr = p.trajectory.geometry.getAttribute('position') as THREE.BufferAttribute
-          const maxLen = attr.count
-          const out: number[] = new Array(maxLen * 3)
-          for (let i = 0; i < maxLen; i++) {
-            const k = 3 * i
-            out[k] = attr.getX(i)
-            out[k + 1] = attr.getY(i)
-            out[k + 2] = attr.getZ(i)
-          }
-          return out
-        })
-      }
-      saveToLocal(engine, trajectories ? { trajectories, maxTrajectoryLength: settings.maxTrajectoryLength } : undefined)
+      if (settings.if_showTrajectory) { saveVisualDataToLocal(particles) }
+      saveToLocal(engine)
     }
   }
   // bind keyboard event:

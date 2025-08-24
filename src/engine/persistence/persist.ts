@@ -26,20 +26,16 @@ export interface EngineSnapshot {
   charges: number[]
   /** Escaped flags (length N, 0|1). */
   escaped: number[]
-  /** Optional per-particle trajectory position buffers (flattened xyz * maxTrajectoryLength). */
-  trajectories?: number[][]
-  /** Optional max trajectory length used when capturing trajectories (informational). */
-  maxTrajectoryLength?: number
 }
 
 /** Capture a snapshot of the current engine state (copying arrays).
  * @param engine The simulation engine
  * @param opts Optional extras (visual layer data) – kept optional so core callers remain unaffected.
  */
-export function snapshot(engine: SimulationEngine, opts?: { trajectories?: number[][]; maxTrajectoryLength?: number }): EngineSnapshot {
+export function snapshot(engine: SimulationEngine): EngineSnapshot {
   const st = engine.getState()
   const N = st.N
-  const base: EngineSnapshot = {
+  return {
     version: 1 as const,
     config: engine.getConfig(),
     time: st.time,
@@ -49,11 +45,6 @@ export function snapshot(engine: SimulationEngine, opts?: { trajectories?: numbe
     charges: Array.from(st.charges.subarray(0, N)),
     escaped: Array.from(st.escaped.subarray(0, N))
   }
-  if (opts?.trajectories && opts.trajectories.length) {
-    base.trajectories = opts.trajectories
-    if (opts.maxTrajectoryLength) base.maxTrajectoryLength = opts.maxTrajectoryLength
-  }
-  return base
 }
 
 /**
