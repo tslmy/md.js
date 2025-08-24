@@ -2,7 +2,7 @@
 
 import { Scene, Mesh, BoxGeometry, MeshBasicMaterial, BufferAttribute, BufferGeometry, Color, Line, LineBasicMaterial, Vector3 } from 'three'
 
-function drawBox(
+export function drawBox(
   spaceBoundaryX: number,
   spaceBoundaryY: number,
   spaceBoundaryZ: number,
@@ -24,7 +24,7 @@ function drawBox(
   return boxMesh
 }
 
-export { drawBox }/**
+/**
  * This function creates a line object that represents the trajectory of a particle.
  * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
  *
