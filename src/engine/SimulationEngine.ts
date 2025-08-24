@@ -127,7 +127,15 @@ export class SimulationEngine {
       const softening = 0.15 * spacing
       forces.push(new Gravity({ G: this.config.constants.G, softening }))
     }
-    if (this.config.forces.coulomb) forces.push(new Coulomb({ K: this.config.constants.K }))
+    if (this.config.forces.coulomb) {
+      // Use a slightly smaller softening for Coulomb (repulsion often prevents extreme overlap)
+      const N = Math.max(1, this.config.world.particleCount)
+      const box = this.config.world.box
+      const volume = (2 * box.x) * (2 * box.y) * (2 * box.z)
+      const spacing = Math.cbrt(volume / N)
+      const softening = 0.1 * spacing
+      forces.push(new Coulomb({ K: this.config.constants.K, softening }))
+    }
     const integrator = this.config.runtime.integrator === 'euler' ? EulerIntegrator : VelocityVerlet
     return new Simulation(this.state, integrator, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff })
   }
