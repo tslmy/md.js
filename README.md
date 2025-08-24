@@ -50,34 +50,40 @@ What am I looking at?
 
 ## Architecture Overview
 
-The code base intentionally separates **simulation core (data + physics)** from **visualization (Three.js scene graph)**.
+The code base separates a **physics engine** (data + force/integration pipeline) from the **visualization layer** (Three.js scene graph + HUD) via an event boundary.
 
 ### 1. Simulation Core (Structure‑of‑Arrays)
 
 Located under `src/core/simulation` & `src/core/forces`:
 
 * `state.ts` – Structure‑of‑Arrays (`positions`, `velocities`, `forces`, `masses`, `charges`, flags). Functions: `createState`, `zeroForces`.
-* `Simulation.ts` – Orchestrates a timestep: clears forces, applies each `ForceField`, delegates numeric integration.
+* `Simulation.ts` – Low‑level timestep driver used internally by the high‑level engine.
 * `integrators.ts` – Integrator strategies (currently Explicit Euler & Velocity Verlet). Verlet is the default for better energy behavior.
 * `forces/*.ts` – Individual `ForceField` implementations (Lennard‑Jones, Gravity, Coulomb) composed at runtime. Each uses a naïve O(N²) pair loop with an early distance cutoff. Optimization path: spatial hashing / cell lists / neighbor lists.
 * `serialize.ts` – Serialize / hydrate typed arrays to plain objects (future: use for cross‑tab sharing or worker offloading).
 
-### 2. Visualization & UI Layer
+### 2. Engine Orchestration
+
+* `engine/SimulationEngine.ts` – High‑level orchestrator: owns mutable SoA state, rebuilds force plugin list on config changes, emits `frame` & `diagnostics` events, and shields the rest of the app from direct mutation.
+* `engine/persistence/persist.ts` – Snapshot / hydrate utilities (JSON‑serializable) for future cross‑tab or worker scenarios.
+
+### 3. Visualization & UI Layer
 
 * `particleSystem.ts` – Builds particles, trajectories, ghost clones (for PBC visualization), HUD rows, and mirrors simulation data into Three.js constructs.
-* `script.ts` – Entry point: initializes scene (delegates to `init.js`), seeds SoA state from legacy object instances, configures enabled forces, drives animation loop, rescales arrows & HUD each frame, handles persistence.
+* `script.ts` – Entry point: initializes scene (delegates to `init.js`), seeds state, subscribes to engine events to mirror SoA data into Three.js buffers, updates HUD & persistence.
 * `settings.ts` – Central tweakable parameters + feature flags; deliberately verbose / “kitchen sink” for experimentation.
 * `stateStorage.ts` – Browser `localStorage` persistence (simple versioned schema checking).
 
-### 3. Public (Test) Surface
+### 4. Public (Test) Surface
 
 When running in a browser the following is exposed for **debug & automated smoke tests only** (not a stable API):
 
 ```js
 window.__mdjs = {
-  particles,  // legacy OO particle objects (positions, velocities, forces)
-  settings,   // live settings object
-  simState    // SoA arrays (positions, velocities, forces, masses, charges)
+  particles, // legacy visual particle objects (positions/colors for HUD & trajectories)
+  settings,  // live settings object
+  simState,  // authoritative SoA state (positions, velocities, forces, masses, charges)
+  diagnostics // last diagnostics snapshot (optional)
 }
 ```
 
@@ -196,29 +202,24 @@ Coding conventions:
 * Save / load presets (JSON export + import UI).
 * Optional bundler (Vite / esbuild) if code splitting or asset pipeline grows.
 
-### Experimental Engine Refactor (In Progress)
+### Engine Extension Points
 
-An incremental `SimulationEngine` scaffold now lives under `src/engine/` alongside a draft configuration module. It currently wraps the existing `Simulation` class and emits `frame` events while we migrate responsibilities out of `script.ts`. This layer will evolve to own:
+Pluggable pieces (current & roadmap):
 
-* Plugin registry (forces, thermostats, constraints)
-* Neighbor list strategy abstraction
-* Worker bridge & message protocol
-* Versioned config + persistence schema
-* Diagnostics / profiling emission
+* Forces (implement `ForceField` – accumulate pair forces, optional potential)
+* Integrators (`Integrator` interface)
+* Thermostats / constraints (future hook points before/after integration)
+* Neighbor list strategy (future: replace naive O(N²) pair iterator)
+* Persistence / remote execution (worker bridge planned)
 
-Early adopters can experiment:
+Example minimal usage (already what `script.ts` does):
 
 ```ts
 import { SimulationEngine } from './engine/SimulationEngine.js'
 import { legacySettingsToEngineConfig } from './engine/config/types.js'
 import { settings } from './settings.js'
-
 const engine = new SimulationEngine(legacySettingsToEngineConfig(settings))
-engine.on('frame', ({ time, state }) => {
-  // Read-only usage of typed arrays
-  // console.log('t', time, state.positions[0])
-})
+engine.on('frame', f => {/* update visuals */})
+engine.on('diagnostics', d => {/* show energy, temperature */})
 engine.run()
 ```
-
-Nothing in the legacy path depends on this yet; it is safe to ignore until the migration reaches a stable milestone.

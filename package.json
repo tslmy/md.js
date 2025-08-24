@@ -32,6 +32,7 @@
     "coretest": "npm run build && node scripts/testCore.mjs",
     "cov:open": "open coverage/lcov-report/index.html || xdg-open coverage/lcov-report/index.html || true",
     "energy": "npm run build && node scripts/testEnergyDrift.mjs",
+    "engine-diagnostics": "npm run build && node scripts/testEngineDiagnostics.mjs",
     "engine-persist": "npm run build && node scripts/testEnginePersist.mjs",
     "force-sym": "npm run build && node scripts/testForceSymmetry.mjs",
     "forcestest": "npm run build && node scripts/testForces.mjs",

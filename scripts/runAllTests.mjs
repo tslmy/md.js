@@ -12,7 +12,8 @@ const testScripts = [
   'energy',
   'pairs',
   'persist',
-  'engine-persist'
+  'engine-persist',
+  'engine-diagnostics'
 ]
 
 const results = []

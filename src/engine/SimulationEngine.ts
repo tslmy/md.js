@@ -180,6 +180,7 @@ export class SimulationEngine {
 
   /** Seed initial state arrays (positions, velocities, masses, charges). Call before run(). */
   seed(p: { positions?: Float32Array; velocities?: Float32Array; masses?: Float32Array; charges?: Float32Array }): void {
+  // NOTE: We do shallow copies into existing typed arrays; callers keep ownership of source arrays.
     if (p.positions) this.state.positions.set(p.positions.subarray(0, this.state.positions.length))
     if (p.velocities) this.state.velocities.set(p.velocities.subarray(0, this.state.velocities.length))
     if (p.masses) this.state.masses.set(p.masses.subarray(0, this.state.masses.length))
