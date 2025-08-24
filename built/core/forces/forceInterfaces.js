@@ -1,10 +1,6 @@
 import { index3 } from '../simulation/state.js';
-/**
- * Naive O(N^2) pair iterator with distance cutoff.
- * For each i<j pair inside cutoff^2 calls the handler once.
- * Future optimization path: replace with cell / neighbor list to cut complexity toward O(N).
- */
-export function forEachPair(state, cutoff, handler) {
+// Default naive implementation (module-local so tests can still wrap via setter)
+let pairImpl = function naive(state, cutoff, handler) {
     const { N, positions } = state;
     const cutoff2 = cutoff * cutoff;
     for (let i = 0; i < N; i++) {
@@ -22,5 +18,9 @@ export function forEachPair(state, cutoff, handler) {
                 handler(i, j, dx, dy, dz, r2);
         }
     }
-}
+};
+/** Set the global pair iteration implementation (engine / tests). */
+export function setPairIterationImpl(fn) { pairImpl = fn; }
+/** Execute the current pair iteration implementation. */
+export function forEachPair(state, cutoff, handler) { pairImpl(state, cutoff, handler); }
 //# sourceMappingURL=forceInterfaces.js.map

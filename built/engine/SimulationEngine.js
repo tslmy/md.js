@@ -1,11 +1,12 @@
 import { Simulation } from '../core/simulation/Simulation.js';
 import { createState } from '../core/simulation/state.js';
-import { VelocityVerlet } from '../core/simulation/integrators.js';
+import { VelocityVerlet, EulerIntegrator } from '../core/simulation/integrators.js';
 import { LennardJones } from '../core/forces/lennardJones.js';
 import { Gravity } from '../core/forces/gravity.js';
 import { Coulomb } from '../core/forces/coulomb.js';
 import { validateEngineConfig } from './config/types.js';
 import { computeDiagnostics } from '../core/simulation/diagnostics.js';
+import { createNaiveNeighborStrategy, activateNeighborStrategy } from '../core/neighbor/neighborList.js';
 /**
  * Lightweight event emitter (internal). Kept minimal to avoid pulling in a dependency.
  */
@@ -67,6 +68,8 @@ export class SimulationEngine {
             cutoff: cfg.runtime.cutoff
         });
         this.sim = this.buildSimulation();
+        this.neighborStrategy = createNaiveNeighborStrategy();
+        activateNeighborStrategy(this.neighborStrategy);
     }
     /** Direct access for transitional code (read‑only usage only). */
     getState() { return this.state; }
@@ -81,11 +84,16 @@ export class SimulationEngine {
             forces.push(new Gravity({ G: this.config.constants.G }));
         if (this.config.forces.coulomb)
             forces.push(new Coulomb({ K: this.config.constants.K }));
-        return new Simulation(this.state, VelocityVerlet, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff });
+        const integrator = this.config.runtime.integrator === 'euler' ? EulerIntegrator : VelocityVerlet;
+        return new Simulation(this.state, integrator, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff });
     }
     /** Perform one integration step. Emits a frame event. */
     step() {
         try {
+            // Rebuild neighbor list if strategy requires (future strategies may depend on cutoff changes)
+            if (this.neighborStrategy.rebuildEveryStep) {
+                this.neighborStrategy.rebuild(this.state, this.config.runtime.cutoff);
+            }
             this.sim.step();
             this.stepCount++;
             this.emitter.emit('frame', { time: this.state.time, state: this.state, step: this.stepCount });

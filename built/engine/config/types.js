@@ -29,6 +29,11 @@ export function validateEngineConfig(cfg) {
     }
     if (cfg.world.particleCount <= 0)
         throw new Error('particleCount must be > 0');
+    if (cfg.runtime.integrator && cfg.runtime.integrator !== 'velocityVerlet' && cfg.runtime.integrator !== 'euler') {
+        throw new Error('Unsupported integrator ' + cfg.runtime.integrator);
+    }
+    if (cfg.neighbor?.strategy && cfg.neighbor.strategy !== 'naive')
+        throw new Error('Unsupported neighbor strategy ' + cfg.neighbor.strategy);
 }
 export function legacySettingsToEngineConfig(settings) {
     return {
