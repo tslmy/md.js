@@ -31,19 +31,20 @@ class Particle {
 // Store initial velocities separately for seeding the SoA simulation state (optional legacy path).
 export const initialVelocities: number[] = [] // flat array length 3 * particleCount (may remain empty)
 
-interface AddParticleOpts {
-  color: Color
-  position: Vector3
-  velocity: Vector3
-  mass: number
-  charge: number
-  particles: Particle[]
-  scene: Scene
-  showTrajectory: boolean
-  maxTrajectoryLength: number
-}
-function addParticle(opts: AddParticleOpts): void {
-  const { color, position, velocity, mass, charge, particles, scene, showTrajectory, maxTrajectoryLength } = opts
+function addParticle(
+  color: Color,
+  position: Vector3,
+  velocity: Vector3,
+  mass: number,
+  charge: number,
+  ctx: {
+    particles: Particle[]
+    scene: Scene
+    showTrajectory: boolean
+    maxTrajectoryLength: number
+  }
+): void {
+  const { particles, scene, showTrajectory, maxTrajectoryLength } = ctx
   let trajectory: Line | null = null
   if (showTrajectory) {
     trajectory = makeTrajectory(color, position, maxTrajectoryLength)
@@ -108,17 +109,19 @@ function makeTrajectory(color: Color, position: Vector3, maxLen: number): Line {
  */
 function seedParticles(particles: Particle[], scene: Scene, settings: Settings): void {
   if (settings.if_makeSun) {
-    addParticle({
-      color: new Color(0, 0, 0),
-      position: new Vector3(0, 0, 0),
-      velocity: new Vector3(0, 0, 0),
-      mass: settings.sunMass,
-      charge: 0,
-      particles,
-      scene,
-      showTrajectory: settings.if_showTrajectory,
-      maxTrajectoryLength: settings.maxTrajectoryLength
-    })
+    addParticle(
+      new Color(0, 0, 0),
+      new Vector3(0, 0, 0),
+      new Vector3(0, 0, 0),
+      settings.sunMass,
+      0,
+      {
+        particles,
+        scene,
+        showTrajectory: settings.if_showTrajectory,
+        maxTrajectoryLength: settings.maxTrajectoryLength
+      }
+    )
   }
   for (let i = particles.length; i < settings.particleCount; i++) {
     let velocity: Vector3
@@ -161,17 +164,19 @@ function seedParticles(particles: Particle[], scene: Scene, settings: Settings):
       )
       velocity = new Vector3(0, 0, 0)
     }
-    addParticle({
-      color: new Color(Math.random(), Math.random(), Math.random()),
+    addParticle(
+      new Color(Math.random(), Math.random(), Math.random()),
       position,
       velocity,
-      mass: random(settings.massLowerBound, settings.massUpperBound),
-      charge: sample<number>(settings.availableCharges),
-      particles,
-      scene,
-      showTrajectory: settings.if_showTrajectory,
-      maxTrajectoryLength: settings.maxTrajectoryLength
-    })
+      random(settings.massLowerBound, settings.massUpperBound),
+      sample<number>(settings.availableCharges),
+      {
+        particles,
+        scene,
+        showTrajectory: settings.if_showTrajectory,
+        maxTrajectoryLength: settings.maxTrajectoryLength
+      }
+    )
   }
   try { (window as unknown as { initialVelocities?: number[] }).initialVelocities = initialVelocities } catch { /* ignore */ }
 }
