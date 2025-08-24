@@ -101,7 +101,7 @@ export class SimulationEngine {
     const requested = this.config.neighbor?.strategy
     this.neighborStrategy = requested === 'naive'
       ? createNaiveNeighborStrategy()
-      : createCellNeighborStrategy()
+      : createCellNeighborStrategy({ box: this.config.world.box })
     activateNeighborStrategy(this.neighborStrategy)
   }
 
@@ -206,8 +206,14 @@ export class SimulationEngine {
       this.resizeParticleCount(patch.world.particleCount)
     }
     this.sim = this.buildSimulation()
-    if (patch.neighbor?.strategy && patch.neighbor.strategy !== this.neighborStrategy.name) {
-      this.neighborStrategy = patch.neighbor.strategy === 'cell' ? createCellNeighborStrategy() : createNaiveNeighborStrategy()
+    const boxChanged = !!patch.world?.box
+    if ((patch.neighbor?.strategy && patch.neighbor.strategy !== this.neighborStrategy.name) || (boxChanged && this.neighborStrategy.name === 'cell')) {
+      // Recreate strategy if type switched, or box changed for cell strategy.
+      if (patch.neighbor?.strategy === 'naive') {
+        this.neighborStrategy = createNaiveNeighborStrategy()
+      } else {
+        this.neighborStrategy = createCellNeighborStrategy({ box: this.config.world.box })
+      }
       activateNeighborStrategy(this.neighborStrategy)
     }
     this.emitter.emit('config', this.getConfig())

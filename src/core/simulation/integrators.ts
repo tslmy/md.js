@@ -51,12 +51,17 @@ export const EulerIntegrator: Integrator = {
  * Why better than Euler: time-reversible & symplectic -> significantly improved conservation of invariants (like total energy) for conservative forces, so systems do not "heat up" or "cool down" artificially as fast.
  * Complexity note: requires a second force computation per step (already encapsulated via callback here).
  */
+// Reused scratch buffer for VelocityVerlet (grown lazily). Module scoped so all
+// simulations share (small) allocations rather than per-step churn.
+let vvScratch: Float32Array | null = null
+
 export const VelocityVerlet: Integrator = {
   step(state, dt, recomputeForces) {
     const { N, positions, velocities, forces, masses } = state
     const dt2 = dt * dt
-    // Allocate scratch for initial accelerations (reuse per step to keep simple)
-    const a0 = new Float32Array(N * 3)
+    const needed = N * 3
+    if (!vvScratch || vvScratch.length !== needed) vvScratch = new Float32Array(needed)
+    const a0 = vvScratch
     // 1. Use current forces to advance positions and half-step velocities
     for (let i = 0; i < N; i++) {
       const i3 = index3(i)
@@ -65,11 +70,9 @@ export const VelocityVerlet: Integrator = {
       const ay = forces[i3 + 1] * invM
       const az = forces[i3 + 2] * invM
       a0[i3] = ax; a0[i3 + 1] = ay; a0[i3 + 2] = az
-      // position(t+dt)
       positions[i3] += velocities[i3] * dt + 0.5 * ax * dt2
       positions[i3 + 1] += velocities[i3 + 1] * dt + 0.5 * ay * dt2
       positions[i3 + 2] += velocities[i3 + 2] * dt + 0.5 * az * dt2
-      // v half-step
       velocities[i3] += 0.5 * ax * dt
       velocities[i3 + 1] += 0.5 * ay * dt
       velocities[i3 + 2] += 0.5 * az * dt
