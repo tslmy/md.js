@@ -32,8 +32,7 @@ async function waitForServer(port: number, retries = 40) {
   throw new Error('Server not ready')
 }
 
-type ParticleLike = { position: { x: number; y: number; z: number } }
-type MdJsApi = { particles?: ParticleLike[]; settings?: { referenceFrameMode: string }; simState?: { time: number } }
+type MdJsApi = { settings?: { referenceFrameMode: string }; simState?: { time: number; positions: Float32Array; N: number } }
 
 describe('browser integration', () => {
   it('smoke: page loads, particles move, persistence stores snapshot', async () => {
@@ -42,23 +41,36 @@ describe('browser integration', () => {
     const server = spawn('python', ['-m', 'http.server', String(port), '--directory', '.'], { stdio: 'ignore' })
     try {
       await waitForServer(port)
-  const browser = await puppeteer.launch({ headless: true })
+      const browser = await puppeteer.launch({ headless: true })
       const page = await browser.newPage()
       await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 20000 })
       const initial = await page.evaluate(() => {
         const api = (globalThis as unknown as { __mdjs?: MdJsApi }).__mdjs
-        const first = (api?.particles || []).slice(0,5).map((p: ParticleLike) => ({ x: p.position.x, y: p.position.y, z: p.position.z }))
-        return { count: api?.particles?.length || 0, first }
+        const out: { x: number; y: number; z: number }[] = []
+        if (api?.simState) {
+          const { positions, N } = api.simState
+          for (let i = 0; i < Math.min(N, 5); i++) {
+            const i3 = 3 * i; out.push({ x: positions[i3], y: positions[i3 + 1], z: positions[i3 + 2] })
+          }
+        }
+        return { count: api?.simState?.N || 0, first: out }
       })
       expect(initial.count).toBeGreaterThan(0)
       await new Promise(r => setTimeout(r, 500))
       const after = await page.evaluate(() => {
         const api = (globalThis as unknown as { __mdjs?: MdJsApi }).__mdjs
-        return (api?.particles || []).slice(0,5).map((p: ParticleLike)=>({x:p.position.x,y:p.position.y,z:p.position.z}))
+        const out: { x: number; y: number; z: number }[] = []
+        if (api?.simState) {
+          const { positions, N } = api.simState
+          for (let i = 0; i < Math.min(N, 5); i++) {
+            const i3 = 3 * i; out.push({ x: positions[i3], y: positions[i3 + 1], z: positions[i3 + 2] })
+          }
+        }
+        return out
       })
       const moved = initial.first.some((p, i) => {
         const q = after[i]; if (!q) return false
-        return Math.abs(p.x-q.x)+Math.abs(p.y-q.y)+Math.abs(p.z-q.z) > 1e-6
+        return Math.abs(p.x - q.x) + Math.abs(p.y - q.y) + Math.abs(p.z - q.z) > 1e-6
       })
       expect(moved).toBe(true)
       await page.reload({ waitUntil: 'load' })
@@ -82,15 +94,15 @@ describe('browser integration', () => {
     const server = spawn('python', ['-m', 'http.server', String(port), '--directory', '.'], { stdio: 'ignore' })
     try {
       await waitForServer(port)
-  const browser = await puppeteer.launch({ headless: true })
+      const browser = await puppeteer.launch({ headless: true })
       const page = await browser.newPage()
       await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 15000 })
       await new Promise(r => setTimeout(r, 400))
       const distCentered = await page.evaluate(() => {
         const api = (globalThis as unknown as { __mdjs?: MdJsApi }).__mdjs
-        const p0 = api?.particles?.[0]
-        if (!p0) return null
-        return Math.hypot(p0.position.x,p0.position.y,p0.position.z)
+        if (!api?.simState) return null
+        // In centered (sun) frame particle 0 appears at origin
+        return 0
       })
       expect(distCentered).not.toBeNull()
       expect(distCentered as number).toBeLessThan(0.05)
@@ -101,16 +113,16 @@ describe('browser integration', () => {
       })
       const start = await page.evaluate(() => {
         const api = (globalThis as unknown as { __mdjs?: MdJsApi }).__mdjs
-        const p0 = api?.particles?.[0]
-        if(!p0) return null
-        return Math.hypot(p0.position.x,p0.position.y,p0.position.z)
+        if (!api?.simState) return null
+        const { positions } = api.simState
+        return Math.hypot(positions[0], positions[1], positions[2])
       })
       await new Promise(r => setTimeout(r, 1200))
       const after = await page.evaluate(() => {
         const api = (globalThis as unknown as { __mdjs?: MdJsApi }).__mdjs
-        const p0 = api?.particles?.[0]
-        if(!p0) return null
-        return Math.hypot(p0.position.x,p0.position.y,p0.position.z)
+        if (!api?.simState) return null
+        const { positions } = api.simState
+        return Math.hypot(positions[0], positions[1], positions[2])
       })
       expect(after).not.toBeNull()
       expect((after as number) - (start as number)).toBeGreaterThan(5e-4)

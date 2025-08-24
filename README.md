@@ -97,11 +97,14 @@ When running in a browser the following is exposed for **debug & automated smoke
 
 ```js
 window.__mdjs = {
-  particles, // legacy visual particle objects (positions/colors for HUD & trajectories)
+  particles, // visual metadata (color, mass, charge, trajectory) – positions now live only in simState
   settings,  // live settings object
   simState,  // authoritative SoA state (positions, velocities, forces, masses, charges)
   diagnostics // last diagnostics snapshot (optional)
 }
+
+// NOTE: Particle objects no longer have a `position` Vector3. Read/write world coordinates via simState.positions:
+// const { positions } = window.__mdjs.simState; const x0 = positions[0]; const y0 = positions[1]; const z0 = positions[2]
 ```
 
 ### Simulation Step (Velocity Verlet)

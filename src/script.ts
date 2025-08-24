@@ -5,7 +5,7 @@ import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
 import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
 import * as THREE from 'three'
-import { Particle } from './particleSystem.js'
+import { Particle, seededPositions } from './particleSystem.js'
 // New SoA simulation core imports
 import { createState, type SimulationState } from './core/simulation/state.js'
 import type { Diagnostics } from './core/simulation/diagnostics.js'
@@ -77,9 +77,9 @@ function updateScaleBars(diag: Diagnostics | undefined): void {
 
 // ArrowHelpers removed; future instanced arrow system will centralize vector -> transform logic.
 
-function updateTrajectoryBuffer(p: Particle, trajectory: THREE.BufferAttribute, maxLen: number): void {
+function updateTrajectoryBuffer(pos: THREE.Vector3, trajectory: THREE.BufferAttribute, maxLen: number): void {
   for (let j = 0; j < maxLen - 1; j++) trajectory.copyAt(j, trajectory, j + 1)
-  trajectory.setXYZ(maxLen - 1, p.position.x, p.position.y, p.position.z)
+  trajectory.setXYZ(maxLen - 1, pos.x, pos.y, pos.z)
   trajectory.needsUpdate = true
 }
 
@@ -178,11 +178,11 @@ function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift:
     px = _tmpDir.x; py = _tmpDir.y; pz = _tmpDir.z
     // position updated in particle only; point sprite removed
   }
-  if (trajectoryAttr && needsTrajectoryShift) updateTrajectoryBuffer({ position: _tmpFrom.set(px, py, pz) } as Particle, trajectoryAttr, settings.maxTrajectoryLength)
+  if (trajectoryAttr && needsTrajectoryShift) updateTrajectoryBuffer(_tmpFrom.set(px, py, pz), trajectoryAttr, settings.maxTrajectoryLength)
   const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2]
   const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2]
-  // Mirror final (display) position for tests & capture
-  p.position.set(px, py, pz)
+  // Store final (display) position for tests & capture
+  // (no longer caching display-space positions)
   if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz, perForce })
 }
 
@@ -367,9 +367,10 @@ docReady(() => {
     })
     for (let i = 0; i < particles.length; i++) {
       const i3 = 3 * i
-      simState.positions[i3] = particles[i].position.x
-      simState.positions[i3 + 1] = particles[i].position.y
-      simState.positions[i3 + 2] = particles[i].position.z
+      const src = seededPositions[i]
+      simState.positions[i3] = src.x
+      simState.positions[i3 + 1] = src.y
+      simState.positions[i3 + 2] = src.z
       simState.masses[i] = particles[i].mass
       simState.charges[i] = particles[i].charge
     }

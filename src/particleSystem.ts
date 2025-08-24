@@ -7,27 +7,21 @@ const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationFo
 
 class Particle {
   color: Color
-  position: Vector3
   mass: number
   charge: number
   trajectory: Line | null
   isEscaped: boolean = false
-
-  constructor(
-    color: Color,
-    position: Vector3,
-    mass: number,
-    charge: number,
-    trajectory: Line | null
-  ) {
+  constructor(color: Color, mass: number, charge: number, trajectory: Line | null) {
     this.color = color
-    this.position = position
     this.mass = mass
     this.charge = charge
     this.trajectory = trajectory
     this.isEscaped = false
   }
 }
+
+/** Seeded world-space positions (ordered to correspond with `particles`). */
+export const seededPositions: Vector3[] = []
 
 function addParticle(
   color: Color,
@@ -47,8 +41,9 @@ function addParticle(
     trajectory = makeTrajectory(color, position, maxTrajectoryLength)
     scene.add(trajectory)
   }
-  const particle = new Particle(color, position, mass, charge, trajectory)
+  const particle = new Particle(color, mass, charge, trajectory)
   particles.push(particle)
+  seededPositions.push(position.clone())
   addParticleToTable(color, mass, charge)
 }
 
@@ -84,6 +79,8 @@ function addParticleToTable(color: Color, mass: number, charge: number) {
  * Seed particle metadata (positions/colors/mass/charge + HUD rows & optional trajectories).
  */
 function seedParticles(particles: Particle[], scene: Scene, settings: Settings): void {
+  // reset any prior seeding (e.g. hot reload) to avoid stale growth
+  if (seededPositions.length) seededPositions.splice(0, seededPositions.length)
   if (settings.if_makeSun) {
     addParticle(
       new Color(0, 0, 0),
