@@ -268,7 +268,14 @@ function initializeGuiControls (settings, group, boxMesh) {
       try { window.onbeforeunload = null } catch { /* ignore */ }
       location.reload()
     },
-    resetDefaults: () => { resetSettingsToDefaults(); try { saveUserSettings() } catch { /* ignore */ } }
+    resetDefaults: () => {
+      // Reset settings object to original defaults
+      resetSettingsToDefaults()
+      // Persist new defaults
+      try { saveUserSettings() } catch { /* ignore */ }
+      // Refresh all controller displays so GUI reflects new values immediately
+      try { gui.updateDisplay() } catch { /* ignore */ }
+    }
   }
   // Move New world (randomize) into World building folder
   guiFolderWorld.add(commands, 'randomizeParticles').name('New world')
