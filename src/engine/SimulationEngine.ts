@@ -101,7 +101,7 @@ export class SimulationEngine {
     const requested = this.config.neighbor?.strategy
     this.neighborStrategy = requested === 'naive'
       ? createNaiveNeighborStrategy()
-      : createCellNeighborStrategy({ box: this.config.world.box })
+      : createCellNeighborStrategy()
     activateNeighborStrategy(this.neighborStrategy)
   }
 
@@ -206,16 +206,8 @@ export class SimulationEngine {
       this.resizeParticleCount(patch.world.particleCount)
     }
     this.sim = this.buildSimulation()
-    const strategyChanged = patch.neighbor?.strategy && patch.neighbor.strategy !== this.neighborStrategy.name
-    const boxChanged = !!patch.world && (patch.world.box !== undefined) && (
-      patch.world.box.x !== this.config.world.box.x ||
-      patch.world.box.y !== this.config.world.box.y ||
-      patch.world.box.z !== this.config.world.box.z
-    )
-    if (strategyChanged || (boxChanged && this.neighborStrategy.name === 'cell')) {
-      this.neighborStrategy = (this.config.neighbor?.strategy === 'naive')
-        ? createNaiveNeighborStrategy()
-        : createCellNeighborStrategy({ box: this.config.world.box })
+    if (patch.neighbor?.strategy && patch.neighbor.strategy !== this.neighborStrategy.name) {
+      this.neighborStrategy = patch.neighbor.strategy === 'cell' ? createCellNeighborStrategy() : createNaiveNeighborStrategy()
       activateNeighborStrategy(this.neighborStrategy)
     }
     this.emitter.emit('config', this.getConfig())

@@ -159,12 +159,17 @@ function initializeGuiControls (settings, group, boxMesh) {
   const guiFolderParameters = guiFolderWorld.addFolder('Parameters') // toggles for parameters:
   guiFolderParameters.add(settings, 'particleCount')
   guiFolderParameters.add(settings, 'dt')
+  guiFolderParameters.add(settings, 'cutoffDistance').name('Cutoff')
+  // Algorithm / engine controls (auto-pushed to SimulationEngine)
+  guiFolderParameters.add(settings, 'integrator', { 'Velocity Verlet': 'velocityVerlet', 'Euler': 'euler' }).name('Integrator')
+  guiFolderParameters.add(settings, 'neighborStrategy', { 'Cell': 'cell', 'Naive': 'naive' }).name('Neighbor list')
 
   const guiFolderConstants = guiFolderWorld.addFolder('Physical Constants') // physical constants -- be the god!
   guiFolderConstants.add(settings, 'EPSILON')
   guiFolderConstants.add(settings, 'DELTA')
   guiFolderConstants.add(settings, 'G')
   guiFolderConstants.add(settings, 'K')
+  guiFolderConstants.add(settings, 'kB').name('kB')
 
   const guiFolderBoundary = guiFolderWorld.addFolder('Universe boundary')
   guiFolderBoundary.add(settings, 'if_showUniverseBoundary')

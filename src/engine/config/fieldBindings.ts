@@ -22,6 +22,9 @@ export const FIELD_BINDINGS: FieldBinding[] = [
   { key: 'spaceBoundaryZ', path: 'world.box.z', auto: true },
   { key: 'dt', path: 'runtime.dt', auto: true },
   { key: 'cutoffDistance', path: 'runtime.cutoff', auto: true },
+  // Newly exposed advanced runtime / algorithm selections
+  { key: 'integrator', path: 'runtime.integrator', auto: true },
+  { key: 'neighborStrategy', path: 'neighbor.strategy', auto: true },
   { key: 'if_apply_LJpotential', path: 'forces.lennardJones', toEngine: v => !!v, fromEngine: v => !!v, auto: true },
   { key: 'if_apply_gravitation', path: 'forces.gravity', toEngine: v => !!v, fromEngine: v => !!v, auto: true },
   { key: 'if_apply_coulombForce', path: 'forces.coulomb', toEngine: v => !!v, fromEngine: v => !!v, auto: true },

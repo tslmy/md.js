@@ -39,6 +39,9 @@ const settings = {
   if_apply_LJpotential: true,
   if_apply_gravitation: true,
   if_apply_coulombForce: true,
+  // Advanced algorithm selections (experimental)
+  integrator: 'velocityVerlet' as 'velocityVerlet' | 'euler',
+  neighborStrategy: 'cell' as 'naive' | 'cell',
   // referenceFrameMode: 'fixed' | 'sun' | 'com'
   referenceFrameMode: 'sun',
   if_makeSun: true,

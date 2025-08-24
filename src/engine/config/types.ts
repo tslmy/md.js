@@ -95,6 +95,8 @@ interface SettingsLike {
   if_apply_gravitation?: boolean
   if_apply_coulombForce?: boolean
   EPSILON: number; DELTA: number; G: number; K: number; kB: number
+  integrator?: 'velocityVerlet' | 'euler'
+  neighborStrategy?: 'naive' | 'cell'
 }
 
 /**
@@ -102,12 +104,11 @@ interface SettingsLike {
  * layer isolating the engine from the sprawling kitchen‑sink settings object.
  */
 export function fromSettings(settings: SettingsLike): EngineConfig {
+  const runtime: EngineRuntimeConfig = { dt: settings.dt, cutoff: settings.cutoffDistance }
+  if (settings.integrator) runtime.integrator = settings.integrator
   return {
-    world: {
-      particleCount: settings.particleCount,
-      box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ }
-    },
-    runtime: { dt: settings.dt, cutoff: settings.cutoffDistance },
+    world: { particleCount: settings.particleCount, box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ } },
+    runtime,
     forces: {
       lennardJones: !!settings.if_apply_LJpotential,
       gravity: !!settings.if_apply_gravitation,
@@ -119,6 +120,7 @@ export function fromSettings(settings: SettingsLike): EngineConfig {
       G: settings.G,
       K: settings.K,
       kB: settings.kB
-    }
+    },
+    neighbor: settings.neighborStrategy ? { strategy: settings.neighborStrategy } : undefined
   }
 }
