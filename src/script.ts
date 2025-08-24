@@ -36,7 +36,10 @@ let lastSnapshotTime = 0
 
 // Expose minimal state for headless smoke tests (non-production usage)
 declare global {
-  interface Window { __mdjs?: { particles: Particle[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics } }
+  interface Window {
+    __mdjs?: { particles: Particle[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics }
+    __pauseEngine?: () => void
+  }
 }
 
 /**
@@ -286,6 +289,7 @@ docReady(() => {
   // Expose handle for automated headless tests
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)
   window.__mdjs = { particles, settings, simState, diagnostics: lastDiagnostics }
+  window.__pauseEngine = () => { engine?.pause() }
   // Install full-state persistence handler (overrides placeholder in init.js)
   window.onbeforeunload = () => { try { saveUserSettings() } catch { /* ignore */ } if (engine) saveToLocal(engine) }
   // bind keyboard event:

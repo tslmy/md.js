@@ -143,37 +143,39 @@ function resize (camera, effect, renderer) {
   if (ifMobileDevice) effect.setSize(width, height)
 }
 // (initializeGuiControls is invoked inside init())
+let _activeGui = null
 function initializeGuiControls (settings, group, boxMesh) {
-// Enable the GUI Controls powered by "dat.gui.min.js":
+  // Tear down existing GUI if present (full rebuild guarantees displayed values sync)
+  try { if (_activeGui) { _activeGui.destroy(); _activeGui = null } } catch { /* ignore */ }
   const gui = new dat.GUI()
-  const _allControllers = []
-  const remember = (c) => { _allControllers.push(c); return c }
+  _activeGui = gui
+  // (Per-controller tracking removed; full GUI rebuild is used on reset.)
 
   const guiFolderWorld = gui.addFolder('World building')
 
-  remember(guiFolderWorld.add(settings, 'if_constant_temperature').name('Constant T'))
-  remember(guiFolderWorld.add(settings, 'targetTemperature').name('Target temp.'))
+  guiFolderWorld.add(settings, 'if_constant_temperature').name('Constant T')
+  guiFolderWorld.add(settings, 'targetTemperature').name('Target temp.')
 
   const guiFolderParameters = guiFolderWorld.addFolder('Parameters') // toggles for parameters:
-  remember(guiFolderParameters.add(settings, 'particleCount'))
-  remember(guiFolderParameters.add(settings, 'dt'))
+  guiFolderParameters.add(settings, 'particleCount')
+  guiFolderParameters.add(settings, 'dt')
 
   const guiFolderConstants = guiFolderWorld.addFolder('Physical Constants') // physical constants -- be the god!
-  remember(guiFolderConstants.add(settings, 'EPSILON'))
-  remember(guiFolderConstants.add(settings, 'DELTA'))
-  remember(guiFolderConstants.add(settings, 'G'))
-  remember(guiFolderConstants.add(settings, 'K'))
+  guiFolderConstants.add(settings, 'EPSILON')
+  guiFolderConstants.add(settings, 'DELTA')
+  guiFolderConstants.add(settings, 'G')
+  guiFolderConstants.add(settings, 'K')
 
   const guiFolderBoundary = guiFolderWorld.addFolder('Universe boundary')
-  remember(guiFolderBoundary.add(settings, 'if_showUniverseBoundary'))
-  remember(guiFolderBoundary
+  guiFolderBoundary.add(settings, 'if_showUniverseBoundary')
+  guiFolderBoundary
     .add(settings, 'if_use_periodic_boundary_condition')
     .name('Use PBC')
     .onChange(() => {
       particleMaterialForClones.visible = settings.if_use_periodic_boundary_condition
-    }))
+    })
   const guiFolderSize = guiFolderBoundary.addFolder('Custom size')
-  remember(guiFolderSize
+  guiFolderSize
     .add(settings, 'spaceBoundaryX')
     .name('Size, X')
   .onChange(function () {
@@ -186,8 +188,8 @@ function initializeGuiControls (settings, group, boxMesh) {
         settings.spaceBoundaryZ,
         group
       )
-    }))
-  remember(guiFolderSize
+    })
+  guiFolderSize
     .add(settings, 'spaceBoundaryY')
     .name('Size, Y')
   .onChange(function () {
@@ -200,8 +202,8 @@ function initializeGuiControls (settings, group, boxMesh) {
         settings.spaceBoundaryZ,
         group
       )
-    }))
-  remember(guiFolderSize
+    })
+  guiFolderSize
     .add(settings, 'spaceBoundaryZ')
     .name('Size, Z')
   .onChange(function () {
@@ -214,53 +216,53 @@ function initializeGuiControls (settings, group, boxMesh) {
         settings.spaceBoundaryZ,
         group
       )
-    }))
+  })
 
   const guiFolderForces = guiFolderWorld.addFolder('Forcefields to apply')
-  remember(guiFolderForces.add(settings, 'if_apply_LJpotential').name('LJ potential'))
-  remember(guiFolderForces.add(settings, 'if_apply_gravitation').name('Gravitation'))
-  remember(guiFolderForces.add(settings, 'if_apply_coulombForce').name('Coulomb Force'))
+  guiFolderForces.add(settings, 'if_apply_LJpotential').name('LJ potential')
+  guiFolderForces.add(settings, 'if_apply_gravitation').name('Gravitation')
+  guiFolderForces.add(settings, 'if_apply_coulombForce').name('Coulomb Force')
 
   guiFolderWorld.open()
 
   const guiFolderPlotting = gui.addFolder('Plotting') // toggles for Plotting:
   // guiFolderPlotting.add(settings, "if_override_particleCount_setting_with_lastState").name("");
-  remember(guiFolderPlotting.add(settings, 'referenceFrameMode', { 'Fixed': 'fixed', 'Sun': 'sun', 'Center of Mass': 'com' })
-    .name('Reference frame'))
+  guiFolderPlotting.add(settings, 'referenceFrameMode', { 'Fixed': 'fixed', 'Sun': 'sun', 'Center of Mass': 'com' })
+    .name('Reference frame')
 
   // (sun & fog toggles managed elsewhere)
 
   const guiFolderTrajectories = guiFolderPlotting.addFolder(
     'Particle trajectories'
   )
-  remember(guiFolderTrajectories.add(settings, 'if_showTrajectory').name('Trace'))
-  remember(guiFolderTrajectories
+  guiFolderTrajectories.add(settings, 'if_showTrajectory').name('Trace')
+  guiFolderTrajectories
     .add(settings, 'maxTrajectoryLength')
     .name('Length')
-  .onChange(function () { /* length change handler TBD */ }))
+  .onChange(function () { /* length change handler TBD */ })
 
   const guiFolderArrows = guiFolderPlotting.addFolder(
     'Arrows for forces and velocities'
   )
-  remember(guiFolderArrows
+  guiFolderArrows
     .add(settings, 'if_showArrows')
     .name('Show arrows')
-    .onChange(function () { /* instanced arrows handle visibility externally */ }))
-  remember(guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length'))
-  remember(guiFolderArrows.add(settings, 'maxArrowLength').name('Max length'))
-  remember(guiFolderArrows.add(settings, 'unitArrowLength').name('Unit length'))
-  remember(guiFolderArrows
+    .onChange(function () { /* instanced arrows handle visibility externally */ })
+  guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length')
+  guiFolderArrows.add(settings, 'maxArrowLength').name('Max length')
+  guiFolderArrows.add(settings, 'unitArrowLength').name('Unit length')
+  guiFolderArrows
     .add(settings, 'if_showMapscale')
     .name('Show scales')
-  .onChange(() => { toggle('.mapscale') }))
-  remember(guiFolderArrows
+  .onChange(() => { toggle('.mapscale') })
+  guiFolderArrows
     .add(settings, 'if_proportionate_arrows_with_vectors')
-    .name('Proportionate arrows with vectors'))
+    .name('Proportionate arrows with vectors')
 
   guiFolderPlotting.open()
 
   const commands = {
-    stop: () => { settings.ifRun = false },
+    stop: () => { try { window.__pauseEngine?.() } catch { /* ignore */ } },
     toggleHUD: () => { toggle('#hud') },
     newWorld: () => { resetWorld() },
     randomizeParticles: () => {
@@ -272,7 +274,9 @@ function initializeGuiControls (settings, group, boxMesh) {
     },
     resetDefaults: () => {
       resetSettingsToDefaults()
-      // Side effects: rescale box & clone positions, PBC visibility
+      // Rebuild the GUI from scratch so every controller reflects new values.
+      initializeGuiControls(settings, group, boxMesh)
+      // Update scene side-effects after reset
       if (boxMesh) {
         boxMesh.scale.x = settings.spaceBoundaryX / originalSpaceBoundaryX
         boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY
@@ -286,8 +290,6 @@ function initializeGuiControls (settings, group, boxMesh) {
         group
       )
       try { saveUserSettings() } catch { /* ignore */ }
-      // Force each controller to pull latest value
-      for (const c of _allControllers) { try { c.updateDisplay() } catch { /* ignore */ } }
     }
   }
   // Move New world (randomize) into World building folder
