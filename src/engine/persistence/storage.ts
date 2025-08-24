@@ -7,6 +7,7 @@
 import { snapshot, hydrate, type EngineSnapshot } from './persist.js'
 import { SimulationEngine } from '../SimulationEngine.js'
 import { saveUserSettings } from '../../control/persistence/persist.js'
+import { clearVisualDataInLocal } from '../../visual/persistence/visual.js'
 
 const KEY = 'mdJsEngineSnapshot'
 
@@ -58,6 +59,7 @@ export function resetWorld(): void {
   try {
     // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
     saveUserSettings()
+    clearVisualDataInLocal()
     clearStoredSnapshot()
   } catch (e) {
     console.warn('Failed clearing stored snapshot(s):', e)

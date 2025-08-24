@@ -69,21 +69,14 @@ export function loadVisualDataFromLocal(particles: Particle[]): boolean {
     try {
         if (typeof localStorage === 'undefined') return false
         const raw = localStorage.getItem(VISUAL_SNAPSHOT_KEY)
-        // Backward compatibility: migrate older ad-hoc key
-        const legacy = localStorage.getItem('mdJsVisualTrajectories')
-        if (!raw && legacy) {
-            try {
-                const parsedLegacy = JSON.parse(legacy) as { maxLen: number; data: number[][] }
-                const converted: VisualDataSnapshot = { version: 1, maxTrajectoryLength: parsedLegacy.maxLen, trajectories: parsedLegacy.data }
-                applyVisualData(converted, particles)
-                localStorage.setItem(VISUAL_SNAPSHOT_KEY, JSON.stringify(converted))
-                localStorage.removeItem('mdJsVisualTrajectories')
-                return true
-            } catch { /* ignore */ }
-        }
         if (!raw) return false
         const snap = JSON.parse(raw) as VisualDataSnapshot
         applyVisualData(snap, particles)
         return true
     } catch { return false }
+}
+
+/** Clear visual data snapshot from localStorage if present. */
+export function clearVisualDataInLocal(): void {
+    localStorage.removeItem(VISUAL_SNAPSHOT_KEY)
 }
