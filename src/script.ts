@@ -6,12 +6,7 @@ import * as THREE from 'three'
 import { Particle } from './particleSystem.js'
 // New SoA simulation core imports
 import { createState, type SimulationState } from './core/simulation/state.js'
-import { Simulation } from './core/simulation/Simulation.js'
-import { VelocityVerlet } from './core/simulation/integrators.js'
-import { LennardJones } from './core/forces/lennardJones.js'
-import { Gravity } from './core/forces/gravity.js'
-import { Coulomb } from './core/forces/coulomb.js'
-import { computeDiagnostics, type Diagnostics } from './core/simulation/diagnostics.js'
+import type { Diagnostics } from './core/simulation/diagnostics.js'
 // Experimental engine
 import { SimulationEngine } from './engine/SimulationEngine.js'
 import { legacySettingsToEngineConfig } from './engine/config/types.js'
@@ -31,7 +26,6 @@ let stats: StatsLike
 let maxTemperature = 0
 let particleSystem: THREE.Points | undefined
 // New SoA simulation objects
-let simulation: Simulation | undefined
 let engine: SimulationEngine | undefined
 let simState: SimulationState | undefined
 let lastDiagnostics: Diagnostics | undefined
@@ -125,11 +119,11 @@ const _tmpDir = new THREE.Vector3()
 const _tmpFrom = new THREE.Vector3()
 
 function updateFromSimulation(_arrowScaleForces: number, _arrowScaleForVelocities: number, frameOffset: THREE.Vector3): void {
-  if ((!simulation && !engine) || !simState || !particleSystem) return
+  if (!engine || !simState || !particleSystem) return
   const hudVisible = isVisible(document.querySelector('#hud'))
   const needsTrajectoryShift = settings.if_showTrajectory && (time - lastSnapshotTime > settings.dt)
   const posAttr = particleSystem.geometry.attributes.position as THREE.BufferAttribute
-  const perForce = simulation ? simulation.getPerForceContributions() : engine!.getPerForceContributions()
+  const perForce = engine.getPerForceContributions()
   for (let i = 0; i < particles.length; i++) updateOneParticle(i, posAttr, hudVisible, needsTrajectoryShift, frameOffset, perForce)
   posAttr.needsUpdate = true
 }
@@ -190,15 +184,7 @@ function applyVisualUpdates(): void {
   updateFromSimulation(arrowScaleForces, arrowScaleVel, frameOffset)
   if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt) lastSnapshotTime = time
   statistics(temperaturePanel, maxTemperature)
-  if (!engine) updateDiagnostics() // engine path emits diagnostics itself
   update(); render(renderer, effect); stats.update()
-}
-
-function runFrame(): void {
-  if (engine) return // engine drives its own loop
-  time += settings.dt
-  if (simulation) simulation.step()
-  applyVisualUpdates()
 }
 
 /**
@@ -227,16 +213,7 @@ function computeFrameOffset(): THREE.Vector3 {
 /**
  * Compute & expose latest diagnostics snapshot (energy, temperature, extrema).
  */
-function updateDiagnostics(): void {
-  if (!simState || !simulation) return
-  lastDiagnostics = computeDiagnostics(simState, simulation.getForces(), { cutoff: settings.cutoffDistance, kB: settings.kB })
-  if (window.__mdjs) window.__mdjs.diagnostics = lastDiagnostics
-}
-
-function animate(): void {
-  runFrame()
-  if (settings.ifRun) requestAnimationFrame(animate)
-}
+// Diagnostics now provided via engine events; legacy function removed.
 function calculateTemperature(): number {
   if (!simState) return 0
   const { velocities, masses, N } = simState
@@ -319,26 +296,12 @@ docReady(() => {
     simState.masses[i] = particles[i].mass
     simState.charges[i] = particles[i].charge
   }
-  if (settings.useNewEngine) {
-    engine = new SimulationEngine(legacySettingsToEngineConfig(settings))
-    // Seed engine state (SimulationEngine allocates empty arrays internally)
-    engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
-    // Replace simState reference with engine's state to ensure downstream views point at the authoritative arrays.
-    simState = engine.getState()
-    engine.on('frame', ({ time: t }) => {
-      time = t
-      applyVisualUpdates()
-    })
-    engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
-    engine.run({ useRaf: true })
-  } else {
-    const forcePlugins = []
-    if (settings.if_apply_LJpotential) forcePlugins.push(new LennardJones({ epsilon: settings.EPSILON, sigma: settings.DELTA }))
-    if (settings.if_apply_gravitation) forcePlugins.push(new Gravity({ G: settings.G }))
-    if (settings.if_apply_coulombForce) forcePlugins.push(new Coulomb({ K: settings.K }))
-    simulation = new Simulation(simState, VelocityVerlet, forcePlugins, { dt: settings.dt, cutoff: settings.cutoffDistance })
-    animate()
-  }
+  engine = new SimulationEngine(legacySettingsToEngineConfig(settings))
+  engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
+  simState = engine.getState()
+  engine.on('frame', ({ time: t }) => { time = t; applyVisualUpdates() })
+  engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
+  engine.run({ useRaf: true })
   // Expose handle for automated headless tests
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)
   window.__mdjs = { particles, settings, simState, diagnostics: lastDiagnostics }
