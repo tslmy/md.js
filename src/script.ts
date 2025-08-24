@@ -13,9 +13,9 @@ import type { Diagnostics } from './core/simulation/diagnostics.js'
 import { SimulationEngine } from './engine/SimulationEngine.js'
 import { fromSettings } from './engine/config/types.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
-import { InstancedArrows } from './visual/InstancedArrows.js'
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
 import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer, applyPbc } from './visual/trajectory.js'
+import { createArrows, updateScaleBars, finalizeArrows, type ArrowSet } from './visual/arrows.js'
 import { updateHudRow } from './visual/coloringAndDataSheet.js'
 
 // global variables
@@ -36,9 +36,8 @@ let maxTemperature = 0
 let engine: SimulationEngine | undefined
 let simState: SimulationState | undefined
 let lastDiagnostics: Diagnostics | undefined
-// Batched per-particle arrows (velocity = blue, force = red)
-let velArrows: InstancedArrows | undefined
-let forceArrows: InstancedArrows | undefined
+// Batched per-particle arrows managed via arrows module
+let arrows: ArrowSet | undefined
 let sphereMesh: InstancedSpheres | undefined
 let sphereCloneMesh: InstancedSpheres | undefined
 
@@ -57,56 +56,10 @@ function isVisible(el: HTMLElement | null): boolean {
   return !!el && window.getComputedStyle(el).display !== 'none'
 }
 
-/** Scaling now derives from diagnostics (maxSpeed & maxForceMag) avoiding per-frame full scans. */
-function updateScaleBars(diag: Diagnostics | undefined): void {
-  if (!diag) return
-  const forceScale = diag.maxForceMag > 0 ? settings.unitArrowLength / diag.maxForceMag : 1
-  const velScale = diag.maxSpeed > 0 ? settings.unitArrowLength / diag.maxSpeed : 1
-  const forceEl = document.getElementById('force')
-  if (forceEl) forceEl.style.width = `${forceScale * 1000000}px`
-  const velEl = document.getElementById('velocity')
-  if (velEl) velEl.style.width = `${velScale * 1000000}px`
-}
 
 const _tmpDir = new Vector3()
 const _tmpFrom = new Vector3()
 
-/** Update instanced velocity & force arrows with current SoA state & diagnostics-based scaling. */
-function updateArrows(diag: Diagnostics, frameOffset: Vector3): void {
-  if (!simState || !velArrows || !forceArrows) return
-  const { positions, velocities, forces, N } = simState
-  // Determine scales (unitArrowLength normalized against max mags) with safe fallbacks
-  const velNorm = diag.maxSpeed > 0 ? settings.unitArrowLength / diag.maxSpeed : 1
-  const forceNorm = diag.maxForceMag > 0 ? settings.unitArrowLength / diag.maxForceMag : 1
-  const limit = settings.if_limitArrowsMaxLength
-  const maxLen = settings.maxArrowLength
-  const tmpOrigin = new Vector3()
-  const tmpVec = new Vector3()
-  for (let i = 0; i < N; i++) {
-    const i3 = 3 * i
-    // Skip escaped particles (render nothing = zero-length dir)
-    if (simState.escaped && simState.escaped[i] === 1) {
-      velArrows.update(i, tmpOrigin.set(0, -9999, 0), tmpVec.set(0, 0, 0), 0.000001)
-      forceArrows.update(i, tmpOrigin.set(0, -9999, 0), tmpVec.set(0, 0, 0), 0.000001)
-      continue
-    }
-    const px = positions[i3] - frameOffset.x
-    const py = positions[i3 + 1] - frameOffset.y
-    const pz = positions[i3 + 2] - frameOffset.z
-    tmpOrigin.set(px, py, pz)
-    // Velocity vector
-    tmpVec.set(velocities[i3], velocities[i3 + 1], velocities[i3 + 2])
-    let vLen = tmpVec.length() * velNorm
-    if (limit && vLen > maxLen) { vLen = maxLen }
-    // Update velocity arrow (dir is velocity; scaled length vLen)
-    velArrows.update(i, tmpOrigin, tmpVec, vLen)
-    // Force vector
-    tmpVec.set(forces[i3], forces[i3 + 1], forces[i3 + 2])
-    let fLen = tmpVec.length() * forceNorm
-    if (limit && fLen > maxLen) { fLen = maxLen }
-    forceArrows.update(i, tmpOrigin, tmpVec, fLen)
-  }
-}
 
 function updateFromSimulation(frameOffset: Vector3): void {
   if (!engine || !simState) return
@@ -202,14 +155,7 @@ function applyVisualUpdates(): void {
   const frameOffset = computeFrameOffset()
   updateFromSimulation(frameOffset)
   // Update / toggle arrows after particle positions refreshed
-  if (settings.if_showArrows && velArrows && forceArrows && simState && lastDiagnostics) {
-    updateArrows(lastDiagnostics, frameOffset)
-    velArrows.setVisible(true); forceArrows.setVisible(true)
-    velArrows.commit(); forceArrows.commit()
-  } else {
-    if (velArrows) velArrows.setVisible(false)
-    if (forceArrows) forceArrows.setVisible(false)
-  }
+  if (arrows) finalizeArrows(arrows, simState, lastDiagnostics, frameOffset)
   if (shouldShiftTrajectory(time)) markTrajectorySnapshot(time)
   // Temperature from diagnostics (fallback to 0 if undefined) & track peak
   if (lastDiagnostics) {
@@ -338,11 +284,7 @@ docReady(() => {
   if (simState) {
     // Ensure trajectories created/hidden per settings
     ensureTrajectories(simState, colors, scene)
-    velArrows = new InstancedArrows(simState.N, { color: 0x0066ff })
-    forceArrows = new InstancedArrows(simState.N, { color: 0xff3300 })
-    velArrows.addTo(scene); forceArrows.addTo(scene)
-    velArrows.setVisible(settings.if_showArrows)
-    forceArrows.setVisible(settings.if_showArrows)
+    arrows = createArrows(simState.N, scene)
     sphereMesh = new InstancedSpheres(simState.N, { baseRadius: 0.1 })
     sphereMesh.addTo(scene)
     // Clone spheres (26 neighbor cells)
