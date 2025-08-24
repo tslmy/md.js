@@ -1,30 +1,30 @@
-import * as THREE from 'three'
+import { InstancedMesh, Matrix4, Quaternion, Vector3, InstancedBufferAttribute, SphereGeometry, MeshPhongMaterial, Color, Scene, Material } from 'three'
 
 /**
  * Glossy instanced spheres with per-instance color using a custom InstancedBufferAttribute (three r144 safe).
  * Avoids relying on setColorAt()/instanceColor which showed black due to material+version quirks.
  */
 export class InstancedSpheres {
-    private readonly mesh: THREE.InstancedMesh
-    private readonly tmpMat = new THREE.Matrix4()
-    private readonly tmpQuat = new THREE.Quaternion()
-    private readonly tmpScale = new THREE.Vector3()
+    private readonly mesh: InstancedMesh
+    private readonly tmpMat = new Matrix4()
+    private readonly tmpQuat = new Quaternion()
+    private readonly tmpScale = new Vector3()
     private readonly count: number
     private readonly colors: Float32Array
-    private readonly colorAttr: THREE.InstancedBufferAttribute
+    private readonly colorAttr: InstancedBufferAttribute
 
     constructor(count: number, params: { baseRadius?: number } = {}) {
         this.count = count
         const baseRadius = params.baseRadius ?? 0.1
 
-        const geo = new THREE.SphereGeometry(1, 24, 18)
+        const geo = new SphereGeometry(1, 24, 18)
         // Allocate custom per-instance color attribute.
         this.colors = new Float32Array(count * 3)
-        this.colorAttr = new THREE.InstancedBufferAttribute(this.colors, 3)
+        this.colorAttr = new InstancedBufferAttribute(this.colors, 3)
         // (name must match attribute we inject into shader below)
         geo.setAttribute('instanceColor', this.colorAttr)
 
-        const mat = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 40 })
+        const mat = new MeshPhongMaterial({ color: 0xffffff, shininess: 40 })
         mat.onBeforeCompile = (shader) => {
             // Inject instanceColor varying
             shader.vertexShader = shader.vertexShader
@@ -35,10 +35,10 @@ export class InstancedSpheres {
                 .replace('vec4 diffuseColor = vec4( diffuse, opacity );', 'vec4 diffuseColor = vec4( diffuse * vInstanceColor, opacity );')
         }
 
-        this.mesh = new THREE.InstancedMesh(geo, mat, count)
+        this.mesh = new InstancedMesh(geo, mat, count)
         for (let i = 0; i < count; i++) {
             this.tmpScale.set(baseRadius, baseRadius, baseRadius)
-            this.tmpMat.compose(new THREE.Vector3(0, -9999, 0), this.tmpQuat, this.tmpScale)
+            this.tmpMat.compose(new Vector3(0, -9999, 0), this.tmpQuat, this.tmpScale)
             this.mesh.setMatrixAt(i, this.tmpMat)
             // default white (will be overridden)
             const j = 3 * i
@@ -48,7 +48,7 @@ export class InstancedSpheres {
         this.colorAttr.needsUpdate = true
     }
 
-    update(index: number, position: THREE.Vector3, radius: number, color: THREE.Color): void {
+    update(index: number, position: Vector3, radius: number, color: Color): void {
         if (index >= this.count) return
         const r = (isFinite(radius) && radius > 1e-4) ? radius : 1e-4
         this.tmpScale.set(r, r, r)
@@ -66,6 +66,6 @@ export class InstancedSpheres {
     }
 
     setVisible(v: boolean): void { this.mesh.visible = v }
-    addTo(scene: THREE.Scene): void { scene.add(this.mesh) }
-    dispose(): void { this.mesh.geometry.dispose(); (this.mesh.material as THREE.Material).dispose() }
+    addTo(scene: Scene): void { scene.add(this.mesh) }
+    dispose(): void { this.mesh.geometry.dispose(); (this.mesh.material as Material).dispose() }
 }
