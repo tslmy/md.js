@@ -8,7 +8,7 @@ import type { EngineConfig } from './config/types.js'
 import { validateEngineConfig } from './config/types.js'
 import { computeDiagnostics, type Diagnostics } from '../core/simulation/diagnostics.js'
 import type { ForceField } from '../core/forces/forceInterfaces.js'
-import { createNaiveNeighborStrategy, activateNeighborStrategy, type NeighborListStrategy } from '../core/neighbor/neighborList.js'
+import { createNaiveNeighborStrategy, activateNeighborStrategy, type NeighborListStrategy, createCellNeighborStrategy } from '../core/neighbor/neighborList.js'
 
 /**
  * Lightweight event emitter (internal). Kept minimal to avoid pulling in a dependency.
@@ -79,7 +79,7 @@ export class SimulationEngine {
   /** Emit diagnostics each step (will become configurable). */
   private readonly diagnosticsEvery = 1
   /** Active neighbor list strategy (currently naive only). */
-  private readonly neighborStrategy: NeighborListStrategy
+  private neighborStrategy: NeighborListStrategy
 
   constructor(cfg: EngineConfig) {
     validateEngineConfig(cfg)
@@ -91,7 +91,9 @@ export class SimulationEngine {
       cutoff: cfg.runtime.cutoff
     })
     this.sim = this.buildSimulation()
-  this.neighborStrategy = createNaiveNeighborStrategy()
+    this.neighborStrategy = this.config.neighbor?.strategy === 'cell'
+      ? createCellNeighborStrategy()
+      : createNaiveNeighborStrategy()
   activateNeighborStrategy(this.neighborStrategy)
   }
 
@@ -176,6 +178,10 @@ export class SimulationEngine {
     validateEngineConfig(this.config)
     // Currently we do NOT recreate state; only forces & dt/cutoff are applied.
     this.sim = this.buildSimulation()
+    if (patch.neighbor?.strategy && patch.neighbor.strategy !== this.neighborStrategy.name) {
+      this.neighborStrategy = patch.neighbor.strategy === 'cell' ? createCellNeighborStrategy() : createNaiveNeighborStrategy()
+      activateNeighborStrategy(this.neighborStrategy)
+    }
     this.emitter.emit('config', this.getConfig())
   }
 

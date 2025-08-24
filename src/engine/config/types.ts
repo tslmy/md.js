@@ -45,8 +45,8 @@ export interface EngineWorldConfig {
 }
 
 export interface EngineNeighborConfig {
-  /** Strategy name: currently only 'naive'. Future: 'cell', 'grid', 'verlet'. */
-  strategy?: 'naive'
+  /** Strategy name. Implemented: 'naive', 'cell'. Planned: 'verlet'. */
+  strategy?: 'naive' | 'cell'
 }
 
 /** Composite config passed to SimulationEngine constructor. */
@@ -76,7 +76,7 @@ export function validateEngineConfig(cfg: EngineConfig): void {
   if (cfg.runtime.integrator && cfg.runtime.integrator !== 'velocityVerlet' && cfg.runtime.integrator !== 'euler') {
     throw new Error('Unsupported integrator ' + cfg.runtime.integrator)
   }
-  if (cfg.neighbor?.strategy && cfg.neighbor.strategy !== 'naive') throw new Error('Unsupported neighbor strategy ' + cfg.neighbor.strategy)
+  if (cfg.neighbor?.strategy && !['naive', 'cell'].includes(cfg.neighbor.strategy)) throw new Error('Unsupported neighbor strategy ' + cfg.neighbor.strategy)
 }
 
 /** Provide a basic default mapping from legacy settings to new config. */

@@ -16,6 +16,7 @@ const testScripts = [
   'engine-diagnostics'
   , 'engine-config'
     , 'neighbor'
+    , 'neighbor-cell'
 ]
 
 const results = []
