@@ -74,7 +74,6 @@ This module is responsible for the physics computation. To physicists/chemists w
 
 This layer is made up of several modules and some top-level scripts. The top-level scripts in `src/` are:
 
-* `particleSystem.ts` – Seeds particle metadata (color, mass, and charge), creates optional trajectory lines & HUD rows.
 * `init.ts` – Scene bootstrap: lights, camera, renderer, GUI.
 * `script.ts` – Runtime wiring: calls `init.ts`, constructs / hydrates engine, mirrors SoA state into instanced meshes, HUD & persistence.
 
@@ -89,7 +88,8 @@ A 3D rendering module is located at `src/visual/`:
 * `InstancedSpheres.ts` – Batched instanced sphere renderer (primary + PBC clone copies for visualization).
 * `InstancedArrows.ts` – Batched instanced arrows (velocity & net force) with per‑frame normalization & capping.
 * `drawingHelpers.ts` - Helper functions that plot boxes and lines. Tightly coupled to THREE.js currently.
-* `persist.ts` - Stores and loads information about visual aids, such as trejectories and particle colors (WIP). Note that velocity & net force arrows are not persisted, because they can be derived from simulation state data that are persisted in the engine module.
+* `coloringAndDataSheet.ts` - Seeds colors for particles and adds rows to the HUD/Data Sheet.
+* `persist.ts` - Stores and loads information about visual aids, such as trejectories and particle colors. Note that velocity & net force arrows are not persisted, because they can be derived from simulation state data that are persisted in the engine module.
 
 ### Public (Test) Surface
 

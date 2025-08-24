@@ -58,8 +58,6 @@ function isVisible(el: HTMLElement | null): boolean {
   return !!el && window.getComputedStyle(el).display !== 'none'
 }
 
-// Legacy force application removed in favor of SoA simulation core.
-
 // Scaling now derives from diagnostics (maxSpeed & maxForceMag) avoiding per-frame full scans.
 function updateScaleBars(diag: Diagnostics | undefined): void {
   if (!diag) return
@@ -70,8 +68,6 @@ function updateScaleBars(diag: Diagnostics | undefined): void {
   const velEl = document.getElementById('velocity')
   if (velEl) velEl.style.width = `${velScale * 1000000}px`
 }
-
-// ArrowHelpers removed; future instanced arrow system will centralize vector -> transform logic.
 
 function updateTrajectoryBuffer(pos: Vector3, trajectory: BufferAttribute, maxLen: number): void {
   for (let j = 0; j < maxLen - 1; j++) trajectory.copyAt(j, trajectory, j + 1)
