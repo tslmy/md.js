@@ -75,41 +75,6 @@ function addParticle(opts: AddParticleOpts): void {
   if (tbody) tbody.appendChild(tableRow)
 }
 
-function makeClonePositionsList(
-  x: number,
-  y: number,
-  z: number
-): Vector3[] {
-  return [
-    new Vector3(2 * x, 0, 0),
-    new Vector3(-2 * x, 0, 0),
-    new Vector3(0, 2 * y, 0),
-    new Vector3(0, -2 * y, 0),
-    new Vector3(0, 0, 2 * z),
-    new Vector3(0, 0, -2 * z),
-    new Vector3(2 * x, 0, 2 * z),
-    new Vector3(-2 * x, 0, 2 * z),
-    new Vector3(2 * x, 0, -2 * z),
-    new Vector3(-2 * x, 0, -2 * z),
-    new Vector3(0, 2 * y, 2 * z),
-    new Vector3(0, -2 * y, 2 * z),
-    new Vector3(0, 2 * y, -2 * z),
-    new Vector3(0, -2 * y, -2 * z),
-    new Vector3(2 * x, 2 * y, 0),
-    new Vector3(-2 * x, 2 * y, 0),
-    new Vector3(2 * x, -2 * y, 0),
-    new Vector3(-2 * x, -2 * y, 0),
-    new Vector3(2 * x, 2 * y, 2 * z),
-    new Vector3(-2 * x, 2 * y, 2 * z),
-    new Vector3(2 * x, -2 * y, 2 * z),
-    new Vector3(-2 * x, -2 * y, 2 * z),
-    new Vector3(2 * x, 2 * y, -2 * z),
-    new Vector3(-2 * x, 2 * y, -2 * z),
-    new Vector3(2 * x, -2 * y, -2 * z),
-    new Vector3(-2 * x, -2 * y, -2 * z)
-  ]
-}
-
 /**
  *  Make objects that will contain the trajectory points.
  * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.

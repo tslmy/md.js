@@ -2,7 +2,7 @@ import { settings } from './settings.js'
 import { init, ifMobileDevice, toggle } from './init.js'
 import { saveToLocal, loadFromLocal, loadUserSettings, saveUserSettings } from './engine/persistence/storage.js'
 import * as THREE from 'three'
-import { Particle, makeClonePositionsList } from './particleSystem.js'
+import { Particle } from './particleSystem.js'
 // New SoA simulation core imports
 import { createState, type SimulationState } from './core/simulation/state.js'
 import type { Diagnostics } from './core/simulation/diagnostics.js'
@@ -12,6 +12,7 @@ import { fromSettings } from './engine/config/types.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
 import { InstancedArrows } from './view/three/InstancedArrows.js'
 import { InstancedSpheres } from './view/three/InstancedSpheres.js'
+import { Vector3 } from 'three'
 // global variables
 interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
 interface ControlsLike { update(): void }
@@ -420,5 +421,37 @@ docReady(() => {
     }
   })
 })
-
-// Legacy captureState removed – engine snapshot now covers persistence.
+function makeClonePositionsList(
+  x: number,
+  y: number,
+  z: number
+): Vector3[] {
+  return [
+    new Vector3(2 * x, 0, 0),
+    new Vector3(-2 * x, 0, 0),
+    new Vector3(0, 2 * y, 0),
+    new Vector3(0, -2 * y, 0),
+    new Vector3(0, 0, 2 * z),
+    new Vector3(0, 0, -2 * z),
+    new Vector3(2 * x, 0, 2 * z),
+    new Vector3(-2 * x, 0, 2 * z),
+    new Vector3(2 * x, 0, -2 * z),
+    new Vector3(-2 * x, 0, -2 * z),
+    new Vector3(0, 2 * y, 2 * z),
+    new Vector3(0, -2 * y, 2 * z),
+    new Vector3(0, 2 * y, -2 * z),
+    new Vector3(0, -2 * y, -2 * z),
+    new Vector3(2 * x, 2 * y, 0),
+    new Vector3(-2 * x, 2 * y, 0),
+    new Vector3(2 * x, -2 * y, 0),
+    new Vector3(-2 * x, -2 * y, 0),
+    new Vector3(2 * x, 2 * y, 2 * z),
+    new Vector3(-2 * x, 2 * y, 2 * z),
+    new Vector3(2 * x, -2 * y, 2 * z),
+    new Vector3(-2 * x, -2 * y, 2 * z),
+    new Vector3(2 * x, 2 * y, -2 * z),
+    new Vector3(-2 * x, 2 * y, -2 * z),
+    new Vector3(2 * x, -2 * y, -2 * z),
+    new Vector3(-2 * x, -2 * y, -2 * z)
+  ]
+}
