@@ -65,7 +65,7 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     const commands = {
         stop: () => { try { (window as unknown as { __pauseEngine?: () => void }).__pauseEngine?.() } catch { /* ignore */ } },
         toggleHUD: () => { toggle('#hud') },
-        newWorld: () => {
+        randomizeParticles: () => {
             try {
                 // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
                 saveUserSettings()
@@ -75,14 +75,6 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
                 console.warn('Failed clearing stored snapshot(s):', e)
             }
             // Prevent saving the soon-to-be-discarded state during reload
-            try { window.onbeforeunload = null } catch (e) {
-                console.warn('Failed clearing onbeforeunload handler, and the soon-to-be-discarded state may be saved:', e)
-            }
-            location.reload()
-        },
-        randomizeParticles: () => {
-            try { saveUserSettings() } catch (e) { console.warn('Failed saving user settings:', e) }
-            try { clearEngineSnapshotInLocal() } catch (e) { console.warn('Failed clearing stored snapshot:', e) }
             try { window.onbeforeunload = null } catch (e) {
                 console.warn('Failed clearing onbeforeunload handler, and the soon-to-be-discarded state may be saved:', e)
             }
