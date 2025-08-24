@@ -12,6 +12,8 @@ cfg.forces.gravity = false
 cfg.forces.coulomb = false
 cfg.runtime.dt = 0.0001
 
+// Explicitly request naive strategy (default may be 'cell').
+cfg.neighbor = { strategy: 'naive' }
 const engine = new SimulationEngine(cfg)
 // Seed deterministic line
 const st = engine.getState()

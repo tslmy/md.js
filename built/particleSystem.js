@@ -127,6 +127,23 @@ function makeTrajectory(thisColor, thisPosition, maxTrajectoryLength) {
     line.userData.trajectoryRing = { write: 0, length: maxTrajectoryLength, count: 0 };
     return line;
 }
+/**
+ * Creates and initializes a particle system in a Three.js scene, including the main particle system and its periodic clones.
+ *
+ * This function sets up the geometry, material, and positions for a collection of particles, optionally adding a central "sun" particle.
+ * It ensures the total number of particles matches the specified count in settings, randomizing positions and velocities as needed.
+ * The function also creates clones of the particle system at specified offsets to simulate periodic boundary conditions.
+ *
+ * This is purely for visual effect and does not affect the underlying physics simulation.
+ *
+ * @param group - The parent Three.js Object3D to which the particle system and its clones will be added.
+ * @param particles - The array to store and manage all Particle objects in the system.
+ * @param scene - The Three.js scene where the particle system is rendered.
+ * @param time - The current simulation time.
+ * @param lastSnapshotTime - The time of the last simulation snapshot.
+ * @param settings - Configuration options for the particle system, including particle count, boundaries, and physical constants.
+ * @returns The main THREE.Points object representing the particle system.
+ */
 function createParticleSystem(group, particles, scene, time, lastSnapshotTime, settings) {
     // Particles are just individual vertices in a geometry
     // Create the geometry that will hold all of the vertices
@@ -146,8 +163,19 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
         size: 0.3,
         vertexColors: true
     });
-    if (!populateFromPreviousOrFresh(particles, particlesGeometry, scene, settings)) {
-        // fresh world already created inside helper when no previous state
+    if (settings.if_makeSun) {
+        addParticle({
+            color: new THREE.Color(0, 0, 0),
+            position: new THREE.Vector3(0, 0, 0),
+            velocity: new THREE.Vector3(0, 0, 0),
+            mass: settings.sunMass,
+            charge: 0,
+            particles,
+            geometry: particlesGeometry,
+            scene,
+            showTrajectory: settings.if_showTrajectory,
+            maxTrajectoryLength: settings.maxTrajectoryLength
+        });
     }
     // now, no matter how many particles has been pre-defined (e.g. the Sun) and how many are loaded from previous session, add particles till particleCount is met:
     for (let i = particles.length; i < settings.particleCount; i++) {
@@ -202,27 +230,6 @@ function createParticleSystem(group, particles, scene, time, lastSnapshotTime, s
         group.add(clone);
     });
     return particleSystem;
-}
-function populateFromPreviousOrFresh(particles, particlesGeometry, scene, settings) {
-    // Legacy localStorage based particle persistence removed; engine snapshot hydrate path
-    // now owns persistence (handled earlier in bootstrap before particle creation).
-    // Always create a fresh universe here.
-    console.log('Creating new universe. md.js will be creating all', settings.particleCount, 'particles from scratch.');
-    if (settings.if_makeSun) {
-        addParticle({
-            color: new THREE.Color(0, 0, 0),
-            position: new THREE.Vector3(0, 0, 0),
-            velocity: new THREE.Vector3(0, 0, 0),
-            mass: settings.sunMass,
-            charge: 0,
-            particles,
-            geometry: particlesGeometry,
-            scene,
-            showTrajectory: settings.if_showTrajectory,
-            maxTrajectoryLength: settings.maxTrajectoryLength
-        });
-    }
-    return false;
 }
 function random(min, max) {
     return Math.random() * (max - min) + min;

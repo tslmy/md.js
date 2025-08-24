@@ -234,18 +234,18 @@ engine.run()
 
 The engine can swap the pair iteration backend used by all force fields:
 
-* `naive` (default) – classic O(N²) loop over unordered pairs with early distance cutoff.
-* `cell` – experimental uniform linked‑cell grid. Partitions space into cubic cells of edge ≈ cutoff and only inspects the 27 neighboring cells per particle. For roughly uniform densities this trends toward O(N) scaling.
+* `cell` (default) – experimental uniform linked‑cell grid. Partitions space into cubic cells of edge ≈ cutoff and only inspects the 27 neighboring cells per particle. For roughly uniform densities this trends toward O(N) scaling.
+* `naive` – classic O(N²) loop over unordered pairs with early distance cutoff (kept as a correctness reference & for very small N).
 
 Configuration (when constructing or patching engine config):
 
 ```ts
 const cfg = fromSettings(settings)
-cfg.neighbor = { strategy: 'cell' } // or 'naive'
+cfg.neighbor = { strategy: 'naive' } // optional; default is 'cell'
 const engine = new SimulationEngine(cfg)
 
 // Switch at runtime:
-engine.updateConfig({ neighbor: { strategy: 'naive' } })
+engine.updateConfig({ neighbor: { strategy: 'naive' } }) // or switch back to cell
 ```
 
 Current limitations of `cell`:

@@ -91,9 +91,11 @@ export class SimulationEngine {
       cutoff: cfg.runtime.cutoff
     })
     this.sim = this.buildSimulation()
-    this.neighborStrategy = this.config.neighbor?.strategy === 'cell'
-      ? createCellNeighborStrategy()
-      : createNaiveNeighborStrategy()
+    // Default to 'cell' strategy unless caller explicitly requests 'naive'.
+    const requested = this.config.neighbor?.strategy
+    this.neighborStrategy = requested === 'naive'
+      ? createNaiveNeighborStrategy()
+      : createCellNeighborStrategy()
   activateNeighborStrategy(this.neighborStrategy)
   }
 
