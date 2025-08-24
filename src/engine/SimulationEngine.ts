@@ -118,7 +118,15 @@ export class SimulationEngine {
   private buildSimulation(): Simulation {
     const forces = []
     if (this.config.forces.lennardJones) forces.push(new LennardJones({ epsilon: this.config.constants.epsilon, sigma: this.config.constants.sigma }))
-    if (this.config.forces.gravity) forces.push(new Gravity({ G: this.config.constants.G }))
+    if (this.config.forces.gravity) {
+      // Derive a softening length ~ 0.15 * average inter-particle spacing to tame singularity
+      const N = Math.max(1, this.config.world.particleCount)
+      const box = this.config.world.box
+      const volume = (2 * box.x) * (2 * box.y) * (2 * box.z)
+      const spacing = Math.cbrt(volume / N)
+      const softening = 0.15 * spacing
+      forces.push(new Gravity({ G: this.config.constants.G, softening }))
+    }
     if (this.config.forces.coulomb) forces.push(new Coulomb({ K: this.config.constants.K }))
     const integrator = this.config.runtime.integrator === 'euler' ? EulerIntegrator : VelocityVerlet
     return new Simulation(this.state, integrator, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff })
