@@ -6,7 +6,7 @@
  */
 import { snapshot, hydrate, type EngineSnapshot } from './persist.js'
 import { SimulationEngine } from '../SimulationEngine.js'
-import { settings } from '../../settings.js'
+import { settings } from '../../control/settings.js'
 
 const KEY = 'mdJsEngineSnapshot'
 const SETTINGS_KEY = 'mdJsUserSettings'

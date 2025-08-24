@@ -1,6 +1,6 @@
 import { SimulationEngine } from './SimulationEngine.js'
 import { type EngineConfig } from './config/types.js'
-import { settings } from '../settings.js'
+import { settings } from '../control/settings.js'
 import { FIELD_BINDINGS, AUTO_PUSH_KEYS as BINDING_AUTO_KEYS, assignPath, pick } from './config/fieldBindings.js'
 
 // Guard to avoid recursive push->engine->config event->pull->property set->push loops.
@@ -43,7 +43,7 @@ export function pullEngineConfigToSettings(cfg: EngineConfig): void {
         for (const b of FIELD_BINDINGS) {
             const v = pick(cfg, b.path)
             const mapped = b.fromEngine ? b.fromEngine(v) : v
-            ;(settings as Record<string, unknown>)[b.key] = mapped
+                ; (settings as Record<string, unknown>)[b.key] = mapped
         }
     } finally {
         suppressAutoPush = false

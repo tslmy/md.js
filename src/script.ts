@@ -1,4 +1,4 @@
-import { settings } from './settings.js'
+import { settings } from './control/settings.js'
 import { init, ifMobileDevice, toggle } from './init.js'
 import { saveToLocal, loadFromLocal, loadUserSettings, saveUserSettings } from './engine/persistence/storage.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persistence/visual.js'
