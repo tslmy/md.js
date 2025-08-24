@@ -155,6 +155,7 @@ export class SimulationEngine {
     setTime(t) { this.state.time = t; }
     /** Seed initial state arrays (positions, velocities, masses, charges). Call before run(). */
     seed(p) {
+        // NOTE: We do shallow copies into existing typed arrays; callers keep ownership of source arrays.
         if (p.positions)
             this.state.positions.set(p.positions.subarray(0, this.state.positions.length));
         if (p.velocities)

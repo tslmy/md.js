@@ -3,15 +3,24 @@ const originalSpaceBoundaryX = _spaceBoundary;
 const originalSpaceBoundaryY = _spaceBoundary;
 const originalSpaceBoundaryZ = _spaceBoundary;
 const dt = 0.01;
+/**
+ * Mutable runtime settings (UI tweaks these directly).
+ * This object intentionally remains permissive; engine config is derived and validated separately.
+ */
 const settings = {
     // ===============options and settings:
+    /** Total number of particles including optional sun. */
     particleCount: 20,
+    /** Max points stored per trajectory ring buffer. */
     maxTrajectoryLength: 200,
+    /** Normalization length used to scale force/velocity arrows each frame. */
     unitArrowLength: 0.1,
+    /** Cap for arrow length when limiting is enabled. */
     maxArrowLength: 2,
     spaceBoundaryX: originalSpaceBoundaryX,
     spaceBoundaryY: originalSpaceBoundaryY,
     spaceBoundaryZ: originalSpaceBoundaryZ,
+    /** Distance cutoff (world units) for pair interactions. */
     cutoffDistance: _spaceBoundary * 2,
     massLowerBound: 16,
     massUpperBound: 20,
@@ -22,6 +31,7 @@ const settings = {
     targetTemperature: 100,
     escapeSpeed: _spaceBoundary * 2,
     // toggles for Plotting:
+    /** Enable periodic boundary condition wrapping (and ghost render clones). */
     if_use_periodic_boundary_condition: true,
     if_override_particleCount_setting_with_lastState: true,
     if_apply_LJpotential: true,
