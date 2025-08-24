@@ -1,23 +1,23 @@
-import * as THREE from 'three'
+import { Color, Vector3, Line, Scene, BufferGeometry, BufferAttribute, LineBasicMaterial } from 'three'
 // Type alias for settings shape (imported dynamically); avoids circular dep.
 type Settings = typeof import('./settings.js').settings
 
 const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength']
 
 class Particle {
-  color: THREE.Color
-  position: THREE.Vector3
+  color: Color
+  position: Vector3
   mass: number
   charge: number
-  trajectory: THREE.Line | null
+  trajectory: Line | null
   isEscaped: boolean = false
 
   constructor(
-    color: THREE.Color,
-    position: THREE.Vector3,
+    color: Color,
+    position: Vector3,
     mass: number,
     charge: number,
-    trajectory: THREE.Line | null
+    trajectory: Line | null
   ) {
     this.color = color
     this.position = position
@@ -32,19 +32,19 @@ class Particle {
 export const initialVelocities: number[] = [] // flat array length 3 * particleCount (may remain empty)
 
 interface AddParticleOpts {
-  color: THREE.Color
-  position: THREE.Vector3
-  velocity: THREE.Vector3
+  color: Color
+  position: Vector3
+  velocity: Vector3
   mass: number
   charge: number
   particles: Particle[]
-  scene: THREE.Scene
+  scene: Scene
   showTrajectory: boolean
   maxTrajectoryLength: number
 }
 function addParticle(opts: AddParticleOpts): void {
   const { color, position, velocity, mass, charge, particles, scene, showTrajectory, maxTrajectoryLength } = opts
-  let trajectory: THREE.Line | null = null
+  let trajectory: Line | null = null
   if (showTrajectory) {
     trajectory = makeTrajectory(color, position, maxTrajectoryLength)
     scene.add(trajectory)
@@ -79,34 +79,34 @@ function makeClonePositionsList(
   x: number,
   y: number,
   z: number
-): THREE.Vector3[] {
+): Vector3[] {
   return [
-    new THREE.Vector3(2 * x, 0, 0),
-    new THREE.Vector3(-2 * x, 0, 0),
-    new THREE.Vector3(0, 2 * y, 0),
-    new THREE.Vector3(0, -2 * y, 0),
-    new THREE.Vector3(0, 0, 2 * z),
-    new THREE.Vector3(0, 0, -2 * z),
-    new THREE.Vector3(2 * x, 0, 2 * z),
-    new THREE.Vector3(-2 * x, 0, 2 * z),
-    new THREE.Vector3(2 * x, 0, -2 * z),
-    new THREE.Vector3(-2 * x, 0, -2 * z),
-    new THREE.Vector3(0, 2 * y, 2 * z),
-    new THREE.Vector3(0, -2 * y, 2 * z),
-    new THREE.Vector3(0, 2 * y, -2 * z),
-    new THREE.Vector3(0, -2 * y, -2 * z),
-    new THREE.Vector3(2 * x, 2 * y, 0),
-    new THREE.Vector3(-2 * x, 2 * y, 0),
-    new THREE.Vector3(2 * x, -2 * y, 0),
-    new THREE.Vector3(-2 * x, -2 * y, 0),
-    new THREE.Vector3(2 * x, 2 * y, 2 * z),
-    new THREE.Vector3(-2 * x, 2 * y, 2 * z),
-    new THREE.Vector3(2 * x, -2 * y, 2 * z),
-    new THREE.Vector3(-2 * x, -2 * y, 2 * z),
-    new THREE.Vector3(2 * x, 2 * y, -2 * z),
-    new THREE.Vector3(-2 * x, 2 * y, -2 * z),
-    new THREE.Vector3(2 * x, -2 * y, -2 * z),
-    new THREE.Vector3(-2 * x, -2 * y, -2 * z)
+    new Vector3(2 * x, 0, 0),
+    new Vector3(-2 * x, 0, 0),
+    new Vector3(0, 2 * y, 0),
+    new Vector3(0, -2 * y, 0),
+    new Vector3(0, 0, 2 * z),
+    new Vector3(0, 0, -2 * z),
+    new Vector3(2 * x, 0, 2 * z),
+    new Vector3(-2 * x, 0, 2 * z),
+    new Vector3(2 * x, 0, -2 * z),
+    new Vector3(-2 * x, 0, -2 * z),
+    new Vector3(0, 2 * y, 2 * z),
+    new Vector3(0, -2 * y, 2 * z),
+    new Vector3(0, 2 * y, -2 * z),
+    new Vector3(0, -2 * y, -2 * z),
+    new Vector3(2 * x, 2 * y, 0),
+    new Vector3(-2 * x, 2 * y, 0),
+    new Vector3(2 * x, -2 * y, 0),
+    new Vector3(-2 * x, -2 * y, 0),
+    new Vector3(2 * x, 2 * y, 2 * z),
+    new Vector3(-2 * x, 2 * y, 2 * z),
+    new Vector3(2 * x, -2 * y, 2 * z),
+    new Vector3(-2 * x, -2 * y, 2 * z),
+    new Vector3(2 * x, 2 * y, -2 * z),
+    new Vector3(-2 * x, 2 * y, -2 * z),
+    new Vector3(2 * x, -2 * y, -2 * z),
+    new Vector3(-2 * x, -2 * y, -2 * z)
   ]
 }
 
@@ -114,31 +114,31 @@ function makeClonePositionsList(
  *  Make objects that will contain the trajectory points.
  * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
  */
-function makeTrajectory(color: THREE.Color, position: THREE.Vector3, maxLen: number): THREE.Line {
-  const geom = new THREE.BufferGeometry()
+function makeTrajectory(color: Color, position: Vector3, maxLen: number): Line {
+  const geom = new BufferGeometry()
   const pts = new Float32Array(maxLen * 3)
   const cols = new Float32Array(maxLen * 3)
-  geom.setAttribute('position', new THREE.BufferAttribute(pts, 3))
-  geom.setAttribute('color', new THREE.BufferAttribute(cols, 3))
-  const white = new THREE.Color('#FFFFFF')
+  geom.setAttribute('position', new BufferAttribute(pts, 3))
+  geom.setAttribute('color', new BufferAttribute(cols, 3))
+  const white = new Color('#FFFFFF')
   for (let i = 0; i < maxLen; i++) {
     const t = (maxLen - i) / maxLen
     const c = color.clone().lerp(white, t)
-      ; (geom.attributes.color as THREE.BufferAttribute).setXYZ(i, c.r, c.g, c.b)
-      ; (geom.attributes.position as THREE.BufferAttribute).setXYZ(i, position.x, position.y, position.z)
+      ; (geom.attributes.color as BufferAttribute).setXYZ(i, c.r, c.g, c.b)
+      ; (geom.attributes.position as BufferAttribute).setXYZ(i, position.x, position.y, position.z)
   }
-  return new THREE.Line(geom, new THREE.LineBasicMaterial({ linewidth: 1, vertexColors: true }))
+  return new Line(geom, new LineBasicMaterial({ linewidth: 1, vertexColors: true }))
 }
 
 /** Seed particle metadata (positions/colors/mass/charge + HUD rows & optional trajectories).
  *  No legacy THREE.Points cloud or clone sprites are created (instanced spheres handle rendering).
  */
-function seedParticles(particles: Particle[], scene: THREE.Scene, settings: Settings): void {
+function seedParticles(particles: Particle[], scene: Scene, settings: Settings): void {
   if (settings.if_makeSun) {
     addParticle({
-      color: new THREE.Color(0, 0, 0),
-      position: new THREE.Vector3(0, 0, 0),
-      velocity: new THREE.Vector3(0, 0, 0),
+      color: new Color(0, 0, 0),
+      position: new Vector3(0, 0, 0),
+      velocity: new Vector3(0, 0, 0),
       mass: settings.sunMass,
       charge: 0,
       particles,
@@ -148,28 +148,28 @@ function seedParticles(particles: Particle[], scene: THREE.Scene, settings: Sett
     })
   }
   for (let i = particles.length; i < settings.particleCount; i++) {
-    let position: THREE.Vector3
-    let velocity: THREE.Vector3
+    let position: Vector3
+    let velocity: Vector3
     if (settings.if_makeSun) {
-      position = new THREE.Vector3(
+      position = new Vector3(
         random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
         random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
         random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
       )
       const r = position.length()
       const vy = Math.sqrt((settings.G * particles[0].mass) / r)
-      velocity = new THREE.Vector3(0, vy, 0)
+      velocity = new Vector3(0, vy, 0)
       if (i % 2 === 0) velocity.negate()
     } else {
-      position = new THREE.Vector3(
+      position = new Vector3(
         random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
         random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
         random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
       )
-      velocity = new THREE.Vector3(0, 0, 0)
+      velocity = new Vector3(0, 0, 0)
     }
     addParticle({
-      color: new THREE.Color(Math.random(), Math.random(), Math.random()),
+      color: new Color(Math.random(), Math.random(), Math.random()),
       position,
       velocity,
       mass: random(settings.massLowerBound, settings.massUpperBound),
