@@ -66,6 +66,7 @@ Located under `src/core/simulation` & `src/core/forces`:
 ### 2. Engine Orchestration
 
 * `engine/SimulationEngine.ts` – High‑level orchestrator: owns mutable SoA state, rebuilds force plugin list on config changes, emits `frame` & `diagnostics` events, and shields the rest of the app from direct mutation.
+* `engine/config/fieldBindings.ts` – Declarative mapping between legacy mutable `settings` keys and structured `EngineConfig` paths; replaces ad‑hoc push/pull logic for consolidation.
 * `engine/persistence/persist.ts` – Snapshot / hydrate utilities (JSON‑serializable) for future cross‑tab or worker scenarios.
 
 ### 3. Visualization & UI Layer

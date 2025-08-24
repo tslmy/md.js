@@ -1,16 +1,13 @@
 import { SimulationEngine } from './SimulationEngine.js'
 import { type EngineConfig } from './config/types.js'
 import { settings } from '../settings.js'
+import { FIELD_BINDINGS, AUTO_PUSH_KEYS as BINDING_AUTO_KEYS, assignPath, pick } from './config/fieldBindings.js'
 
 // Guard to avoid recursive push->engine->config event->pull->property set->push loops.
 let suppressAutoPush = false
 
 /** Keys that participate in automatic push/pull with the engine. */
-export const AUTO_PUSH_KEYS = [
-    'particleCount', 'spaceBoundaryX', 'spaceBoundaryY', 'spaceBoundaryZ',
-    'dt', 'cutoffDistance', 'if_apply_LJpotential', 'if_apply_gravitation', 'if_apply_coulombForce',
-    'EPSILON', 'DELTA', 'G', 'K', 'kB'
-] as const
+export const AUTO_PUSH_KEYS = BINDING_AUTO_KEYS
 export type AutoPushKey = typeof AUTO_PUSH_KEYS[number]
 
 /**
@@ -30,21 +27,11 @@ export type AutoPushKey = typeof AUTO_PUSH_KEYS[number]
 /** Apply selected fields from settings into an EngineConfig patch and send to engine. */
 export function pushSettingsToEngine(engine: SimulationEngine): void {
     if (suppressAutoPush) return
-    const patch: Partial<EngineConfig> = {
-        world: { particleCount: settings.particleCount, box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ } },
-        runtime: { dt: settings.dt, cutoff: settings.cutoffDistance },
-        forces: {
-            lennardJones: !!settings.if_apply_LJpotential,
-            gravity: !!settings.if_apply_gravitation,
-            coulomb: !!settings.if_apply_coulombForce
-        },
-        constants: {
-            epsilon: settings.EPSILON,
-            sigma: settings.DELTA,
-            G: settings.G,
-            K: settings.K,
-            kB: settings.kB
-        }
+    const patch: Partial<EngineConfig> = {}
+    for (const b of FIELD_BINDINGS) {
+        const raw = (settings as Record<string, unknown>)[b.key]
+        const val = b.toEngine ? b.toEngine(raw) : raw
+        assignPath(patch as unknown as Record<string, unknown>, b.path, val)
     }
     engine.updateConfig(patch)
 }
@@ -53,20 +40,11 @@ export function pushSettingsToEngine(engine: SimulationEngine): void {
 export function pullEngineConfigToSettings(cfg: EngineConfig): void {
     suppressAutoPush = true
     try {
-        settings.particleCount = cfg.world.particleCount
-        settings.spaceBoundaryX = cfg.world.box.x
-        settings.spaceBoundaryY = cfg.world.box.y
-        settings.spaceBoundaryZ = cfg.world.box.z
-        settings.dt = cfg.runtime.dt
-        settings.cutoffDistance = cfg.runtime.cutoff
-        settings.if_apply_LJpotential = cfg.forces.lennardJones
-        settings.if_apply_gravitation = cfg.forces.gravity
-        settings.if_apply_coulombForce = cfg.forces.coulomb
-        settings.EPSILON = cfg.constants.epsilon
-        settings.DELTA = cfg.constants.sigma
-        settings.G = cfg.constants.G
-        settings.K = cfg.constants.K
-        settings.kB = cfg.constants.kB
+        for (const b of FIELD_BINDINGS) {
+            const v = pick(cfg, b.path)
+            const mapped = b.fromEngine ? b.fromEngine(v) : v
+            ;(settings as Record<string, unknown>)[b.key] = mapped
+        }
     } finally {
         suppressAutoPush = false
     }
@@ -94,7 +72,7 @@ export function registerAutoPush(engine: SimulationEngine, keys: readonly AutoPu
     for (const k of keys) {
         if (!(k in settings)) continue
         const desc = Object.getOwnPropertyDescriptor(settings, k)
-        if (desc?.set) continue // already accessor installed
+        if (desc?.set) continue
         let value = (settings as Record<string, unknown>)[k]
         Object.defineProperty(settings, k, {
             configurable: true,
