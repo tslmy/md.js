@@ -21,7 +21,10 @@ const testScripts = [
 const results = []
 for (const script of testScripts) {
   console.log(`\n=== Running: ${script} ===`)
-  const r = spawnSync('npm', ['run', script, '--silent'], { stdio: 'inherit' })
+  const r = spawnSync('npm', ['run', script, '--silent'], { 
+    stdio: 'inherit',
+    timeout: 60000 // 60 second timeout per test to prevent hanging
+  })
   results.push({ script, code: r.status === null ? 1 : r.status })
 }
 
