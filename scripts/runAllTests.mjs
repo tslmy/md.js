@@ -11,7 +11,8 @@ const testScripts = [
   'force-sym',
   'energy',
   'pairs',
-  'persist'
+  'persist',
+  'engine-persist'
 ]
 
 const results = []

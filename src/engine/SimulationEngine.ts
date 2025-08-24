@@ -175,6 +175,9 @@ export class SimulationEngine {
   /** Per-force decomposition (proxy to underlying Simulation). */
   getPerForceContributions(): Record<string, Float32Array> { return this.sim.getPerForceContributions() }
 
+  /** Set simulation time (used during hydration). */
+  setTime(t: number): void { this.state.time = t }
+
   /** Seed initial state arrays (positions, velocities, masses, charges). Call before run(). */
   seed(p: { positions?: Float32Array; velocities?: Float32Array; masses?: Float32Array; charges?: Float32Array }): void {
     if (p.positions) this.state.positions.set(p.positions.subarray(0, this.state.positions.length))
