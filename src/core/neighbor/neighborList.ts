@@ -190,21 +190,51 @@ function cellForEachPair(state: SimulationState, cutoff: number, handler: (i: nu
  *  - Verlet shell (skin) distance to rebuild less frequently (track max displacement)
  *  - SIMD / WASM batch distance checks
  */
-export function createCellNeighborStrategy(): NeighborListStrategy {
+export interface CellStrategyOptions {
+  /** World half-extents (box.x means simulation spans [-box.x, box.x] on that axis). */
+  box?: { x: number; y: number; z: number }
+}
+
+/**
+ * Create a cell neighbor strategy optionally bound to a world box.
+ * If a box is supplied we size the grid from its extents; else fall back to legacy heuristic.
+ */
+export function createCellNeighborStrategy(opts: CellStrategyOptions = {}): NeighborListStrategy {
   let data: CellListData | null = null
+  let lastN = -1
+  let lastCutoff = -1
+  let lastBoxKey = ''
+  function ensure(state: SimulationState, cutoff: number): void {
+    const box = opts.box
+    const boxKey = box ? `${box.x},${box.y},${box.z}` : 'heuristic'
+    // Reallocate if particle count changed or cutoff changed significantly or box resized.
+    if (!data || state.N !== lastN || Math.abs(cutoff - lastCutoff) > 1e-9 || boxKey !== lastBoxKey) {
+      if (box) {
+        // Derive cell counts per axis from real box dimensions (width = 2*extent).
+        const widthX = 2 * box.x
+        const widthY = 2 * box.y
+        const widthZ = 2 * box.z
+        const nX = Math.max(1, Math.floor(widthX / cutoff))
+        const nY = Math.max(1, Math.floor(widthY / cutoff))
+        const nZ = Math.max(1, Math.floor(widthZ / cutoff))
+        // Use uniform cell size = cutoff for now (non-uniform might complicate neighbor iteration logic).
+        const total = nX * nY * nZ
+        data = { cellSize: cutoff, dims: [nX, nY, nZ], heads: new Int32Array(total).fill(-1), next: new Int32Array(state.N).fill(-1) }
+      } else {
+        data = createCellList(state, cutoff)
+      }
+      lastN = state.N; lastCutoff = cutoff; lastBoxKey = boxKey
+    } else if (data.next.length !== state.N) {
+      // Particle count grew/shrank – reallocate next pointer array (heads size unchanged)
+      data.next = new Int32Array(state.N).fill(-1)
+      lastN = state.N
+    }
+    rebuildCellList(state, cutoff, data)
+  }
   return {
     name: 'cell',
-    rebuild(state, cutoff) {
-      if (!data || state.N !== data.next.length) data = createCellList(state, cutoff)
-      rebuildCellList(state, cutoff, data)
-    },
-    forEachPair: (state, cutoff, handler) => {
-      if (!data) {
-        data = createCellList(state, cutoff)
-        rebuildCellList(state, cutoff, data)
-      }
-      cellForEachPair(state, cutoff, handler, data)
-    },
+    rebuild(state, cutoff) { ensure(state, cutoff) },
+    forEachPair: (state, cutoff, handler) => { ensure(state, cutoff); if (data) cellForEachPair(state, cutoff, handler, data) },
     rebuildEveryStep: true
   }
 }
