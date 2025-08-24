@@ -22,20 +22,17 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
+  # ESLint flat-config (ESLint 9) hook. We must pin versions and include @eslint/js + typescript-eslint
+  # because the hook installs its own isolated env (it does NOT use devDependencies).
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v8.23.1
+    rev: v9.34.0  # keep in sync with package.json
     hooks:
       - id: eslint
-        files: \.[jt]sx?$ # *.js, *.jsx, *.ts and *.tsx
+        files: \.[jt]s$  # *.js and *.ts (no JSX in this repo presently)
         types: [file]
         args: ["--fix"]
         additional_dependencies:
-          - eslint@latest
-          - "@typescript-eslint/eslint-plugin@latest"
-          - "@typescript-eslint/parser@latest"
-          - eslint-plugin-import@latest
-          - eslint-plugin-n@latest
-          - eslint-plugin-promise@latest
-          - eslint-config-standard@latest
-          - eslint-config-standard-ts@latest
-          # and whatever other plugins...
+          - eslint@9.34.0
+          - '@eslint/js@9.34.0'
+          - 'typescript-eslint@8.40.0'
+        # If later adding plugins, list them here pinned to versions.
