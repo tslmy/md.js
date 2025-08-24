@@ -68,10 +68,16 @@ function resetSettingsToDefaults(): void {
   Object.assign(settings, fresh)
 }
 
+/** Get a deep-cloned snapshot of the original default settings. */
+function getDefaultSettingsSnapshot(): typeof settings {
+  return JSON.parse(JSON.stringify(_defaultSettings)) as typeof settings
+}
+
 export {
   settings,
   originalSpaceBoundaryX,
   originalSpaceBoundaryY,
   originalSpaceBoundaryZ,
-  resetSettingsToDefaults
+  resetSettingsToDefaults,
+  getDefaultSettingsSnapshot
 }
