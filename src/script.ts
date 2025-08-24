@@ -10,6 +10,7 @@ import type { Diagnostics } from './core/simulation/diagnostics.js'
 import { SimulationEngine } from './engine/SimulationEngine.js'
 import { fromSettings } from './engine/config/types.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
+import { InstancedArrows } from './view/three/InstancedArrows.js'
 // global variables
 interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
 interface ControlsLike { update(): void }
@@ -29,6 +30,9 @@ let particleSystem: THREE.Points | undefined
 let engine: SimulationEngine | undefined
 let simState: SimulationState | undefined
 let lastDiagnostics: Diagnostics | undefined
+// Batched per-particle arrows (velocity = blue, force = red)
+let velArrows: InstancedArrows | undefined
+let forceArrows: InstancedArrows | undefined
 
 const particles: Particle[] = []
 let time = 0
@@ -99,6 +103,43 @@ function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: 
 const _tmpDir = new THREE.Vector3()
 const _tmpFrom = new THREE.Vector3()
 
+/** Update instanced velocity & force arrows with current SoA state & diagnostics-based scaling. */
+function updateArrows(diag: Diagnostics, frameOffset: THREE.Vector3): void {
+  if (!simState || !velArrows || !forceArrows) return
+  const { positions, velocities, forces, N } = simState
+  // Determine scales (unitArrowLength normalized against max mags) with safe fallbacks
+  const velNorm = diag.maxSpeed > 0 ? settings.unitArrowLength / diag.maxSpeed : 1
+  const forceNorm = diag.maxForceMag > 0 ? settings.unitArrowLength / diag.maxForceMag : 1
+  const limit = settings.if_limitArrowsMaxLength
+  const maxLen = settings.maxArrowLength
+  const tmpOrigin = new THREE.Vector3()
+  const tmpVec = new THREE.Vector3()
+  for (let i = 0; i < N; i++) {
+    const i3 = 3 * i
+    // Skip escaped particles (render nothing = zero-length dir)
+    if (simState.escaped && simState.escaped[i] === 1) {
+      velArrows.update(i, tmpOrigin.set(0, -9999, 0), tmpVec.set(0, 0, 0), 0.000001)
+      forceArrows.update(i, tmpOrigin.set(0, -9999, 0), tmpVec.set(0, 0, 0), 0.000001)
+      continue
+    }
+    const px = positions[i3] - frameOffset.x
+    const py = positions[i3 + 1] - frameOffset.y
+    const pz = positions[i3 + 2] - frameOffset.z
+    tmpOrigin.set(px, py, pz)
+    // Velocity vector
+    tmpVec.set(velocities[i3], velocities[i3 + 1], velocities[i3 + 2])
+    let vLen = tmpVec.length() * velNorm
+    if (limit && vLen > maxLen) { vLen = maxLen }
+    // Update velocity arrow (dir is velocity; scaled length vLen)
+    velArrows.update(i, tmpOrigin, tmpVec, vLen)
+    // Force vector
+    tmpVec.set(forces[i3], forces[i3 + 1], forces[i3 + 2])
+    let fLen = tmpVec.length() * forceNorm
+    if (limit && fLen > maxLen) { fLen = maxLen }
+    forceArrows.update(i, tmpOrigin, tmpVec, fLen)
+  }
+}
+
 function updateFromSimulation(frameOffset: THREE.Vector3): void {
   if (!engine || !simState || !particleSystem) return
   const hudVisible = isVisible(document.querySelector('#hud'))
@@ -163,6 +204,15 @@ function applyVisualUpdates(): void {
   updateScaleBars(lastDiagnostics)
   const frameOffset = computeFrameOffset()
   updateFromSimulation(frameOffset)
+  // Update / toggle arrows after particle positions refreshed
+  if (settings.if_showArrows && velArrows && forceArrows && simState && lastDiagnostics) {
+    updateArrows(lastDiagnostics, frameOffset)
+    velArrows.setVisible(true); forceArrows.setVisible(true)
+    velArrows.commit(); forceArrows.commit()
+  } else {
+    if (velArrows) velArrows.setVisible(false)
+    if (forceArrows) forceArrows.setVisible(false)
+  }
   if (settings.if_showTrajectory && time - lastSnapshotTime > settings.dt) lastSnapshotTime = time
   // Temperature from diagnostics (fallback to 0 if undefined) & track peak
   if (lastDiagnostics) {
@@ -277,15 +327,23 @@ docReady(() => {
     simState = engine.getState()
     initSettingsSync(engine)
     // Auto-push: wrap selected mutable settings with setters triggering engine.updateConfig
-  registerAutoPush(engine, AUTO_PUSH_KEYS)
+    registerAutoPush(engine, AUTO_PUSH_KEYS)
   } else {
     simState = engine.getState()
     initSettingsSync(engine)
-  registerAutoPush(engine, AUTO_PUSH_KEYS)
+    registerAutoPush(engine, AUTO_PUSH_KEYS)
   }
   engine.on('frame', ({ time: t }) => { time = t; applyVisualUpdates() })
   engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
   engine.run({ useRaf: true })
+  // Create arrow visualizers once state & scene are ready
+  if (simState) {
+    velArrows = new InstancedArrows(simState.N, { color: 0x0066ff })
+    forceArrows = new InstancedArrows(simState.N, { color: 0xff3300 })
+    velArrows.addTo(scene); forceArrows.addTo(scene)
+    velArrows.setVisible(settings.if_showArrows)
+    forceArrows.setVisible(settings.if_showArrows)
+  }
   // Expose handle for automated headless tests
   // Expose simulation state (read-only for tests; mutation not supported outside test harness)
   window.__mdjs = { particles, settings, simState, diagnostics: lastDiagnostics }
