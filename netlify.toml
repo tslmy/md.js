@@ -1,0 +1,44 @@
+# Netlify configuration for md.js
+# Builds TypeScript -> JS (output in built/) and serves index.html from repo root.
+
+[build]
+command = "npm run build"
+publish = "."
+
+[build.environment]
+# Pin Node version (adjust if you prefer 20+)
+NODE_VERSION = "18"
+
+# Cache compiled JS aggressively (immutable because filenames change only when content changes)
+[[headers]]
+for = "/built/*.js"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+# Source maps: shorter cache & no indexing
+[[headers]]
+for = "/built/*.js.map"
+[headers.values]
+Cache-Control = "public, max-age=3600"
+X-Robots-Tag = "noindex"
+
+# HTML should revalidate quickly so updates deploy fast
+[[headers]]
+for = "/index.html"
+[headers.values]
+Cache-Control = "public, max-age=300, must-revalidate"
+
+# Global security / privacy related headers
+[[headers]]
+for = "/*"
+[headers.values]
+X-Frame-Options = "DENY"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# If you later add client-side routing, uncomment to serve index.html for 404s
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200
