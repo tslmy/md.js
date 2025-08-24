@@ -47,9 +47,9 @@ export function loadUserSettings(): boolean {
 }
 
 /** Serialize and persist the current engine snapshot into localStorage. */
-export function saveToLocal(engine: SimulationEngine): void {
+export function saveToLocal(engine: SimulationEngine, extra?: { trajectories?: number[][]; maxTrajectoryLength?: number }): void {
   try {
-    const snap = snapshot(engine)
+    const snap = snapshot(engine, extra)
     localStorage.setItem(KEY, JSON.stringify(snap))
   } catch (e) {
     console.warn('Failed to save engine snapshot:', e)
@@ -86,8 +86,8 @@ export function clearStoredSnapshot(): void {
 }
 
 /** Trigger a client-side download of the current snapshot as prettified JSON. */
-export function downloadSnapshot(engine: SimulationEngine): void {
-  const data = JSON.stringify(snapshot(engine), null, 2)
+export function downloadSnapshot(engine: SimulationEngine, extra?: { trajectories?: number[][]; maxTrajectoryLength?: number }): void {
+  const data = JSON.stringify(snapshot(engine, extra), null, 2)
   const a = document.createElement('a')
   a.href = 'data:application/json,' + encodeURIComponent(data)
   a.download = new Date().toISOString() + '-mdjs-snapshot.json'
