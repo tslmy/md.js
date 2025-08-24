@@ -306,7 +306,8 @@ docReady(() => {
     sphereMesh.addTo(scene)
     // Clone spheres (26 neighbor cells)
     const cloneOffsets = makeClonePositionsList(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ)
-    sphereCloneMesh = new InstancedSpheres(simState.N * cloneOffsets.length, { baseRadius: 0.1 })
+  // Make out-of-boundary (periodic clone) particles semi-transparent for visual distinction.
+  sphereCloneMesh = new InstancedSpheres(simState.N * cloneOffsets.length, { baseRadius: 0.1, opacity: 0.5 })
     sphereCloneMesh.addTo(scene)
     // Hide any legacy point-sprite based objects (main + periodic clones) to avoid lingering dots.
     scene.traverse(obj => { if ((obj as unknown as { isPoints?: boolean }).isPoints) obj.visible = false })

@@ -13,9 +13,13 @@ export class InstancedSpheres {
     private readonly colors: Float32Array
     private readonly colorAttr: InstancedBufferAttribute
 
-    constructor(count: number, params: { baseRadius?: number } = {}) {
+    constructor(count: number, params: { baseRadius?: number; opacity?: number; transparent?: boolean; depthWrite?: boolean } = {}) {
         this.count = count
         const baseRadius = params.baseRadius ?? 0.1
+        const opacity = params.opacity ?? 1
+        const transparent = params.transparent ?? (opacity < 1)
+        // If semi-transparent, default to disabling depthWrite to reduce halo artifacts of blending ordering
+        const depthWrite = params.depthWrite ?? !transparent
 
         const geo = new SphereGeometry(1, 24, 18)
         // Allocate custom per-instance color attribute.
@@ -24,7 +28,7 @@ export class InstancedSpheres {
         // (name must match attribute we inject into shader below)
         geo.setAttribute('instanceColor', this.colorAttr)
 
-        const mat = new MeshPhongMaterial({ color: 0xffffff, shininess: 40 })
+    const mat = new MeshPhongMaterial({ color: 0xffffff, shininess: 40, opacity, transparent, depthWrite })
         mat.onBeforeCompile = (shader) => {
             // Inject instanceColor varying
             shader.vertexShader = shader.vertexShader
