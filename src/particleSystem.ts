@@ -113,24 +113,18 @@ function seedParticles(particles: Particle[], scene: Scene, settings: Settings):
     })
   }
   for (let i = particles.length; i < settings.particleCount; i++) {
-    let position: Vector3
     let velocity: Vector3
+    const position = new Vector3(
+      random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
+      random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
+      random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
+    )
     if (settings.if_makeSun) {
-      position = new Vector3(
-        random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
-        random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
-        random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
-      )
       const r = position.length()
       const vy = Math.sqrt((settings.G * particles[0].mass) / r)
       velocity = new Vector3(0, vy, 0)
       if (i % 2 === 0) velocity.negate()
     } else {
-      position = new Vector3(
-        random(-settings.spaceBoundaryX, settings.spaceBoundaryX),
-        random(-settings.spaceBoundaryY, settings.spaceBoundaryY),
-        random(-settings.spaceBoundaryZ, settings.spaceBoundaryZ)
-      )
       velocity = new Vector3(0, 0, 0)
     }
     addParticle({
