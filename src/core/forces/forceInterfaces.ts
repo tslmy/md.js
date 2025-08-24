@@ -29,18 +29,18 @@ export interface ForceContext {
 export type PairHandler = (i: number, j: number, dx: number, dy: number, dz: number, r2: number) => void
 
 /**
- * Naive O(N^2) pair iterator with distance cutoff.
- * For each i<j pair inside cutoff^2 calls the handler once.
- * Future optimization path: replace with cell / neighbor list to cut complexity toward O(N).
+ * Pair iteration implementation signature.
+ * Replaces direct O(N^2) loops so we can later introduce spatial partition acceleration structures.
  */
-export function forEachPair(state: SimulationState, cutoff: number, handler: PairHandler): void {
+export type PairIterationImpl = (state: SimulationState, cutoff: number, handler: PairHandler) => void
+
+// Default naive implementation (module-local so tests can still wrap via setter)
+let pairImpl: PairIterationImpl = function naive(state, cutoff, handler) {
   const { N, positions } = state
   const cutoff2 = cutoff * cutoff
   for (let i = 0; i < N; i++) {
     const i3 = index3(i)
-    const ix = positions[i3]
-    const iy = positions[i3 + 1]
-    const iz = positions[i3 + 2]
+    const ix = positions[i3]; const iy = positions[i3 + 1]; const iz = positions[i3 + 2]
     for (let j = i + 1; j < N; j++) {
       const j3 = index3(j)
       const dx = ix - positions[j3]
@@ -51,3 +51,9 @@ export function forEachPair(state: SimulationState, cutoff: number, handler: Pai
     }
   }
 }
+
+/** Set the global pair iteration implementation (engine / tests). */
+export function setPairIterationImpl(fn: PairIterationImpl): void { pairImpl = fn }
+
+/** Execute the current pair iteration implementation. */
+export function forEachPair(state: SimulationState, cutoff: number, handler: PairHandler): void { pairImpl(state, cutoff, handler) }

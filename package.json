@@ -37,6 +37,7 @@
     "engine-persist": "npm run build && node scripts/testEnginePersist.mjs",
     "force-sym": "npm run build && node scripts/testForceSymmetry.mjs",
     "forcestest": "npm run build && node scripts/testForces.mjs",
+    "neighbor": "npm run build && node scripts/testNeighborList.mjs",
     "pairs": "npm run build && node scripts/testPairs.mjs",
     "persist": "npm run build && node scripts/testPersistence.mjs",
     "smoke": "node scripts/smoke.mjs",

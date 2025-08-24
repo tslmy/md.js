@@ -15,6 +15,7 @@ const testScripts = [
   'engine-persist',
   'engine-diagnostics'
   , 'engine-config'
+    , 'neighbor'
 ]
 
 const results = []

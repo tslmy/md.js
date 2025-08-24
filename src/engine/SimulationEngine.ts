@@ -8,6 +8,7 @@ import type { EngineConfig } from './config/types.js'
 import { validateEngineConfig } from './config/types.js'
 import { computeDiagnostics, type Diagnostics } from '../core/simulation/diagnostics.js'
 import type { ForceField } from '../core/forces/forceInterfaces.js'
+import { createNaiveNeighborStrategy, activateNeighborStrategy, type NeighborListStrategy } from '../core/neighbor/neighborList.js'
 
 /**
  * Lightweight event emitter (internal). Kept minimal to avoid pulling in a dependency.
@@ -77,6 +78,8 @@ export class SimulationEngine {
   private intervalId: ReturnType<typeof setInterval> | null = null
   /** Emit diagnostics each step (will become configurable). */
   private readonly diagnosticsEvery = 1
+  /** Active neighbor list strategy (currently naive only). */
+  private readonly neighborStrategy: NeighborListStrategy
 
   constructor(cfg: EngineConfig) {
     validateEngineConfig(cfg)
@@ -88,6 +91,8 @@ export class SimulationEngine {
       cutoff: cfg.runtime.cutoff
     })
     this.sim = this.buildSimulation()
+  this.neighborStrategy = createNaiveNeighborStrategy()
+  activateNeighborStrategy(this.neighborStrategy)
   }
 
   /** Subscribe to engine events. Returns an unsubscribe function. */
@@ -112,6 +117,10 @@ export class SimulationEngine {
   /** Perform one integration step. Emits a frame event. */
   step(): void {
     try {
+      // Rebuild neighbor list if strategy requires (future strategies may depend on cutoff changes)
+      if (this.neighborStrategy.rebuildEveryStep) {
+        this.neighborStrategy.rebuild(this.state, this.config.runtime.cutoff)
+      }
       this.sim.step()
       this.stepCount++
       this.emitter.emit('frame', { time: this.state.time, state: this.state, step: this.stepCount })
