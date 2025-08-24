@@ -35,6 +35,8 @@ export interface EngineRuntimeConfig {
   dt: number
   /** Pairwise distance cutoff (world units). */
   cutoff: number
+  /** Integrator selection (defaults to velocityVerlet). */
+  integrator?: 'velocityVerlet' | 'euler'
 }
 
 export interface EngineWorldConfig {
@@ -65,6 +67,9 @@ export function validateEngineConfig(cfg: EngineConfig): void {
     if (!Number.isFinite(v) || v <= 0) throw new Error(`Invalid numeric config '${name}': ${v}`)
   }
   if (cfg.world.particleCount <= 0) throw new Error('particleCount must be > 0')
+  if (cfg.runtime.integrator && cfg.runtime.integrator !== 'velocityVerlet' && cfg.runtime.integrator !== 'euler') {
+    throw new Error('Unsupported integrator ' + cfg.runtime.integrator)
+  }
 }
 
 /** Provide a basic default mapping from legacy settings to new config. */

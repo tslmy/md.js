@@ -1,6 +1,6 @@
 import { Simulation } from '../core/simulation/Simulation.js'
 import { createState, type SimulationState } from '../core/simulation/state.js'
-import { VelocityVerlet } from '../core/simulation/integrators.js'
+import { VelocityVerlet, EulerIntegrator } from '../core/simulation/integrators.js'
 import { LennardJones } from '../core/forces/lennardJones.js'
 import { Gravity } from '../core/forces/gravity.js'
 import { Coulomb } from '../core/forces/coulomb.js'
@@ -105,7 +105,8 @@ export class SimulationEngine {
     if (this.config.forces.lennardJones) forces.push(new LennardJones({ epsilon: this.config.constants.epsilon, sigma: this.config.constants.sigma }))
     if (this.config.forces.gravity) forces.push(new Gravity({ G: this.config.constants.G }))
     if (this.config.forces.coulomb) forces.push(new Coulomb({ K: this.config.constants.K }))
-    return new Simulation(this.state, VelocityVerlet, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff })
+    const integrator = this.config.runtime.integrator === 'euler' ? EulerIntegrator : VelocityVerlet
+    return new Simulation(this.state, integrator, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff })
   }
 
   /** Perform one integration step. Emits a frame event. */

@@ -14,6 +14,7 @@ const testScripts = [
   'persist',
   'engine-persist',
   'engine-diagnostics'
+  , 'engine-config'
 ]
 
 const results = []
