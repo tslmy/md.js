@@ -4,7 +4,17 @@
 
 import { Color } from 'three'
 
-const columnNames = ['speed', 'kineticEnergy', 'LJForceStrength', 'GravitationForceStrength', 'CoulombForceStrength', 'TotalForceStrength']
+// Column order must match <thead> in index.html
+const columnNames = [
+  'mass',
+  'charge',
+  'speed',
+  'kineticEnergy',
+  'LJForceStrength',
+  'GravitationForceStrength',
+  'CoulombForceStrength',
+  'TotalForceStrength'
+]
 
 /**
  * There's a table that displays particle information.
@@ -17,7 +27,7 @@ function addParticleToTable(color: Color) {
   particleColumn.innerText = '⬤'
   particleColumn.style.color = '#' + color.getHexString()
   tableRow.appendChild(particleColumn)
-  // mass & charge columns removed (HUD now updated from state arrays)
+  // Create one <td> for each data column (mass/charge + dynamics/forces)
   for (const columnName of columnNames) {
     const column = document.createElement('td')
     column.classList.add(columnName)
@@ -38,7 +48,7 @@ export function seedColorsAndPopulateTable(colors: Color[], particleCount: numbe
   }
 }
 
-export function updateHudRow(i: number, d: { mass: number; vx: number; vy: number; vz: number; fx: number; fy: number; fz: number; perForce?: Record<string, Float32Array> }): void {
+export function updateHudRow(i: number, d: { mass: number; charge: number; vx: number; vy: number; vz: number; fx: number; fy: number; fz: number; perForce?: Record<string, Float32Array> }): void {
   const row = document.querySelector<HTMLElement>(`#tabularInfo > tbody > tr:nth-child(${i + 1})`)
   if (!row) return
   const rnd = (v: number) => `${Math.round(v * 100) / 100}`
@@ -46,6 +56,12 @@ export function updateHudRow(i: number, d: { mass: number; vx: number; vy: numbe
   const speed = Math.sqrt(speed2)
   const forceMag = Math.hypot(d.fx, d.fy, d.fz)
   const set = (cls: string, val: string) => { const el = row.querySelector<HTMLElement>(cls); if (el) el.textContent = val }
+  set('.mass', rnd(d.mass))
+  let chargeText: string
+  if (d.charge === 0) chargeText = '0'
+  else if (d.charge > 0) chargeText = `+${d.charge}`
+  else chargeText = `${d.charge}`
+  set('.charge', chargeText)
   set('.speed', rnd(speed))
   set('.kineticEnergy', rnd(speed2 * d.mass * 0.5))
   set('.TotalForceStrength', rnd(forceMag))

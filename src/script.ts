@@ -72,7 +72,7 @@ function updateFromSimulation(frameOffset: Vector3): void {
 
 function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: Vector3, perForce: Record<string, Float32Array>): void {
   if (!simState) return
-  const { positions, velocities, forces, masses } = simState
+  const { positions, velocities, forces, masses, charges } = simState
   // Prefer authoritative escaped flag from core state over legacy per-Particle flag.
   if (simState.escaped && simState.escaped[i] === 1) return
   const i3 = 3 * i
@@ -95,7 +95,7 @@ function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift:
   const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2]
   // Store final (display) position for tests & capture
   // (no longer caching display-space positions)
-  if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, vx, vy, vz, fx, fy, fz, perForce })
+  if (hudVisible) updateHudRow(i, { mass: masses[i] || 1, charge: charges[i] || 0, vx, vy, vz, fx, fy, fz, perForce })
 }
 
 function updateSpheres(frameOffset: Vector3): void {
