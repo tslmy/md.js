@@ -9,6 +9,7 @@ import type { Diagnostics } from './core/simulation/diagnostics.js'
 // Experimental engine
 import { SimulationEngine } from './engine/SimulationEngine.js'
 import { fromSettings } from './engine/config/types.js'
+import { initSettingsSync, pushSettingsToEngine } from './engine/settingsSync.js'
 // global variables
 interface StereoEffectLike { render(scene: THREE.Scene, camera: THREE.Camera): void; setSize?(w: number, h: number): void }
 interface ControlsLike { update(): void }
@@ -269,8 +270,10 @@ docReady(() => {
     engine = new SimulationEngine(fromSettings(settings))
     engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
     simState = engine.getState()
+    initSettingsSync(engine)
   } else {
     simState = engine.getState()
+    initSettingsSync(engine)
   }
   engine.on('frame', ({ time: t }) => { time = t; applyVisualUpdates() })
   engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
@@ -285,6 +288,9 @@ docReady(() => {
     if (e.key === 'Tab') {
       e.preventDefault()
       toggle('#hud')
+    }
+    if (e.key === 'p') { // quick dev key: push current settings to engine
+      if (engine) pushSettingsToEngine(engine)
     }
   })
 })

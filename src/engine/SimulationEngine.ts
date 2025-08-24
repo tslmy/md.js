@@ -44,6 +44,8 @@ interface EngineEvents {
   config: EngineConfig
   /** Fatal error inside the step loop (engine will auto‑pause). */
   error: Error
+  /** Fired after internal state buffers are reallocated due to particle count resize. */
+  stateReallocated: SimulationState
 }
 
 /** Options controlling run loop behavior. */
@@ -68,7 +70,8 @@ export interface EngineRunOptions {
  */
 export class SimulationEngine {
   private config: EngineConfig
-  private readonly state: SimulationState
+  // State becomes mutable reference so we can swap on particle count resize.
+  private state: SimulationState
   private sim: Simulation
   private stepCount = 0
   private readonly emitter = new Emitter<EngineEvents>()
@@ -198,7 +201,10 @@ export class SimulationEngine {
       constants: { ...this.config.constants, ...(patch.constants || {}) }
     }
     validateEngineConfig(this.config)
-    // Currently we do NOT recreate state; only forces & dt/cutoff are applied.
+    // If particle count changed, resize state.
+    if (patch.world?.particleCount && patch.world.particleCount !== this.state.N) {
+      this.resizeParticleCount(patch.world.particleCount)
+    }
     this.sim = this.buildSimulation()
     if (patch.neighbor?.strategy && patch.neighbor.strategy !== this.neighborStrategy.name) {
       this.neighborStrategy = patch.neighbor.strategy === 'cell' ? createCellNeighborStrategy() : createNaiveNeighborStrategy()
@@ -227,6 +233,33 @@ export class SimulationEngine {
     if (p.velocities) this.state.velocities.set(p.velocities.subarray(0, this.state.velocities.length))
     if (p.masses) this.state.masses.set(p.masses.subarray(0, this.state.masses.length))
     if (p.charges) this.state.charges.set(p.charges.subarray(0, this.state.charges.length))
+  }
+
+  /**
+   * Reallocate internal state buffers for a new particle count. Existing per-particle
+   * data is copied (truncated or zero-padded). Visual layer must refresh references.
+   */
+  resizeParticleCount(newCount: number): void {
+    if (newCount <= 0) throw new Error('newCount must be > 0')
+    if (newCount === this.state.N) return
+    const old = this.state
+    const copyN = Math.min(old.N, newCount)
+    const next = createState({
+      particleCount: newCount,
+      box: this.config.world.box,
+      dt: this.config.runtime.dt,
+      cutoff: this.config.runtime.cutoff
+    }, { time: old.time })
+    next.positions.set(old.positions.subarray(0, copyN * 3))
+    next.velocities.set(old.velocities.subarray(0, copyN * 3))
+    next.forces.set(old.forces.subarray(0, copyN * 3))
+    next.masses.set(old.masses.subarray(0, copyN))
+    next.charges.set(old.charges.subarray(0, copyN))
+    next.escaped.set(old.escaped.subarray(0, copyN))
+    this.config.world.particleCount = newCount
+    this.state = next
+    this.sim = this.buildSimulation()
+    this.emitter.emit('stateReallocated', this.state)
   }
 }
 
