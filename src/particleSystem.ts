@@ -1,4 +1,5 @@
-import { Color, Vector3, Line, Scene, BufferGeometry, BufferAttribute, LineBasicMaterial } from 'three'
+import { Color, Vector3, Line, Scene } from 'three'
+import { makeTrajectory } from './drawingHelpers.js'
 // Type alias for settings shape (imported dynamically); avoids circular dep.
 type Settings = typeof import('./settings.js').settings
 
@@ -77,26 +78,6 @@ function addParticleToTable(color: Color, mass: number, charge: number) {
   }
   const tbody = document.querySelector<HTMLTableSectionElement>('#tabularInfo > tbody')
   if (tbody) tbody.appendChild(tableRow)
-}
-
-/**
- *  Make objects that will contain the trajectory points.
- * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
- */
-function makeTrajectory(color: Color, position: Vector3, maxLen: number): Line {
-  const geom = new BufferGeometry()
-  const pts = new Float32Array(maxLen * 3)
-  const cols = new Float32Array(maxLen * 3)
-  geom.setAttribute('position', new BufferAttribute(pts, 3))
-  geom.setAttribute('color', new BufferAttribute(cols, 3))
-  const white = new Color('#FFFFFF')
-  for (let i = 0; i < maxLen; i++) {
-    const t = (maxLen - i) / maxLen
-    const c = color.clone().lerp(white, t)
-      ; (geom.attributes.color as BufferAttribute).setXYZ(i, c.r, c.g, c.b)
-      ; (geom.attributes.position as BufferAttribute).setXYZ(i, position.x, position.y, position.z)
-  }
-  return new Line(geom, new LineBasicMaterial({ linewidth: 1, vertexColors: true }))
 }
 
 /**
