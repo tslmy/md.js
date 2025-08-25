@@ -23,6 +23,25 @@ export function toggle(selector: string): void {
 
 export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D | null): void {
     try { _activeGui?.destroy(); _activeGui = null } catch { /* ignore */ }
+    // Backward compatibility: if persisted settings were saved before new keys (Ewald params) existed,
+    // ensure properties are present so dat.GUI can bind controllers without throwing.
+    // Migration: persisted settings from versions before Ewald params lack these keys.
+    // Some users reported a dat.GUI error: "Object '[object Object]' has no property 'ewaldAlpha'" even though
+    // the settings export defines it. To be maximally defensive we re-check *and* define numeric defaults if
+    // absent or still undefined so dat.GUI never rejects the controller creation.
+    const ensureProp = <K extends keyof SettingsLike>(key: K, fallback: number) => {
+        if (!(key in settings)) {
+            (settings as Record<string, unknown>)[key as string] = fallback
+            console.debug('[panel] Injected missing settings key', key, '=>', fallback)
+        } else if ((settings as Record<string, unknown>)[key as string] == null) {
+            // Normalize null/undefined to a numeric fallback so sliders work.
+            ; (settings as Record<string, unknown>)[key as string] = fallback
+        }
+    }
+    const Lmin = Math.min(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ) || 1
+    // Heuristic defaults: alpha ~ 5/Lmin, kMax modest integer for starter performance.
+    ensureProp('ewaldAlpha' as keyof SettingsLike, 5 / Lmin)
+    ensureProp('ewaldKMax' as keyof SettingsLike, 6)
     const gui = new GUI(); _activeGui = gui
     const guiFolderWorld = gui.addFolder('World building')
     guiFolderWorld.add(settings, 'if_constant_temperature').name('Constant T')
@@ -30,7 +49,15 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     const guiFolderParameters = guiFolderWorld.addFolder('Parameters')
     guiFolderParameters.add(settings, 'particleCount')
     guiFolderParameters.add(settings, 'dt')
-    guiFolderParameters.add(settings, 'cutoffDistance').name('Cutoff')
+    // Enforce LJ cutoff not exceeding half-box length (minimum of half-lengths) for physical correctness under PBC.
+    const cutoffController = guiFolderParameters.add(settings, 'cutoffDistance').name('Cutoff')
+    const clampCutoff = () => {
+        const maxHalf = Math.min(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ)
+        if (settings.cutoffDistance > maxHalf) settings.cutoffDistance = maxHalf
+        if (settings.cutoffDistance <= 0) settings.cutoffDistance = maxHalf * 0.1 // arbitrary small positive default
+        cutoffController.updateDisplay()
+    }
+    cutoffController.onChange(clampCutoff)
     guiFolderParameters.add(settings, 'integrator', { 'Velocity Verlet': 'velocityVerlet', 'Euler': 'euler' }).name('Integrator')
     guiFolderParameters.add(settings, 'neighborStrategy', { 'Cell': 'cell', 'Naive': 'naive' }).name('Neighbor list')
     const guiFolderConstants = guiFolderWorld.addFolder('Physical Constants')
@@ -39,13 +66,25 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     guiFolderConstants.add(settings, 'G')
     guiFolderConstants.add(settings, 'K')
     guiFolderConstants.add(settings, 'kB').name('kB')
+    const guiFolderEwald = guiFolderWorld.addFolder('Ewald (PBC long-range)')
+    try {
+        guiFolderEwald.add(settings, 'ewaldAlpha').name('Alpha').onChange(() => { /* engine auto-push will rebuild forces */ })
+    } catch (e) {
+        console.error('Failed adding ewaldAlpha controller; settings keys present?', e, settings)
+    }
+    try {
+        guiFolderEwald.add(settings, 'ewaldKMax').name('kMax').onChange(() => { /* engine auto-push will rebuild forces */ })
+    } catch (e) {
+        console.error('Failed adding ewaldKMax controller; settings keys present?', e, settings)
+    }
     const guiFolderBoundary = guiFolderWorld.addFolder('Universe boundary')
     guiFolderBoundary.add(settings, 'if_showUniverseBoundary')
     guiFolderBoundary.add(settings, 'if_use_periodic_boundary_condition').name('Use PBC')
     const guiFolderSize = guiFolderBoundary.addFolder('Custom size')
-    guiFolderSize.add(settings, 'spaceBoundaryX').name('Size, X').onChange(() => { if (boxMesh) boxMesh.scale.x = settings.spaceBoundaryX / originalSpaceBoundaryX })
-    guiFolderSize.add(settings, 'spaceBoundaryY').name('Size, Y').onChange(() => { if (boxMesh) boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY })
-    guiFolderSize.add(settings, 'spaceBoundaryZ').name('Size, Z').onChange(() => { if (boxMesh) boxMesh.scale.z = settings.spaceBoundaryZ / originalSpaceBoundaryZ })
+    const wrapBoxChange = (axis: 'spaceBoundaryX' | 'spaceBoundaryY' | 'spaceBoundaryZ', update: () => void) => () => { update(); clampCutoff(); cutoffController.updateDisplay() }
+    guiFolderSize.add(settings, 'spaceBoundaryX').name('Size, X').onChange(wrapBoxChange('spaceBoundaryX', () => { if (boxMesh) boxMesh.scale.x = settings.spaceBoundaryX / originalSpaceBoundaryX }))
+    guiFolderSize.add(settings, 'spaceBoundaryY').name('Size, Y').onChange(wrapBoxChange('spaceBoundaryY', () => { if (boxMesh) boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY }))
+    guiFolderSize.add(settings, 'spaceBoundaryZ').name('Size, Z').onChange(wrapBoxChange('spaceBoundaryZ', () => { if (boxMesh) boxMesh.scale.z = settings.spaceBoundaryZ / originalSpaceBoundaryZ }))
     const guiFolderForces = guiFolderWorld.addFolder('Forcefields to apply')
     guiFolderForces.add(settings, 'if_apply_LJpotential').name('LJ potential')
     guiFolderForces.add(settings, 'if_apply_gravitation').name('Gravitation')
