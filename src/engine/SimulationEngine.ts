@@ -126,7 +126,14 @@ export class SimulationEngine {
       const volume = (2 * box.x) * (2 * box.y) * (2 * box.z)
       const spacing = Math.cbrt(volume / N)
       const softening = 0.15 * spacing
+      if (this.config.runtime.pbc) {
+        const Lmin = 2 * Math.min(box.x, box.y, box.z)
+        const alpha = this.config.runtime.ewaldAlpha ?? (5 / Lmin)
+        const kMax = this.config.runtime.ewaldKMax ?? 3
+        forces.push(new EwaldGravity(this.config.constants.G, { alpha, kMax }))
+      } else {
       forces.push(new Gravity({ G: this.config.constants.G, softening }))
+      }
     }
     if (this.config.forces.coulomb) {
       // Use a slightly smaller softening for Coulomb (repulsion often prevents extreme overlap)
@@ -135,7 +142,14 @@ export class SimulationEngine {
       const volume = (2 * box.x) * (2 * box.y) * (2 * box.z)
       const spacing = Math.cbrt(volume / N)
       const softening = 0.1 * spacing
+      if (this.config.runtime.pbc) {
+        const Lmin = 2 * Math.min(box.x, box.y, box.z)
+        const alpha = this.config.runtime.ewaldAlpha ?? (5 / Lmin)
+        const kMax = this.config.runtime.ewaldKMax ?? 3
+        forces.push(new EwaldCoulomb(this.config.constants.K, { alpha, kMax }))
+      } else {
       forces.push(new Coulomb({ K: this.config.constants.K, softening }))
+      }
     }
     const integrator = this.config.runtime.integrator === 'euler' ? EulerIntegrator : VelocityVerlet
     const sim = new Simulation(this.state, integrator, forces, { dt: this.config.runtime.dt, cutoff: this.config.runtime.cutoff })
