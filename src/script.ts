@@ -4,7 +4,7 @@ import { toggle } from './control/panel.js'
 import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
 import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
-import { Scene, Camera, PerspectiveCamera, WebGLRenderer, Color, Vector3, BufferAttribute, Mesh, MeshBasicMaterial, RingGeometry } from 'three'
+import { Scene, Camera, PerspectiveCamera, WebGLRenderer, Color, Vector3, BufferAttribute } from 'three'
 // New SoA simulation core imports
 import { createState, seedInitialState, type SimulationState } from './core/simulation/state.js'
 import { generateMassesCharges, generatePositions } from './core/simulation/seeding.js'
@@ -19,6 +19,7 @@ import { createArrows, updateScaleBars, finalizeArrows, type ArrowSet } from './
 import { getHud } from './visual/coloringAndDataSheet.js'
 import { computeCircularOrbitVelocity } from './core/simulation/orbitInit.js'
 import { minimumImageCoord, makeClonePositionsList } from './core/pbc.js'
+import { createWrapMarker, updateWrapMarkers, type WrapEventRecord } from './visual/wrapMarkers.js'
 
 // global variables
 interface StereoEffectLike { render(scene: Scene, camera: Camera): void; setSize?(w: number, h: number): void }
@@ -42,78 +43,7 @@ let lastDiagnostics: Diagnostics | undefined
 let arrows: ArrowSet | undefined
 let sphereMesh: InstancedSpheres | undefined
 let sphereCloneMesh: InstancedSpheres | undefined
-// Portal wrap markers
-type WrapSurface = { axis: 'x' | 'y' | 'z'; sign: 1 | -1 }
-type WrapCrossing = { axis: 'x' | 'y' | 'z'; sign: 1 | -1; exit: { x: number; y: number; z: number }; entry: { x: number; y: number; z: number } }
-type WrapEventRecord = { i: number; dx: number; dy: number; dz: number; surfaces: WrapSurface[]; rawX: number; rawY: number; rawZ: number; crossings: WrapCrossing[] }
-interface WrapMarker { mesh: Mesh; birth: number }
-const wrapMarkers: WrapMarker[] = []
-const WRAP_MARKER_LIFETIME = 2_000 // ms
-const WRAP_MARKER_RADIUS = 0.4
-const WRAP_MARKER_THICKNESS = 0.05
-
-function createWrapMarker(
-  scene: Scene,
-  surface: WrapSurface,
-  rawWorld: { x: number; y: number; z: number },
-  frameOffset: Vector3,
-  color: number
-): void {
-  const inner = WRAP_MARKER_RADIUS - WRAP_MARKER_THICKNESS
-  const geom = new RingGeometry(inner, WRAP_MARKER_RADIUS, 32)
-  const mat = new MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: 2 })
-  const ring = new Mesh(geom, mat)
-  // Position ring flush with boundary plane, centered; orientation depends on axis.
-  const bx = settings.spaceBoundaryX
-  const by = settings.spaceBoundaryY
-  const bz = settings.spaceBoundaryZ
-  let half = bx
-  if (surface.axis === 'y') half = by
-  else if (surface.axis === 'z') half = bz
-  const dist = surface.sign * half
-  // Convert raw world coords to frame-relative then minimum-image display space so marker aligns with display-wrapped particles.
-  const relX = rawWorld.x - frameOffset.x
-  const relY = rawWorld.y - frameOffset.y
-  const relZ = rawWorld.z - frameOffset.z
-  const disp = settings.if_use_periodic_boundary_condition
-    ? minimumImageVec(new Vector3(), relX, relY, relZ)
-    : new Vector3(relX, relY, relZ)
-  if (surface.axis === 'x') {
-    ring.position.set(dist, disp.y, disp.z)
-    ring.rotation.y = Math.PI / 2
-  } else if (surface.axis === 'y') {
-    ring.position.set(disp.x, dist, disp.z)
-    ring.rotation.x = -Math.PI / 2
-  } else { // z
-    ring.position.set(disp.x, disp.y, dist)
-  }
-  scene.add(ring)
-  wrapMarkers.push({ mesh: ring, birth: performance.now() })
-}
-
-function updateWrapMarkers(): void {
-  const now = performance.now()
-  for (let i = wrapMarkers.length - 1; i >= 0; i--) {
-    const m = wrapMarkers[i]
-    const age = now - m.birth
-    if (age > WRAP_MARKER_LIFETIME) {
-      scene.remove(m.mesh)
-      m.mesh.geometry.dispose()
-      if (Array.isArray(m.mesh.material)) m.mesh.material.forEach(mt => mt.dispose())
-      else m.mesh.material.dispose()
-      wrapMarkers.splice(i, 1)
-    } else {
-      const t = age / WRAP_MARKER_LIFETIME
-      const fade = 1 - t
-      const mat = m.mesh.material as MeshBasicMaterial
-      mat.opacity = fade
-      mat.needsUpdate = true
-      // Optional subtle scale pulse
-      const scale = 1 + 0.2 * t
-      m.mesh.scale.set(scale, scale, scale)
-    }
-  }
-}
+// Portal wrap markers moved to visual/wrapMarkers.ts
 
 // Array of per-particle colors.
 const colors: Color[] = []
@@ -243,7 +173,7 @@ function applyVisualUpdates(): void {
   updateScaleBars(lastDiagnostics)
   const frameOffset = computeFrameOffset()
   updateFromSimulation(frameOffset)
-  updateWrapMarkers()
+  updateWrapMarkers(scene)
   // Update / toggle arrows after particle positions refreshed
   if (arrows) finalizeArrows(arrows, simState, lastDiagnostics, frameOffset)
   if (shouldShiftTrajectory(time)) markTrajectorySnapshot(time)
