@@ -7,8 +7,11 @@ import net from 'node:net'
 async function findPort(start = 8123) {
   const attempt = (p: number) => new Promise<number>(resolve => {
     const srv = net.createServer()
-    srv.once('error', () => resolve(0))
-    srv.listen(p, () => { srv.close(() => resolve(p)) })
+    const handleError = () => resolve(0)
+    function finish() { resolve(p) }
+    function handleListen() { srv.close(finish) }
+    srv.once('error', handleError)
+    srv.listen(p, handleListen)
   })
   for (let p = start; p < start + 50; p++) {
     const got = await attempt(p)
@@ -32,7 +35,7 @@ async function waitForServer(port: number, retries = 40) {
   throw new Error('Server not ready')
 }
 
-type MdJsApi = { settings?: { referenceFrameMode: string }; simState?: { time: number; positions: Float32Array; N: number } }
+type MdJsApi = { settings?: { referenceFrameMode: string }; simState?: { time: number; positions: Float32Array; N: number }; ready?: boolean }
 
 describe('browser integration', () => {
   it('smoke: page loads, particles move, persistence stores snapshot', async () => {
@@ -44,6 +47,8 @@ describe('browser integration', () => {
       const browser = await puppeteer.launch({ headless: true })
       const page = await browser.newPage()
       await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 20000 })
+      // Wait for simulation readiness flag to avoid race with engine construction.
+      await page.waitForFunction(() => (window as unknown as { __mdjs?: MdJsApi }).__mdjs?.ready === true, { timeout: 5000 })
       const initial = await page.evaluate(() => {
         const api = (globalThis as unknown as { __mdjs?: MdJsApi }).__mdjs
         const out: { x: number; y: number; z: number }[] = []
@@ -97,12 +102,13 @@ describe('browser integration', () => {
       const browser = await puppeteer.launch({ headless: true })
       const page = await browser.newPage()
       await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'load', timeout: 15000 })
-      await new Promise(r => setTimeout(r, 400))
+      await page.waitForFunction(() => (window as unknown as { __mdjs?: MdJsApi }).__mdjs?.ready === true, { timeout: 5000 })
       const distCentered = await page.evaluate(() => {
         const api = (globalThis as unknown as { __mdjs?: MdJsApi }).__mdjs
         if (!api?.simState) return null
-        // In centered (sun) frame particle 0 appears at origin
-        return 0
+        const { positions } = api.simState
+        // Distance of particle 0 from origin in current (possibly centered) frame.
+        return Math.hypot(positions[0], positions[1], positions[2])
       })
       expect(distCentered).not.toBeNull()
       expect(distCentered as number).toBeLessThan(0.05)
