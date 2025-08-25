@@ -56,16 +56,14 @@ function computeKineticAndExtrema(state: SimulationState): { kinetic: number; ma
 
 /**
  * Recompute total potential energy for currently enabled force fields using
- * the same O(N^2) pair iterator with cutoff as force accumulation.
+ * the same O(N^2) pair iterator with cutoff as force accumulation (or periodic
+ * variant if implemented). Periodic Ewald forces provide their own potential.
  * NOTE: This duplicates pair iteration per force and is intentionally simple
  * for an initial diagnostics step (can be optimized by sharing pair loops later).
  */
 function computePotential(state: SimulationState, forces: ForceField[], _cutoff: number): number {
   let pot = 0
-  for (const f of forces) {
-    // ForceField interface marks potential as optional; skip if absent
-    if (f.potential) pot += f.potential(state, { cutoff: _cutoff })
-  }
+  for (const f of forces) if (f.potential) pot += f.potential(state, { cutoff: _cutoff })
   return pot
 }
 
