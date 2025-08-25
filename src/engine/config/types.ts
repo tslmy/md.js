@@ -44,6 +44,10 @@ export interface EngineRuntimeConfig {
   integrator?: 'velocityVerlet' | 'euler'
   /** Enable periodic boundary condition wrapping (positions confined to box). */
   pbc?: boolean
+  /** Optional Ewald splitting parameter alpha (auto-chosen if omitted). */
+  ewaldAlpha?: number
+  /** Optional Ewald reciprocal lattice limit (integer kMax, auto if omitted). */
+  ewaldKMax?: number
 }
 
 export interface EngineWorldConfig {
@@ -78,6 +82,8 @@ export function validateEngineConfig(cfg: EngineConfig): void {
     ['K', cfg.constants.K],
     ['kB', cfg.constants.kB]
   ]
+  if (cfg.runtime.ewaldAlpha != null) nums.push(['ewaldAlpha', cfg.runtime.ewaldAlpha])
+  if (cfg.runtime.ewaldKMax != null) nums.push(['ewaldKMax', cfg.runtime.ewaldKMax])
   for (const [name, v] of nums) {
     if (!Number.isFinite(v) || v <= 0) throw new Error(`Invalid numeric config '${name}': ${v}`)
   }
@@ -100,6 +106,8 @@ interface SettingsLike {
   EPSILON: number; DELTA: number; G: number; K: number; kB: number
   integrator?: 'velocityVerlet' | 'euler'
   neighborStrategy?: 'naive' | 'cell'
+  ewaldAlpha?: number
+  ewaldKMax?: number
 }
 
 /**
@@ -110,6 +118,8 @@ export function fromSettings(settings: SettingsLike): EngineConfig {
   const runtime: EngineRuntimeConfig = { dt: settings.dt, cutoff: settings.cutoffDistance }
   if (settings.integrator) runtime.integrator = settings.integrator
   if (settings.if_use_periodic_boundary_condition != null) runtime.pbc = settings.if_use_periodic_boundary_condition
+  if (settings.ewaldAlpha != null) runtime.ewaldAlpha = settings.ewaldAlpha
+  if (settings.ewaldKMax != null) runtime.ewaldKMax = settings.ewaldKMax
   return {
     world: { particleCount: settings.particleCount, box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ } },
     runtime,
