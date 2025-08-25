@@ -60,7 +60,9 @@ export class Simulation {
     for (let k = 0; k < this.forces.length; k++) {
       // Snapshot current accumulated forces
       this.baseForces.set(forces)
-      this.forces[k].apply(this.state, ctx)
+      const f = this.forces[k]
+      // Force implementations are now responsible for honoring PBC internally (Ewald etc.).
+      f.apply(this.state, ctx)
       const out = this.perForce[k]
       // delta = new - base
       for (let i = 0; i < forces.length; i++) out[i] = forces[i] - this.baseForces[i]

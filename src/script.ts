@@ -4,7 +4,7 @@ import { toggle } from './control/panel.js'
 import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
 import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
-import { Scene, Camera, PerspectiveCamera, WebGLRenderer, Color, Vector3, BufferAttribute } from 'three'
+import { Scene, Camera, PerspectiveCamera, WebGLRenderer, Color, Vector3, BufferAttribute, Mesh, MeshBasicMaterial, RingGeometry } from 'three'
 // New SoA simulation core imports
 import { createState, seedInitialState, type SimulationState } from './core/simulation/state.js'
 import { generateMassesCharges, generatePositions } from './core/simulation/seeding.js'
@@ -14,10 +14,11 @@ import { SimulationEngine } from './engine/SimulationEngine.js'
 import { fromSettings } from './engine/config/types.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
-import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer, applyPbc } from './visual/trajectory.js'
+import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer } from './visual/trajectory.js'
 import { createArrows, updateScaleBars, finalizeArrows, type ArrowSet } from './visual/arrows.js'
 import { getHud } from './visual/coloringAndDataSheet.js'
 import { computeCircularOrbitVelocity } from './core/simulation/orbitInit.js'
+import { minimumImageCoord, makeClonePositionsList } from './core/pbc.js'
 
 // global variables
 interface StereoEffectLike { render(scene: Scene, camera: Camera): void; setSize?(w: number, h: number): void }
@@ -41,14 +42,96 @@ let lastDiagnostics: Diagnostics | undefined
 let arrows: ArrowSet | undefined
 let sphereMesh: InstancedSpheres | undefined
 let sphereCloneMesh: InstancedSpheres | undefined
+// Portal wrap markers
+type WrapSurface = { axis: 'x' | 'y' | 'z'; sign: 1 | -1 }
+type WrapCrossing = { axis: 'x' | 'y' | 'z'; sign: 1 | -1; exit: { x: number; y: number; z: number }; entry: { x: number; y: number; z: number } }
+type WrapEventRecord = { i: number; dx: number; dy: number; dz: number; surfaces: WrapSurface[]; rawX: number; rawY: number; rawZ: number; crossings: WrapCrossing[] }
+interface WrapMarker { mesh: Mesh; birth: number }
+const wrapMarkers: WrapMarker[] = []
+const WRAP_MARKER_LIFETIME = 2_000 // ms
+const WRAP_MARKER_RADIUS = 0.4
+const WRAP_MARKER_THICKNESS = 0.05
+
+function createWrapMarker(
+  scene: Scene,
+  surface: WrapSurface,
+  rawWorld: { x: number; y: number; z: number },
+  frameOffset: Vector3,
+  color: number
+): void {
+  const inner = WRAP_MARKER_RADIUS - WRAP_MARKER_THICKNESS
+  const geom = new RingGeometry(inner, WRAP_MARKER_RADIUS, 32)
+  const mat = new MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: 2 })
+  const ring = new Mesh(geom, mat)
+  // Position ring flush with boundary plane, centered; orientation depends on axis.
+  const bx = settings.spaceBoundaryX
+  const by = settings.spaceBoundaryY
+  const bz = settings.spaceBoundaryZ
+  let half = bx
+  if (surface.axis === 'y') half = by
+  else if (surface.axis === 'z') half = bz
+  const dist = surface.sign * half
+  // Convert raw world coords to frame-relative then minimum-image display space so marker aligns with display-wrapped particles.
+  const relX = rawWorld.x - frameOffset.x
+  const relY = rawWorld.y - frameOffset.y
+  const relZ = rawWorld.z - frameOffset.z
+  const disp = settings.if_use_periodic_boundary_condition
+    ? minimumImageVec(new Vector3(), relX, relY, relZ)
+    : new Vector3(relX, relY, relZ)
+  if (surface.axis === 'x') {
+    ring.position.set(dist, disp.y, disp.z)
+    ring.rotation.y = Math.PI / 2
+  } else if (surface.axis === 'y') {
+    ring.position.set(disp.x, dist, disp.z)
+    ring.rotation.x = -Math.PI / 2
+  } else { // z
+    ring.position.set(disp.x, disp.y, dist)
+  }
+  scene.add(ring)
+  wrapMarkers.push({ mesh: ring, birth: performance.now() })
+}
+
+function updateWrapMarkers(): void {
+  const now = performance.now()
+  for (let i = wrapMarkers.length - 1; i >= 0; i--) {
+    const m = wrapMarkers[i]
+    const age = now - m.birth
+    if (age > WRAP_MARKER_LIFETIME) {
+      scene.remove(m.mesh)
+      m.mesh.geometry.dispose()
+      if (Array.isArray(m.mesh.material)) m.mesh.material.forEach(mt => mt.dispose())
+      else m.mesh.material.dispose()
+      wrapMarkers.splice(i, 1)
+    } else {
+      const t = age / WRAP_MARKER_LIFETIME
+      const fade = 1 - t
+      const mat = m.mesh.material as MeshBasicMaterial
+      mat.opacity = fade
+      mat.needsUpdate = true
+      // Optional subtle scale pulse
+      const scale = 1 + 0.2 * t
+      m.mesh.scale.set(scale, scale, scale)
+    }
+  }
+}
 
 // Array of per-particle colors.
 const colors: Color[] = []
 // Trajectories managed in visual/trajectory.ts
 let time = 0
+// Track previous frame offset to adjust trajectory history on wrap events.
+const lastFrameOffset = new Vector3(0, 0, 0)
 
-// Expose minimal state for headless smoke tests (non-production usage)
-declare global { interface Window { __mdjs?: { colors: Color[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics }; __pauseEngine?: () => void } }
+// Expose minimal state for headless smoke tests (non-production usage). We install a stub immediately
+// (before DOM ready) so test harness code that runs right after the load event always sees an object.
+declare global { interface Window { __mdjs?: { colors: Color[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics; ready?: boolean }; __pauseEngine?: () => void } }
+if (typeof window !== 'undefined') {
+  // Preserve any existing reference (in case of hot reload) and just update fields.
+  const api = window.__mdjs || (window.__mdjs = { colors, settings })
+  api.colors = colors
+  api.settings = settings
+  api.ready = false
+}
 
 /**
  * el: the DOM element you'd like to test for visibility.
@@ -58,8 +141,16 @@ function isVisible(el: HTMLElement | null): boolean {
 }
 
 
-const _tmpDir = new Vector3()
 const _tmpFrom = new Vector3()
+
+// Minimum-image vector helper using shared coordinate function
+function minimumImageVec(out: Vector3, x: number, y: number, z: number): Vector3 {
+  return out.set(
+    minimumImageCoord(x, settings.spaceBoundaryX),
+    minimumImageCoord(y, settings.spaceBoundaryY),
+    minimumImageCoord(z, settings.spaceBoundaryZ)
+  )
+}
 
 
 function updateFromSimulation(frameOffset: Vector3): void {
@@ -77,21 +168,16 @@ function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift:
   // Prefer authoritative escaped flag from core state over legacy per-Particle flag.
   if (simState.escaped && simState.escaped[i] === 1) return
   const i3 = 3 * i
-  let px = positions[i3] - frameOffset.x
-  let py = positions[i3 + 1] - frameOffset.y
-  let pz = positions[i3 + 2] - frameOffset.z
-  // We'll update p.position after applying frame offset / PBC so tests & UI see displayed coordinates.
+  // Raw position in frame coordinates (pre minimum-image)
+  const rawRelX = positions[i3] - frameOffset.x
+  const rawRelY = positions[i3 + 1] - frameOffset.y
+  const rawRelZ = positions[i3 + 2] - frameOffset.z
   const traj = settings.if_showTrajectory ? trajectories[i] : null
   const trajectoryAttr = (settings.if_showTrajectory && traj)
     ? traj.geometry.getAttribute('position') as BufferAttribute
     : null
-  if (settings.if_use_periodic_boundary_condition) {
-    _tmpDir.set(px, py, pz)
-    applyPbc(_tmpDir, trajectoryAttr, settings.maxTrajectoryLength, settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ)
-    px = _tmpDir.x; py = _tmpDir.y; pz = _tmpDir.z
-    // position updated in particle only; point sprite removed
-  }
-  if (trajectoryAttr && needsTrajectoryShift) updateTrajectoryBuffer(_tmpFrom.set(px, py, pz), trajectoryAttr, settings.maxTrajectoryLength)
+  // For trajectory continuity store the pre-minimum-image relative position
+  if (trajectoryAttr && needsTrajectoryShift) updateTrajectoryBuffer(_tmpFrom.set(rawRelX, rawRelY, rawRelZ), trajectoryAttr, settings.maxTrajectoryLength)
   const vx = velocities[i3], vy = velocities[i3 + 1], vz = velocities[i3 + 2]
   const fx = forces[i3], fy = forces[i3 + 1], fz = forces[i3 + 2]
   // Store final (display) position for tests & capture
@@ -113,6 +199,9 @@ function renderPrimarySpheres(frameOffset: Vector3): void {
     if (escaped && escaped[i] === 1) { sphereMesh.update(i, tmpPos.set(0, -9999, 0), 0.0001, new Color(0x333333)); continue }
     const i3 = 3 * i
     tmpPos.set(positions[i3] - frameOffset.x, positions[i3 + 1] - frameOffset.y, positions[i3 + 2] - frameOffset.z)
+    if (settings.if_use_periodic_boundary_condition) {
+      minimumImageVec(tmpPos, tmpPos.x, tmpPos.y, tmpPos.z)
+    }
     const m = masses[i] || 1
     const radius = 0.08 * Math.cbrt(m / 10)
     sphereMesh.update(i, tmpPos, radius, colors[i] || new Color(0xffffff))
@@ -128,16 +217,15 @@ function renderCloneSpheres(frameOffset: Vector3): void {
   const { positions, masses, N, escaped } = simState
   const cloneOffsets = makeClonePositionsList(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ)
   const clonePos = new Vector3()
+  const basePos = new Vector3()
   let baseIndex = 0
   for (const offset of cloneOffsets) {
     for (let i = 0; i < N; i++) {
       if (escaped && escaped[i] === 1) { sphereCloneMesh.update(baseIndex + i, clonePos.set(0, -9999, 0), 0.0001, new Color(0x333333)); continue }
       const i3 = 3 * i
-      clonePos.set(
-        positions[i3] - frameOffset.x + offset.x,
-        positions[i3 + 1] - frameOffset.y + offset.y,
-        positions[i3 + 2] - frameOffset.z + offset.z
-      )
+      basePos.set(positions[i3] - frameOffset.x, positions[i3 + 1] - frameOffset.y, positions[i3 + 2] - frameOffset.z)
+      if (settings.if_use_periodic_boundary_condition) minimumImageVec(basePos, basePos.x, basePos.y, basePos.z)
+      clonePos.set(basePos.x + offset.x, basePos.y + offset.y, basePos.z + offset.z)
       const m = masses[i] || 1
       const radius = 0.08 * Math.cbrt(m / 10)
       sphereCloneMesh.update(baseIndex + i, clonePos, radius, colors[i] || new Color(0xffffff))
@@ -155,6 +243,7 @@ function applyVisualUpdates(): void {
   updateScaleBars(lastDiagnostics)
   const frameOffset = computeFrameOffset()
   updateFromSimulation(frameOffset)
+  updateWrapMarkers()
   // Update / toggle arrows after particle positions refreshed
   if (arrows) finalizeArrows(arrows, simState, lastDiagnostics, frameOffset)
   if (shouldShiftTrajectory(time)) markTrajectorySnapshot(time)
@@ -165,6 +254,7 @@ function applyVisualUpdates(): void {
     temperaturePanel.update(T, maxTemperature)
   }
   update(); render(renderer, effect); stats.update()
+  lastFrameOffset.copy(frameOffset)
 }
 
 /**
@@ -208,10 +298,10 @@ function render(renderer: WebGLRenderer, effect: StereoEffectLike | undefined): 
 // when document is ready:
 // Source: https://stackoverflow.com/a/9899701/1147061
 function docReady(fn: () => void): void {
-  // see if DOM is already available
+  // If DOM is already parsed, execute immediately (avoid next‑tick race that caused tests to read
+  // an uninitialized __mdjs stub). Otherwise defer until DOMContentLoaded.
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    // call on next available tick
-    setTimeout(fn, 1)
+    fn()
   } else {
     document.addEventListener('DOMContentLoaded', fn)
   }
@@ -295,6 +385,36 @@ docReady(() => {
   // Auto-push: wrap selected mutable settings with setters triggering engine.updateConfig
   registerAutoPush(engine, AUTO_PUSH_KEYS)
   engine.on('frame', ({ time: t }) => { time = t; applyVisualUpdates() })
+  // When engine performs periodic wrapping, translate corresponding trajectory history
+  // so rendered path remains continuous (avoid long teleport segments across box).
+  const handleWrapEvent = ({ wraps }: { wraps: WrapEventRecord[] }) => {
+    if (!settings.if_showTrajectory || wraps.length === 0) return
+    const newFrameOffset = computeFrameOffset()
+    const dFx = newFrameOffset.x - lastFrameOffset.x
+    const dFy = newFrameOffset.y - lastFrameOffset.y
+    const dFz = newFrameOffset.z - lastFrameOffset.z
+    for (const w of wraps) applyWrapShift(w, dFx, dFy, dFz, newFrameOffset)
+    lastFrameOffset.copy(newFrameOffset)
+  }
+  const applyWrapShift = (w: WrapEventRecord, dFx: number, dFy: number, dFz: number, newFrameOffset: Vector3) => {
+    const line = trajectories[w.i]
+    if (!line) return
+    const attr = line.geometry.getAttribute('position') as BufferAttribute
+    const shiftX = w.dx - dFx
+    const shiftY = w.dy - dFy
+    const shiftZ = w.dz - dFz
+    if (shiftX === 0 && shiftY === 0 && shiftZ === 0) return
+    const len = settings.maxTrajectoryLength
+    for (let j = 0; j < len; j++) attr.setXYZ(j, attr.getX(j) + shiftX, attr.getY(j) + shiftY, attr.getZ(j) + shiftZ)
+    attr.needsUpdate = true
+    if (!scene || !settings.if_use_periodic_boundary_condition) return
+    // Use precise crossing exit + entry points from engine payload.
+    for (const c of w.crossings) {
+      createWrapMarker(scene, { axis: c.axis, sign: c.sign }, c.exit, newFrameOffset, 0xffaa00)
+      createWrapMarker(scene, { axis: c.axis, sign: (c.sign * -1) as 1 | -1 }, c.entry, newFrameOffset, 0x007bff)
+    }
+  }
+  engine.on('wrap', handleWrapEvent)
   engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
   engine.run({ useRaf: true })
   // Create arrow visualizers once state & scene are ready
@@ -316,9 +436,11 @@ docReady(() => {
     // Attempt to restore persisted visual data (colors always; trajectories only if enabled)
     loadVisualDataFromLocal(settings.if_showTrajectory ? trajectories : [], colors)
   }
-  // Expose handle for automated headless tests
-  // Expose simulation state (read-only for tests; mutation not supported outside test harness)
-  window.__mdjs = { colors: colors, settings, simState, diagnostics: lastDiagnostics }
+  // Expose handle for automated headless tests. Reuse existing stub so references remain stable.
+  const api = window.__mdjs || (window.__mdjs = { colors, settings })
+  api.simState = simState
+  api.diagnostics = lastDiagnostics
+  api.ready = true
   window.__pauseEngine = () => { engine?.pause() }
   // Install full-state persistence handler (overrides placeholder in init.js)
   window.onbeforeunload = () => {
@@ -341,37 +463,5 @@ docReady(() => {
     }
   })
 })
-function makeClonePositionsList(
-  x: number,
-  y: number,
-  z: number
-): Vector3[] {
-  return [
-    new Vector3(2 * x, 0, 0),
-    new Vector3(-2 * x, 0, 0),
-    new Vector3(0, 2 * y, 0),
-    new Vector3(0, -2 * y, 0),
-    new Vector3(0, 0, 2 * z),
-    new Vector3(0, 0, -2 * z),
-    new Vector3(2 * x, 0, 2 * z),
-    new Vector3(-2 * x, 0, 2 * z),
-    new Vector3(2 * x, 0, -2 * z),
-    new Vector3(-2 * x, 0, -2 * z),
-    new Vector3(0, 2 * y, 2 * z),
-    new Vector3(0, -2 * y, 2 * z),
-    new Vector3(0, 2 * y, -2 * z),
-    new Vector3(0, -2 * y, -2 * z),
-    new Vector3(2 * x, 2 * y, 0),
-    new Vector3(-2 * x, 2 * y, 0),
-    new Vector3(2 * x, -2 * y, 0),
-    new Vector3(-2 * x, -2 * y, 0),
-    new Vector3(2 * x, 2 * y, 2 * z),
-    new Vector3(-2 * x, 2 * y, 2 * z),
-    new Vector3(2 * x, -2 * y, 2 * z),
-    new Vector3(-2 * x, -2 * y, 2 * z),
-    new Vector3(2 * x, 2 * y, -2 * z),
-    new Vector3(-2 * x, 2 * y, -2 * z),
-    new Vector3(2 * x, -2 * y, -2 * z),
-    new Vector3(-2 * x, -2 * y, -2 * z)
-  ]
-}
+// Clone position list now supplied by shared pbc module (returns plain objects); adapt to Vector3 instances on demand.
+// For existing usage we map to Vector3 once per invocation.

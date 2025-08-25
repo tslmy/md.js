@@ -1,5 +1,6 @@
 import { Vector3, Line, Color, BufferAttribute, Scene } from 'three'
 import { makeTrajectory } from './drawingHelpers.js'
+import { wrapIntoBox } from '../core/pbc.js'
 import { settings } from '../control/settings.js'
 import type { SimulationState } from '../core/simulation/state.js'
 
@@ -78,17 +79,9 @@ export function updateTrajectoryBuffer(pos: Vector3, trajectory: BufferAttribute
  * provided, shift its historical coordinates by the same wrapped displacement
  * to keep the rendered path continuous visually across wraps.
  */
-export function applyPbc(pos: Vector3, trajectory: BufferAttribute | null, maxLen: number, bx: number, by: number, bz: number): void {
-    const wrapAxis = (axis: 'x' | 'y' | 'z', boundary: number, adjust: (delta: number) => void) => {
-        while (pos[axis] < -boundary) { pos[axis] += 2 * boundary; adjust(2 * boundary) }
-        while (pos[axis] > boundary) { pos[axis] -= 2 * boundary; adjust(-2 * boundary) }
-    }
-    const adjustFactory = (setter: (i: number, v: number) => void, getter: (i: number) => number) => (delta: number) => {
-        if (!trajectory) return
-        for (let j = 0; j < maxLen; j++) setter(j, getter(j) + delta)
-        trajectory.needsUpdate = true
-    }
-    wrapAxis('x', bx, adjustFactory((i, v) => trajectory?.setX(i, v), i => trajectory?.getX(i) ?? 0))
-    wrapAxis('y', by, adjustFactory((i, v) => trajectory?.setY(i, v), i => trajectory?.getY(i) ?? 0))
-    wrapAxis('z', bz, adjustFactory((i, v) => trajectory?.setZ(i, v), i => trajectory?.getZ(i) ?? 0))
+export function applyPbc(pos: Vector3, _trajectory: BufferAttribute | null, _maxLen: number, bx: number, by: number, bz: number): void {
+    // Defensive confinement only; trajectory history translation handled by engine 'wrap' events.
+    pos.x = wrapIntoBox(pos.x, bx)
+    pos.y = wrapIntoBox(pos.y, by)
+    pos.z = wrapIntoBox(pos.z, bz)
 }
