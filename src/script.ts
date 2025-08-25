@@ -45,6 +45,10 @@ let sphereMesh: InstancedSpheres | undefined
 let sphereCloneMesh: InstancedSpheres | undefined
 // Portal wrap markers moved to visual/wrapMarkers.ts
 
+// Display-space (frame-offset adjusted) positions exposed via window.__mdjs.simState.positions
+// so integration tests can reason about reference frame behaviors without mutating engine state.
+let displayPositions: Float32Array | undefined
+
 // Array of per-particle colors.
 const colors: Color[] = []
 // Trajectories managed in visual/trajectory.ts
@@ -172,6 +176,8 @@ function renderCloneSpheres(frameOffset: Vector3): void {
 function applyVisualUpdates(): void {
   updateScaleBars(lastDiagnostics)
   const frameOffset = computeFrameOffset()
+  // Update display-space positions first so per-particle logic & HUD see centered coordinates if needed.
+  updateDisplayPositions(frameOffset)
   updateFromSimulation(frameOffset)
   updateWrapMarkers(scene)
   // Update / toggle arrows after particle positions refreshed
@@ -208,6 +214,20 @@ function computeFrameOffset(): Vector3 {
     if (mTot > 0) return new Vector3(mx / mTot, my / mTot, mz / mTot)
   }
   return new Vector3(0, 0, 0)
+}
+
+function updateDisplayPositions(frameOffset: Vector3): void {
+  if (!simState) return
+  if (!displayPositions || displayPositions.length !== simState.positions.length) {
+    displayPositions = new Float32Array(simState.positions.length)
+  }
+  const src = simState.positions
+  for (let i = 0; i < simState.N; i++) {
+    const i3 = 3 * i
+    displayPositions[i3] = src[i3] - frameOffset.x
+    displayPositions[i3 + 1] = src[i3 + 1] - frameOffset.y
+    displayPositions[i3 + 2] = src[i3 + 2] - frameOffset.z
+  }
 }
 
 
@@ -311,6 +331,9 @@ docReady(() => {
     engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
   }
   simState = engine.getState()
+  // Allocate initial display-space positions & populate once before exposing API (ensures tests see centered values).
+  displayPositions = new Float32Array(simState.positions.length)
+  updateDisplayPositions(computeFrameOffset())
   initSettingsSync(engine)
   // Auto-push: wrap selected mutable settings with setters triggering engine.updateConfig
   registerAutoPush(engine, AUTO_PUSH_KEYS)
@@ -369,6 +392,8 @@ docReady(() => {
   // Expose handle for automated headless tests. Reuse existing stub so references remain stable.
   const api = window.__mdjs || (window.__mdjs = { colors, settings })
   api.simState = simState
+  // Replace positions reference with display-space buffer (updated in-place each frame) for integration tests.
+  if (displayPositions) (api.simState as typeof simState & { positions: Float32Array }).positions = displayPositions
   api.diagnostics = lastDiagnostics
   api.ready = true
   window.__pauseEngine = () => { engine?.pause() }

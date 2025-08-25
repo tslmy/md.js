@@ -1,4 +1,5 @@
 import { BufferAttribute, Line, Color } from 'three'
+import { lsGet, lsRemove, lsSet } from '../util/storage.js'
 
 /** LocalStorage key for visual (non-engine) data. */
 export const VISUAL_SNAPSHOT_KEY = 'mdJsVisualSnapshot'
@@ -87,27 +88,18 @@ function restoreColors(snapshot: VisualDataSnapshot, colors?: Color[], trajector
 
 /** Persist visual data snapshot to localStorage (no-op outside browser). */
 export function saveVisualDataToLocal(trajectories: (Line | null)[], colors?: Color[]): void {
-    try {
-        if (typeof localStorage === 'undefined') return
-        const snap = captureVisualData(trajectories, colors)
-        if (!snap) return
-        localStorage.setItem(VISUAL_SNAPSHOT_KEY, JSON.stringify(snap))
-    } catch { /* ignore */ }
+    const snap = captureVisualData(trajectories, colors)
+    if (!snap) return
+    lsSet(VISUAL_SNAPSHOT_KEY, snap)
 }
 
 /** Load and apply visual data snapshot from localStorage if present. */
 export function loadVisualDataFromLocal(targets: (Line | null)[], colors?: Color[]): boolean {
-    try {
-        if (typeof localStorage === 'undefined') return false
-        const raw = localStorage.getItem(VISUAL_SNAPSHOT_KEY)
-        if (!raw) return false
-        const snap = JSON.parse(raw) as VisualDataSnapshot
-        applyVisualData(snap, targets, colors)
-        return true
-    } catch { return false }
+    const snap = lsGet<VisualDataSnapshot>(VISUAL_SNAPSHOT_KEY)
+    if (!snap) return false
+    applyVisualData(snap, targets, colors)
+    return true
 }
 
 /** Clear visual data snapshot from localStorage if present. */
-export function clearVisualDataInLocal(): void {
-    localStorage.removeItem(VISUAL_SNAPSHOT_KEY)
-}
+export function clearVisualDataInLocal(): void { lsRemove(VISUAL_SNAPSHOT_KEY) }

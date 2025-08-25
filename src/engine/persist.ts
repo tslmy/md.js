@@ -7,6 +7,7 @@
  */
 import type { EngineConfig } from './config/types.js'
 import { SimulationEngine } from './SimulationEngine.js'
+import { lsGet, lsRemove, lsSet } from '../util/storage.js'
 const KEY = 'mdJsEngineSnapshot'
 
 /** Serialized representation of engine core state. */
@@ -59,7 +60,7 @@ export function snapshot(engine: SimulationEngine): EngineSnapshot {
  * Create a new engine from a prior snapshot. Caller can then call run().
  * Assumes snapshot integrity was previously validated.
  */
-function hydrate(snap: EngineSnapshot): SimulationEngine {
+export function hydrate(snap: EngineSnapshot): SimulationEngine {
   if (snap.version !== 1) throw new Error('Unsupported snapshot version ' + String((snap as { version: number }).version))
   const eng = new SimulationEngine(snap.config)
   eng.seed({
@@ -78,32 +79,16 @@ function hydrate(snap: EngineSnapshot): SimulationEngine {
 }
 /** Serialize and persist the current engine snapshot into localStorage. */
 export function saveToLocal(engine: SimulationEngine): void {
-  try {
-    const snap = snapshot(engine)
-    localStorage.setItem(KEY, JSON.stringify(snap))
-  } catch (e) {
-    console.warn('Failed to save engine snapshot:', e)
-  }
+  try { lsSet(KEY, snapshot(engine)) } catch (e) { console.warn('Failed to save engine snapshot:', e) }
 }
 
 /** Attempt to load and hydrate a previously stored snapshot; returns null if absent or invalid. */
 export function loadEngineFromLocal(): LoadResult | null {
-  const raw = localStorage.getItem(KEY)
-  if (!raw) return null
-  try {
-    const snap = JSON.parse(raw) as EngineSnapshot
-    if (snap.version !== 1) {
-      console.warn('Unsupported snapshot version; ignoring')
-      return null
-    }
-    return { engine: hydrate(snap), snapshot: snap }
-  } catch (e) {
-    console.warn('Failed to parse stored engine snapshot:', e)
-    return null
-  }
+  const snap = lsGet<EngineSnapshot>(KEY)
+  if (!snap) return null
+  if (snap.version !== 1) { console.warn('Unsupported snapshot version; ignoring'); return null }
+  try { return { engine: hydrate(snap), snapshot: snap } } catch (e) { console.warn('Failed to hydrate snapshot:', e); return null }
 }
 /** Remove the stored snapshot (no-op if absent). */
 
-export function clearEngineSnapshotInLocal(): void {
-  localStorage.removeItem(KEY)
-}
+export function clearEngineSnapshotInLocal(): void { lsRemove(KEY) }
