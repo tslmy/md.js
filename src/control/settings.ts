@@ -48,7 +48,7 @@ const settings = {
   if_showTrajectory: true,
   if_showArrows: true,
   if_showMapscale: true,
-  if_useFog: true,
+  if_useFog: false,
   if_limitArrowsMaxLength: true,
   if_constant_temperature: false,
   // (removed unused flags: if_proportionate_arrows_with_vectors, ifRun)
@@ -57,7 +57,10 @@ const settings = {
   DELTA: 0.02,
   G: 0.08,
   K: 0.1,
-  kB: 6.02
+  kB: 6.02,
+  // Ewald parameters (optional; auto if left undefined). Tweaks performance / accuracy of Coulomb & Gravity under PBC.
+  ewaldAlpha: undefined as number | undefined,
+  ewaldKMax: undefined as number | undefined
 }
 
 // Deep clone baseline defaults for reset.
