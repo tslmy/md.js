@@ -19,7 +19,7 @@ Designed be a teaching tool for entry-level physics and chemistry courses, this 
 
 ## Quick Demo
 
-![Demo animation](https://media0.giphy.com/media/boyW0pDMJDWqyLv96Z/giphy.gif)
+![mdjs demo 720p](https://github.com/user-attachments/assets/a52df2cd-2e53-4bde-a967-6ca7e53da101)
 
 What am I looking at?
 
