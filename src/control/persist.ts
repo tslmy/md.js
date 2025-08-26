@@ -1,4 +1,4 @@
-import { settings } from './settings.js'
+import { settings, normalizeSettings } from './settings.js'
 import { lsGet, lsRemove, lsSet } from '../util/storage.js'
 const SETTINGS_KEY = 'mdJsUserSettings'
 
@@ -20,37 +20,40 @@ export function saveSettingsToLocal(): void {
 export function loadSettingsFromLocal(): boolean {
     const parsed = lsGet<unknown>(SETTINGS_KEY)
     if (!parsed) return false
-    let data: unknown
-    if ((parsed as { __v?: number; data?: unknown }).__v === 2 && (parsed as { data?: unknown }).data) {
-        data = (parsed as { data: unknown }).data
-    } else {
-        data = parsed // legacy layout
-    }
-    if (data && typeof data === 'object') Object.assign(settings, data as Record<string, unknown>)
-    // Migration / normalization: ensure integrator stored in canonical lowercase id expected by engine
-    if (typeof (settings as Record<string, unknown>).integrator === 'string') {
-        const raw = ((settings as Record<string, unknown>).integrator as string).trim()
-        const norm = raw.toLowerCase()
-        if (norm === 'euler' || norm === 'velocityverlet') {
-            ; (settings as Record<string, unknown>).integrator = norm === 'euler' ? 'euler' : 'velocityVerlet'
-        } else {
-            // Unknown persisted value – fallback to default
-            ; (settings as Record<string, unknown>).integrator = 'velocityVerlet'
-        }
-    }
-    // Normalize neighbor strategy (persisted value may be label 'Cell'/'Naive' after GUI mapping changes)
-    if (typeof (settings as Record<string, unknown>).neighborStrategy === 'string') {
-        const raw = ((settings as Record<string, unknown>).neighborStrategy as string).trim().toLowerCase()
-        if (raw === 'cell') {
-            ; (settings as Record<string, unknown>).neighborStrategy = 'cell'
-        } else {
-            ; (settings as Record<string, unknown>).neighborStrategy = 'naive'
-        }
-    }
-    // Ensure newer canonical fields default if absent
-    if (typeof (settings as Record<string, unknown>).neighborStrategy !== 'string') (settings as Record<string, unknown>).neighborStrategy = 'cell'
-    if (typeof (settings as Record<string, unknown>).referenceFrameMode !== 'string') (settings as Record<string, unknown>).referenceFrameMode = 'sun'
+    Object.assign(settings, extractData(parsed))
+    canonicalizeIntegrator()
+    canonicalizeNeighborStrategy()
+    ensureDefaults()
+    normalizeSettings(settings)
     return true
+}
+
+function extractData(parsed: unknown): Record<string, unknown> {
+    if (parsed && typeof parsed === 'object' && (parsed as { __v?: number }).__v === 2) {
+        const data = (parsed as { data?: unknown }).data
+        if (data && typeof data === 'object') return data as Record<string, unknown>
+    }
+    return (parsed && typeof parsed === 'object') ? parsed as Record<string, unknown> : {}
+}
+
+function canonicalizeIntegrator(): void {
+    const raw = (settings as Record<string, unknown>).integrator
+    if (typeof raw !== 'string') return
+    const norm = raw.trim().toLowerCase()
+    ; (settings as Record<string, unknown>).integrator = (norm === 'euler') ? 'euler' : 'velocityVerlet'
+}
+
+function canonicalizeNeighborStrategy(): void {
+    const raw = (settings as Record<string, unknown>).neighborStrategy
+    if (typeof raw !== 'string') return
+    const norm = raw.trim().toLowerCase()
+    ; (settings as Record<string, unknown>).neighborStrategy = (norm === 'cell') ? 'cell' : 'naive'
+}
+
+function ensureDefaults(): void {
+    const s = settings as Record<string, unknown>
+    if (typeof s.neighborStrategy !== 'string') s.neighborStrategy = 'cell'
+    if (typeof s.referenceFrameMode !== 'string') s.referenceFrameMode = 'sun'
 }
 
 /** Clear persisted settings from localStorage. */

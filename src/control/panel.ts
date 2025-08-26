@@ -5,7 +5,7 @@
 import { GUI } from 'dat.gui'
 import { Object3D } from 'three'
 
-import { resetSettingsToDefaults, settings as liveSettings, SETTINGS_SCHEMA } from './settings.js'
+import { resetSettingsToDefaults, settings as liveSettings, SETTINGS_SCHEMA, normalizeSettings } from './settings.js'
 import { clearEngineSnapshotInLocal } from '../engine/persist.js'
 import { saveSettingsToLocal } from './persist.js'
 import { clearVisualDataInLocal } from '../visual/persist.js'
@@ -23,26 +23,8 @@ export function toggle(selector: string): void {
 
 export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D | null): void {
     try { _activeGui?.destroy(); _activeGui = null } catch { /* ignore */ }
-    // Backward compatibility: if persisted settings were saved before new keys (Ewald params) existed,
-    // ensure properties are present so dat.GUI can bind controllers without throwing.
-    // Migration: persisted settings from versions before Ewald params lack these keys.
-    // Some users reported a dat.GUI error: "Object '[object Object]' has no property 'ewaldAlpha'" even though
-    // the settings export defines it. To be maximally defensive we re-check *and* define numeric defaults if
-    // absent or still undefined so dat.GUI never rejects the controller creation.
-    const ensureProp = (key: keyof SettingsLike, fallback: number) => {
-        const current = settings[key] as unknown
-        if (current == null || typeof current !== 'number') {
-            settings[key as string] = fallback
-        }
-    }
-    const Lmin = Math.min(
-        Number(settings.spaceBoundaryX),
-        Number(settings.spaceBoundaryY),
-        Number(settings.spaceBoundaryZ)
-    ) || 1
-    // Heuristic defaults: alpha ~ 5/Lmin, kMax modest integer for starter performance.
-    ensureProp('ewaldAlpha' as keyof SettingsLike, 5 / Lmin)
-    ensureProp('ewaldKMax' as keyof SettingsLike, 6)
+    // Ensure derived numeric defaults present
+    normalizeSettings(settings as unknown as SettingsLike)
     const gui = new GUI(); _activeGui = gui
     interface Controller { onChange?(cb: () => void): Controller; name(n: string): Controller; updateDisplay?(): void }
     const controllers: Record<string, Controller> = {}

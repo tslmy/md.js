@@ -18,7 +18,7 @@ import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectory
 import { createArrows, updateScaleBars, finalizeArrows, type ArrowSet } from './visual/arrows.js'
 import { getHud } from './visual/coloringAndDataSheet.js'
 import { computeCircularOrbitVelocity } from './core/simulation/orbitInit.js'
-import { minimumImageCoord, makeClonePositionsList } from './core/pbc.js'
+import { makeClonePositionsList, minimumImagePoint } from './core/pbc.js'
 import { createWrapMarker, updateWrapMarkers, type WrapEventRecord } from './visual/wrapMarkers.js'
 
 // global variables
@@ -77,13 +77,12 @@ function isVisible(el: HTMLElement | null): boolean {
 
 const _tmpFrom = new Vector3()
 
-// Minimum-image vector helper using shared coordinate function
+// Use shared minimumImagePoint (core/pbc) instead of local reimplementation
 function minimumImageVec(out: Vector3, x: number, y: number, z: number): Vector3 {
-  return out.set(
-    minimumImageCoord(x, settings.spaceBoundaryX),
-    minimumImageCoord(y, settings.spaceBoundaryY),
-    minimumImageCoord(z, settings.spaceBoundaryZ)
-  )
+  out.set(x, y, z)
+  return settings.if_use_periodic_boundary_condition
+    ? minimumImagePoint(out, { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ })
+    : out
 }
 
 

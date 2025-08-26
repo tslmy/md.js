@@ -72,3 +72,13 @@ export function makeClonePositionsList(x: number, y: number, z: number) {
 
 /** Convenience: standalone minimum image for a single coordinate. */
 export function minimumImageCoord(v: number, half: number): number { return minimumImageDisplacement(v, half) }
+
+/** Convenience helper: apply minimum-image mapping to an absolute position (treated component-wise).
+ * Unlike wrapPoint (which loops until within range), this performs at most a single span translation
+ * per axis (sufficient for near-neighbor visualization / display coordinates). */
+export function minimumImagePoint<T extends { x: number; y: number; z: number }>(p: T, box: HalfBox): T {
+    p.x = minimumImageCoord(p.x, box.x)
+    p.y = minimumImageCoord(p.y, box.y)
+    p.z = minimumImageCoord(p.z, box.z)
+    return p
+}

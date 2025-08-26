@@ -1,16 +1,14 @@
 import { SimulationEngine } from './SimulationEngine.js'
 import { type EngineConfig } from './config/types.js'
 import { settings } from '../control/settings.js'
-import { SETTINGS_SCHEMA } from '../config/settingsSchema.js'
+import { getAutoEngineBindings } from '../config/settingsSchema.js'
 
 // Guard to avoid recursive push->engine->config event->pull->property set->push loops.
 let suppressAutoPush = false
 
 // Derive binding descriptors straight from unified SETTINGS_SCHEMA (single source of truth)
-interface Binding { key: string; path: string }
-const BINDINGS: Binding[] = SETTINGS_SCHEMA
-    .filter(d => d.enginePath && d.auto)
-    .map(d => ({ key: d.key, path: d.enginePath! }))
+// Reuse exported helper for auto engine bindings (deduping schema traversal logic)
+const BINDINGS = getAutoEngineBindings()
 
 /** Keys that participate in automatic push/pull with the engine (wrapped setters). */
 export const AUTO_PUSH_KEYS = BINDINGS.map(b => b.key) as readonly string[]

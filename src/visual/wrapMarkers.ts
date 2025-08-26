@@ -1,6 +1,6 @@
 import { Mesh, MeshBasicMaterial, RingGeometry, Scene, Vector3 } from 'three'
 import { settings } from '../control/settings.js'
-import { minimumImageCoord } from '../core/pbc.js'
+import { minimumImagePoint } from '../core/pbc.js'
 
 // Types representing boundary wrap surfaces and crossing events.
 export type WrapSurface = { axis: 'x' | 'y' | 'z'; sign: 1 | -1 }
@@ -15,14 +15,6 @@ const WRAP_MARKER_THICKNESS = 0.05
 
 // Shared temp vector to avoid allocations in loops
 const _tmpVec = new Vector3()
-
-function minimumImageVec(out: Vector3, x: number, y: number, z: number): Vector3 {
-    return out.set(
-        minimumImageCoord(x, settings.spaceBoundaryX),
-        minimumImageCoord(y, settings.spaceBoundaryY),
-        minimumImageCoord(z, settings.spaceBoundaryZ)
-    )
-}
 
 export function createWrapMarker(
     scene: Scene,
@@ -48,7 +40,7 @@ export function createWrapMarker(
     const relY = rawWorld.y - frameOffset.y
     const relZ = rawWorld.z - frameOffset.z
     const disp = settings.if_use_periodic_boundary_condition
-        ? minimumImageVec(_tmpVec, relX, relY, relZ)
+        ? minimumImagePoint(_tmpVec.set(relX, relY, relZ), { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ })
         : _tmpVec.set(relX, relY, relZ)
     if (surface.axis === 'x') {
         ring.position.set(dist, disp.y, disp.z)
