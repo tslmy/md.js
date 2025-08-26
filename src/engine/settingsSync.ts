@@ -58,8 +58,8 @@ export function pushSettingsToEngine(engine: SimulationEngine): void {
     if (suppressAutoPush) return
     const patch: Partial<EngineConfig> = {}
     for (const b of BINDINGS) {
-        const raw = settings[b.key as keyof typeof settings]
-        assignPath(patch as unknown as Record<string, unknown>, b.path, raw)
+        const val = settings[b.key as keyof typeof settings]
+        assignPath(patch as unknown as Record<string, unknown>, b.path, val)
     }
     engine.updateConfig(patch)
 }
@@ -68,10 +68,7 @@ export function pushSettingsToEngine(engine: SimulationEngine): void {
 export function pullEngineConfigToSettings(cfg: EngineConfig): void {
     suppressAutoPush = true
     try {
-        for (const b of BINDINGS) {
-            const v = pick(cfg, b.path)
-                ; (settings as Record<string, unknown>)[b.key] = v
-        }
+        for (const b of BINDINGS) (settings as unknown as Record<string, unknown>)[b.key] = pick(cfg, b.path)
     } finally {
         suppressAutoPush = false
     }

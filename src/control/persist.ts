@@ -27,6 +27,29 @@ export function loadSettingsFromLocal(): boolean {
         data = parsed // legacy layout
     }
     if (data && typeof data === 'object') Object.assign(settings, data as Record<string, unknown>)
+    // Migration / normalization: ensure integrator stored in canonical lowercase id expected by engine
+    if (typeof (settings as Record<string, unknown>).integrator === 'string') {
+        const raw = ((settings as Record<string, unknown>).integrator as string).trim()
+        const norm = raw.toLowerCase()
+        if (norm === 'euler' || norm === 'velocityverlet') {
+            ; (settings as Record<string, unknown>).integrator = norm === 'euler' ? 'euler' : 'velocityVerlet'
+        } else {
+            // Unknown persisted value – fallback to default
+            ; (settings as Record<string, unknown>).integrator = 'velocityVerlet'
+        }
+    }
+    // Normalize neighbor strategy (persisted value may be label 'Cell'/'Naive' after GUI mapping changes)
+    if (typeof (settings as Record<string, unknown>).neighborStrategy === 'string') {
+        const raw = ((settings as Record<string, unknown>).neighborStrategy as string).trim().toLowerCase()
+        if (raw === 'cell') {
+            ; (settings as Record<string, unknown>).neighborStrategy = 'cell'
+        } else {
+            ; (settings as Record<string, unknown>).neighborStrategy = 'naive'
+        }
+    }
+    // Ensure newer canonical fields default if absent
+    if (typeof (settings as Record<string, unknown>).neighborStrategy !== 'string') (settings as Record<string, unknown>).neighborStrategy = 'cell'
+    if (typeof (settings as Record<string, unknown>).referenceFrameMode !== 'string') (settings as Record<string, unknown>).referenceFrameMode = 'sun'
     return true
 }
 

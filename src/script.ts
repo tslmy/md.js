@@ -201,10 +201,10 @@ function applyVisualUpdates(): void {
  */
 function computeFrameOffset(): Vector3 {
   if (!simState) return new Vector3(0, 0, 0)
-  if (settings.referenceFrameMode === 'sun' && simState.N > 0) {
-    return new Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
-  }
-  if (settings.referenceFrameMode === 'com') {
+  const direct = (settings as unknown as Record<string, unknown>).referenceFrameMode as string | undefined
+  const mode = (direct && typeof direct === 'string') ? direct.toLowerCase() : undefined
+  if (mode === 'sun' && simState.N > 0) return new Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
+  if (mode === 'com') {
     const { masses, positions, N } = simState
     let mx = 0, my = 0, mz = 0, mTot = 0
     for (let i = 0; i < N; i++) {

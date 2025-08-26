@@ -83,6 +83,7 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
         return f
     }
     const initialBounds = (boxMesh as Object3D & { userData?: { initialBounds?: { x: number; y: number; z: number } } })?.userData?.initialBounds
+    // (No longer storing separate select mapping metadata; we bind canonical values directly.)
     const add = (d: (typeof SETTINGS_SCHEMA)[number]) => {
         if (!(d.key in settings)) return
         const val = (settings as Record<string, unknown>)[d.key]
@@ -90,8 +91,14 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
         const f = folder(d.group)
         const name = d.control?.label || d.key
         let c: Controller
-        if (d.control?.type === 'select' && d.control.options) c = f.add(settings, d.key, d.control.options).name(name)
-        else c = f.add(settings, d.key).name(name)
+        if (d.control?.type === 'select' && d.control.options) {
+            // Invert value->label into label->value map accepted by dat.GUI so settings store canonical value.
+            const labelToValue: Record<string, string | number> = {}
+            for (const [value, label] of Object.entries(d.control.options)) labelToValue[label] = value
+            c = f.add(settings, d.key, labelToValue).name(name)
+        } else {
+            c = f.add(settings, d.key).name(name)
+        }
         controllers[d.key] = c
         // Generic numeric clamp & step enforcement (skip selects / booleans)
         if (d.control?.type !== 'select' && typeof (settings as Record<string, unknown>)[d.key] === 'number' && (d.control?.min !== undefined || d.control?.max !== undefined || d.control?.step !== undefined)) {
@@ -111,7 +118,8 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
             })
         }
     }
-    for (const d of SETTINGS_SCHEMA) add(d)
+    for (const d of SETTINGS_SCHEMA) { add(d) }
+    // No hidden mapping metadata needed; settings already hold canonical values.
     // Clamp + scaling hooks
     const clampCutoff = () => {
         const maxHalf = Math.min(Number(settings.spaceBoundaryX), Number(settings.spaceBoundaryY), Number(settings.spaceBoundaryZ))
