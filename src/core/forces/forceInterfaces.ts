@@ -2,11 +2,19 @@ import { SimulationState, index3 } from '../simulation/state.js'
 import { currentPBC } from '../pbc.js'
 
 /**
- * A ForceField encapsulates one physical interaction rule (e.g. gravity, electrostatics, Lennard-Jones).
- * Implementation rule of thumb for contributors without physics background:
- *  - Read pairwise loops as: for every unique unordered particle pair (i,j) within a certain distance (cutoff) compute a push/pull.
- *  - Add that push to one particle and the opposite to the other (Newton's third law ensures momentum conservation).
- *  - The magnitude formulas (inside specific forces) translate domain constants into numeric coefficients.
+ * A ForceField encapsulates one physical interaction rule (e.g. gravity, electrostatics, Lennard‑Jones).
+ *
+ * Implementation mental model (pair potentials):
+ *  1. For every unordered pair (i,j) whose separation r <= cutoff compute a scalar magnitude (often derived from dV/dr).
+ *  2. Convert magnitude into a vector along the displacement (dx,dy,dz).
+ *  3. Accumulate +F on particle i and −F on particle j (action = −reaction => linear momentum conserved automatically).
+ *
+ * Numerical / architectural choices:
+ *  - Pair traversal is delegated to a pluggable iterator (see `PairIterationImpl`). This lets the engine swap O(N^2)
+ *    loops for spatial acceleration (cell / Verlet lists) without modifying each force implementation.
+ *  - Forces MUST *only* add to `state.forces` (never clear). Zeroing occurs once per integration step upstream via `zeroForces`.
+ *  - Potentials, when implemented, recompute energy independently (no side channel accumulation during apply) for simplicity.
+ *    This currently duplicates work; sharing pair loops is a targeted future optimization.
  */
 
 export interface ForceField {

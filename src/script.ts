@@ -1,3 +1,23 @@
+/**
+ * Runtime wiring / application bootstrap.
+ *
+ * Responsibilities of this module (high level):
+ *  - Construct (or hydrate) a {@link SimulationEngine} instance from persisted snapshots & current UI settings.
+ *  - Initialize Three.js scene, camera, controls, HUD and visual helpers (instanced spheres, arrows, trajectories).
+ *  - Bridge engine events (frame, diagnostics, wrap) to visual update routines and lightweight persistence.
+ *  - Maintain reference-frame handling (sun / center–of–mass) via a per-frame translation vector so the *authoritative*
+ *    simulation state remains in an inertial coordinate system while the user can view a centered frame.
+ *  - Expose a small debug / test surface on `window.__mdjs` (intentionally unstable – for integration tests only).
+ *  - Handle localStorage save / load of engine core state, UI settings, and visual metadata (colors, trajectories).
+ *
+ * Architectural notes:
+ *  - The physics layer owns all particle state in SoA buffers; this file never mutates forces directly – it seeds
+ *    initial buffers then treats them as read‑only (except for visual centering math).
+ *  - Display-space (reference-frame shifted) positions are maintained in a separate Float32Array so automated tests
+ *    can assert centered coordinates without altering the engine's canonical state.
+ *  - Most per-particle visual work (mesh transforms, arrow updates, trajectory ring buffer management) is delegated
+ *    to specialized modules under `src/visual/` to keep this driver focused on orchestration.
+ */
 import { settings } from './control/settings.js'
 import { init, ifMobileDevice } from './init.js'
 import { toggle } from './control/panel.js'
@@ -86,6 +106,10 @@ function minimumImageVec(out: Vector3, x: number, y: number, z: number): Vector3
 }
 
 
+/**
+ * Per-frame update of per-particle HUD rows, trajectories and instanced sphere transforms.
+ * Delegates to more granular helpers but centralizes the iteration so we only loop N once here.
+ */
 function updateFromSimulation(frameOffset: Vector3): void {
   if (!engine || !simState) return
   const hudVisible = isVisible(document.querySelector('#hud'))
@@ -95,6 +119,13 @@ function updateFromSimulation(frameOffset: Vector3): void {
   if (sphereMesh && simState) updateSpheres(frameOffset)
 }
 
+/**
+ * Update HUD + (optionally) trajectory state for a single particle index.
+ *
+ * Side effects:
+ *  - Mutates trajectory ring buffer attribute when a shift is due.
+ *  - Writes per-particle diagnostics into HUD table (if visible).
+ */
 function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift: boolean, frameOffset: Vector3, perForce: Record<string, Float32Array>): void {
   if (!simState) return
   const { positions, velocities, forces, masses, charges } = simState
@@ -118,12 +149,20 @@ function updateOneParticle(i: number, hudVisible: boolean, needsTrajectoryShift:
   if (hudVisible) getHud()?.update(i, { mass: masses[i] || 1, charge: charges[i] || 0, vx, vy, vz, fx, fy, fz, perForce })
 }
 
+/**
+ * Update both primary and (if PBC enabled) clone instanced sphere batches.
+ * Separated from `updateFromSimulation` to make early return conditions explicit.
+ */
 function updateSpheres(frameOffset: Vector3): void {
   if (!simState || !sphereMesh) return
   renderPrimarySpheres(frameOffset)
   renderCloneSpheres(frameOffset)
 }
 
+/**
+ * Write per-instance transform + color for main simulation particles.
+ * Applies current reference-frame offset and (optionally) minimum‑image wrapping before committing.
+ */
 function renderPrimarySpheres(frameOffset: Vector3): void {
   if (!simState || !sphereMesh) return
   const { positions, masses, N, escaped } = simState
@@ -142,6 +181,10 @@ function renderPrimarySpheres(frameOffset: Vector3): void {
   sphereMesh.commit()
 }
 
+/**
+ * Render semi‑transparent periodic image copies (26 neighbor cells) when PBC is active.
+ * Each original particle spawns one instance per neighbor cell offset.
+ */
 function renderCloneSpheres(frameOffset: Vector3): void {
   if (!simState || !sphereCloneMesh) return
   const visible = settings.if_use_periodic_boundary_condition
@@ -215,6 +258,10 @@ function computeFrameOffset(): Vector3 {
   return new Vector3(0, 0, 0)
 }
 
+/**
+ * Recompute the display-space (reference-frame shifted) positions array.
+ * Does not mutate the engine's authoritative `SimulationState.positions` buffer.
+ */
 function updateDisplayPositions(frameOffset: Vector3): void {
   if (!simState) return
   if (!displayPositions || displayPositions.length !== simState.positions.length) {
@@ -230,12 +277,18 @@ function updateDisplayPositions(frameOffset: Vector3): void {
 }
 
 
+/**
+ * Per-frame camera / controls maintenance (projection matrix updates & orbit control damping).
+ */
 function update(): void {
   // (removed stale resize comment)
   camera.updateProjectionMatrix()
   if (controls) controls.update()
 }
 
+/**
+ * Render the Three.js scene graph either via stereo (mobile VR) effect or standard renderer.
+ */
 function render(renderer: WebGLRenderer, effect: StereoEffectLike | undefined): void {
   if (ifMobileDevice && effect) {
     effect.render(scene, camera)

@@ -2,20 +2,17 @@ import { SimulationState, index3 } from '../simulation/state.js'
 import { ForceField, ForceContext, forEachPair } from './forceInterfaces.js'
 
 /**
- * Coulomb (electrostatic) force with optional softening (same rationale as gravity softening).
- * Intuition:
- *  - Like charges repel, opposite charges attract.
- *  - Strength ∝ K * q_i * q_j / r^2 (component form uses 1/r^3 with displacement vector).
- * Softening:
- *  - Replace r^2 with r^2 + ε^2 to cap extreme close‑range forces when particles spawn nearly coincident.
- *  - ε typically chosen similar to (or smaller than) gravitational softening; here we reuse the engine's spacing heuristic.
- *  - Setting ε = 0 restores the exact 1/r^2 form.
+ * Electrostatic (Coulomb) interaction with optional Plummer‑style softening.
+ *  V(r) =  K q_i q_j / sqrt(r^2 + ε^2)    (sign emerges from product of charges)
+ *  F(r) =  K q_i q_j (r) / (r^2 + ε^2)^{3/2}
+ * Like charges (qiqj > 0) => repulsion; opposite charges => attraction.
+ * Softening serves identical numerical purpose as gravity: tame near‑zero separations to avoid huge Δv kicks.
  */
 export interface CoulombParams { K: number; softening?: number }
 
 export class Coulomb implements ForceField {
   readonly name = 'coulomb'
-  constructor(private readonly params: CoulombParams) {}
+  constructor(private readonly params: CoulombParams) { }
   apply(state: SimulationState, ctx: ForceContext): void {
     const { K, softening } = this.params
     const { forces, charges } = state

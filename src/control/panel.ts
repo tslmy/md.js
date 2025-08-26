@@ -15,12 +15,17 @@ type SettingsLike = typeof liveSettings
 
 let _activeGui: GUI | null = null
 
+/** Toggle display CSS of an arbitrary element (simple HUD show/hide helper). */
 export function toggle(selector: string): void {
     const el = document.querySelector<HTMLElement>(selector)
     if (!el) return
     el.style.display = (el.style.display === 'none') ? 'block' : 'none'
 }
 
+/**
+ * (Re)create the dat.GUI panel reflecting current settings schema.
+ * Adds lightweight description text per folder & installs command buttons (reset, halt, new world, HUD toggle).
+ */
 export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D | null): void {
     try { _activeGui?.destroy(); _activeGui = null } catch { /* ignore */ }
     // Ensure derived numeric defaults present

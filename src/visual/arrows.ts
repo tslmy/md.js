@@ -20,7 +20,10 @@ export function createArrows(N: number, scene: Scene): ArrowSet {
     return { vel, force }
 }
 
-/** Update the scale bar DOM elements based on current diagnostics. */
+/**
+ * Update DOM HUD scale bars giving user context for relative vector lengths.
+ * We scale bars linearly with 1 / maxMagnitude so the longest arrow corresponds to unit UI length.
+ */
 export function updateScaleBars(diag: Diagnostics | undefined): void {
     if (!diag) return
     const forceScale = diag.maxForceMag > 0 ? settings.unitArrowLength / diag.maxForceMag : 1
@@ -31,7 +34,10 @@ export function updateScaleBars(diag: Diagnostics | undefined): void {
     if (velEl) velEl.style.width = `${velScale * 1000000}px`
 }
 
-/** Update instanced velocity & force arrows with SoA state & diagnostics scaling. */
+/**
+ * Stage per-particle velocity & force arrows for current frame.
+ * Applies reference frame offset and normalizes lengths relative to frame extrema (diag.maxSpeed / diag.maxForceMag).
+ */
 export function updateArrows(state: SimulationState, diag: Diagnostics, frameOffset: Vector3, arrows: ArrowSet): void {
     const { positions, velocities, forces, N, escaped } = state
     const { vel, force } = arrows
@@ -63,7 +69,10 @@ export function updateArrows(state: SimulationState, diag: Diagnostics, frameOff
     }
 }
 
-/** Show/hide arrows per current settings and commit transforms when visible. */
+/**
+ * High-level arrow update entry point called from frame loop.
+ * Hides meshes when prerequisites (state, diagnostics, user toggle) are absent to avoid rendering stale transforms.
+ */
 export function finalizeArrows(arrows: ArrowSet, state: SimulationState | undefined, diag: Diagnostics | undefined, frameOffset: Vector3): void {
     const show = settings.if_showArrows && state && diag
     if (!show) {

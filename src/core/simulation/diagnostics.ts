@@ -3,12 +3,19 @@ import { ForceField } from '../forces/forceInterfaces.js'
 
 /**
  * Snapshot of high‑level physical metrics for a simulation state.
- * All values are derived from the SoA buffers; no side effects.
- *  - kinetic: 1/2 Σ m v^2
- *  - potential: sum over enabled force field potentials (approximate; recomputed fresh each call)
- *  - total: kinetic + potential
- *  - temperature: derived from equipartition KE = (3N-3)/2 kB T (subtracting 3 for momentum DOF)
- *  - maxSpeed / maxForceMag: per-particle extrema (useful for UI scaling & stability diagnostics)
+ * All values are derived from current buffers; function is side‑effect free.
+ *  - kinetic:   KE = 1/2 Σ m_i |v_i|^2
+ *  - potential: Σ over active forcefield potentials (recomputed each call; O(F * pairCount)).
+ *  - total:     KE + PE
+ *  - temperature: Equipartition (classical, 3 translational DOF per particle) KE = (f/2) k_B T with f = 3N − 3
+ *                 (subtract 3 to remove center‑of‑mass momentum modes so drifting bulk motion does not inflate T).
+ *  - extrema: max |v| and |F| for adaptive UI scaling (arrow normalization) and quick stability heuristics.
+ *
+ * Potential energy cost remark: At present each ForceField with a `potential` implementation iterates pairs again.
+ * For large N one can:
+ *  - Share the pair loop (accumulate multiple potentials / forces simultaneously), or
+ *  - Cache per‑pair intermediate scalars (e.g. 1/r^2) in a scratch buffer reused by forces.
+ * Given demo scale the clarity > micro‑performance trade was chosen.
  */
 export interface Diagnostics {
   /** Simulation time (same units as dt accumulation). */

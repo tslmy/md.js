@@ -13,6 +13,12 @@ export class InstancedSpheres {
     private readonly colors: Float32Array
     private readonly colorAttr: InstancedBufferAttribute
 
+    /**
+     * Create a sphere batch.
+     * @param count Number of instances (fixed for lifetime – recreate if N changes substantially; engine emits stateReallocated event to signal that scenario).
+     * @param params.baseRadius Logical unit sphere radius before per‑particle scaling.
+     * @param params.opacity Alpha for all instances (individual alpha not yet supported; if <1 depthWrite is disabled by default to reduce blending artifacts).
+     */
     constructor(count: number, params: { baseRadius?: number; opacity?: number; transparent?: boolean; depthWrite?: boolean } = {}) {
         this.count = count
         const baseRadius = params.baseRadius ?? 0.1
@@ -52,6 +58,10 @@ export class InstancedSpheres {
         this.colorAttr.needsUpdate = true
     }
 
+    /**
+     * Stage transform & RGB color for one instance. Call {@link commit} afterwards to upload to GPU.
+     * Out‑of‑range indices are ignored (defensive against stale loops if N changes mid‑frame).
+     */
     update(index: number, position: Vector3, radius: number, color: Color): void {
         if (index >= this.count) return
         const r = (isFinite(radius) && radius > 1e-4) ? radius : 1e-4
@@ -64,12 +74,16 @@ export class InstancedSpheres {
         this.colors[j + 2] = color.b
     }
 
+    /** Upload all staged matrices + colors (single flag flip on shared buffers). */
     commit(): void {
         this.mesh.instanceMatrix.needsUpdate = true
         this.colorAttr.needsUpdate = true
     }
 
+    /** Toggle mesh visibility (cheap – does not free resources). */
     setVisible(v: boolean): void { this.mesh.visible = v }
+    /** Attach to a scene graph. */
     addTo(scene: Scene): void { scene.add(this.mesh) }
+    /** Release GPU resources. Caller must remove from scene beforehand. */
     dispose(): void { this.mesh.geometry.dispose(); (this.mesh.material as Material).dispose() }
 }

@@ -45,9 +45,13 @@ export class InstancedArrows {
     this.head.instanceMatrix.needsUpdate = true
   }
 
+  /** Show/hide both shaft + head instanced batches. */
   setVisible(v: boolean) { this.visible = v; this.shaft.visible = v; this.head.visible = v }
 
-  /** Update one arrow. dir is any vector (0 handled as hidden tiny arrow). */
+  /**
+   * Update one arrow. dir is any (possibly zero) vector in world space.
+   * Length parameter already incorporates externally chosen normalization / clamping.
+   */
   update(index: number, origin: Vector3, dir: Vector3, length: number): void {
     if (index >= this.lengths.length) return
     let len = length
@@ -77,13 +81,16 @@ export class InstancedArrows {
 
   }
 
+  /** Flush staged matrices to GPU (one flag flip per instanced mesh). */
   commit(): void {
     this.shaft.instanceMatrix.needsUpdate = true
     this.head.instanceMatrix.needsUpdate = true
   }
 
+  /** Add both instanced meshes to the scene graph. */
   addTo(scene: Scene) { scene.add(this.shaft); scene.add(this.head) }
 
+  /** Dispose geometries & materials (must also remove from scene externally). */
   dispose(): void {
     this.shaft.geometry.dispose(); (this.shaft.material as Material).dispose()
     this.head.geometry.dispose(); (this.head.material as Material).dispose()

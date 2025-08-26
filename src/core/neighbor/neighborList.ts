@@ -220,6 +220,13 @@ export function createCellNeighborStrategy(opts: CellStrategyOptions = {}): Neig
   let lastN = -1
   let lastCutoff = -1
   let lastBoxKey = ''
+  /**
+   * Ensure internal cell list structure matches current (N, cutoff, box) tuple.
+   * Reallocation strategy:
+   *  - Full rebuild when: first run, particle count changed, cutoff changed (affects cell edge & counts), or box resized.
+   *  - Lightweight resize when only particle count changed (reuse heads[], replace next[] sized to N).
+   * Followed by O(N) relink (rebuildCellList).
+   */
   function ensure(state: SimulationState, cutoff: number): void {
     const box = opts.box
     const boxKey = box ? `${box.x},${box.y},${box.z}` : 'heuristic'

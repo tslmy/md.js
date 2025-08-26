@@ -53,7 +53,11 @@ export function minimumImageVec<T extends { x: number; y: number; z: number }>(d
     return d
 }
 
-/** Return a fresh array of 26 neighbor cell offsets for periodic clone rendering. */
+/**
+ * Return the 26 translation vectors corresponding to neighboring image cells (±x, ±y, ±z combinations excluding origin).
+ * Used purely for visualization (ghost copies); physics uses minimum‑image without instantiating clones.
+ * NOTE: Order is arbitrary but stable; consumers relying on specific ordering should document why.
+ */
 export function makeClonePositionsList(x: number, y: number, z: number) {
     return [
         { x: 2 * x, y: 0, z: 0 },
@@ -88,9 +92,11 @@ export function makeClonePositionsList(x: number, y: number, z: number) {
 /** Convenience: standalone minimum image for a single coordinate. */
 export function minimumImageCoord(v: number, half: number): number { return minimumImageDisplacement(v, half) }
 
-/** Convenience helper: apply minimum-image mapping to an absolute position (treated component-wise).
- * Unlike wrapPoint (which loops until within range), this performs at most a single span translation
- * per axis (sufficient for near-neighbor visualization / display coordinates). */
+/**
+ * Apply minimum‑image mapping to an absolute position (component-wise, single adjustment per axis).
+ * Differs from {@link wrapPoint}: wrapPoint may apply multiple ±2L translations if coordinate drifted far;
+ * this helper assumes |coord| ≲ few*L and is meant for display-space adjustment / reference frame math.
+ */
 export function minimumImagePoint<T extends { x: number; y: number; z: number }>(p: T, box: HalfBox): T {
     p.x = minimumImageCoord(p.x, box.x)
     p.y = minimumImageCoord(p.y, box.y)

@@ -47,7 +47,10 @@ function assignPath(root: Record<string, unknown>, path: string, value: unknown)
 }
 
 
-/** Apply selected fields from settings into an EngineConfig patch and send to engine. */
+/**
+ * Build a shallow EngineConfig patch from current settings object and apply via engine.updateConfig.
+ * Skips work if an internal pull operation is in progress (suppressAutoPush flag).
+ */
 export function pushSettingsToEngine(engine: SimulationEngine): void {
     if (suppressAutoPush) return
     const patch: Partial<EngineConfig> = {}
@@ -58,7 +61,10 @@ export function pushSettingsToEngine(engine: SimulationEngine): void {
     engine.updateConfig(patch)
 }
 
-/** Mirror core engine config changes back into UI settings (subset). */
+/**
+ * Reflect engine config values back into settings (one-way). Used when engine applies a patch or resizes state.
+ * Temporarily disables auto-push to avoid feedback loops.
+ */
 export function pullEngineConfigToSettings(cfg: EngineConfig): void {
     suppressAutoPush = true
     try {
@@ -68,7 +74,7 @@ export function pullEngineConfigToSettings(cfg: EngineConfig): void {
     }
 }
 
-/** Initialize synchronization: one initial push, then subscribe to engine events. */
+/** Initialize bidirectional settings <-> engine synchronization (install config listener). */
 export function initSettingsSync(engine: SimulationEngine): void {
     // Initial pull to update legacy settings reference (engine likely created from them already)
     pullEngineConfigToSettings(engine.getConfig())
@@ -76,7 +82,10 @@ export function initSettingsSync(engine: SimulationEngine): void {
     engine.on('config', cfg => { pullEngineConfigToSettings(cfg) })
 }
 
-/** Wire a settings change handler (e.g., from dat.GUI) to automatically push to engine. */
+/**
+ * Monkey-patch selected settings properties with accessor descriptors so that mutation triggers a (debounced) push.
+ * Debounce prevents excessive engine rebuilds while dragging sliders.
+ */
 export function registerAutoPush(engine: SimulationEngine, keys: readonly AutoPushKey[]): void {
     // Debounce pushes so slider drags don't spam reconfiguration.
     let t: number | undefined

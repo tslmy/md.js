@@ -3,11 +3,28 @@ import { ForceContext, ForceField, forEachPair } from './forceInterfaces.js'
 import { currentPBC } from '../pbc.js'
 
 /**
- * Minimal / crude Ewald summation for Coulomb & gravity (shared kernel with different sign / prefactors).
- * This is a simplified implementation intended for small systems; not optimized.
+ * Simplified 3D Ewald summation for long‑range 1/r potentials (Coulomb & gravity).
+ * Decomposition:
+ *    1/r = erfc(α r)/r   +   erf(α r)/r
+ *    real space term  +    reciprocal (Fourier) term
  *
- * We split 1/r as erfc(alpha r)/r  + erf(alpha r)/r where the first term is short‑range (real space) and the second
- * is handled in reciprocal space via discrete k vectors. We cap k shell by |k|^2 <= kMax2.
+ * Algorithm outline (current implementation):
+ *  1. Real space: loop over pairs within cutoff using erfc(α r) screened potential. Adds short‑range contribution.
+ *  2. Reciprocal space: enumerate integer k‑vectors (nx,ny,nz) with −kMax..kMax excluding 0, build structure factors
+ *     S(k) = Σ q_i exp(i k·r_i), accumulate forces & potential with Gaussian damping exp(−k^2/(4α^2)).
+ *  3. Subtract self‑interaction term (prefactor * α / √π Σ q_i^2) from potential.
+ *  4. (No surface / net‑charge correction implemented; acceptable for small neutral-ish demo systems.)
+ *
+ * Tuning parameters:
+ *  - α (alpha) controls real vs reciprocal split width. Larger α => narrower real space Gaussian (shorter real cutoff) but broader k‑space; there is a balance for performance.
+ *  - kMax defines reciprocal lattice sphere sampling (currently cubic box truncated by loops; no spherical pruning for simplicity).
+ *
+ * Complexity: O(N kCount + pairReal) with kCount ≈ (2 kMax + 1)^3 − 1. For the small N used here this is fine; for large systems a PPPM / P3M or FMM approach would be preferable.
+ *
+ * Limitations:
+ *  - No net dipole / surface term; not suitable for high accuracy charged slab cases.
+ *  - Uses naive O(k) structure factor recomputation each step (no incremental updates).
+ *  - k‑vector enumeration not minimized (includes redundant magnitude shells; no pruning by k^2 ≤ kMax^2 currently).
  */
 export interface EwaldParams { alpha: number; kMax: number }
 

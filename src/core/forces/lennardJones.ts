@@ -2,23 +2,43 @@ import { SimulationState, index3 } from '../simulation/state.js'
 import { ForceContext, ForceField, forEachPair } from './forceInterfaces.js'
 
 /**
- * Lennard-Jones force (short-range repulsion + weak longer-range attraction).
+ * Lennard‑Jones 12‑6 potential.
+ *
  * Intuition for non-physics maintainers:
  *  - At very short distance particles repel strongly (prevents overlap).
  *  - At moderate distance there's a mild attraction (models van der Waals bonding tendency).
  *  - Beyond the cutoff we ignore interaction to save time.
+ *
+ *  V(r) = 4 ε [ (σ / r)^12 − (σ / r)^6 ]
+ *  F(r) = − dV/dr  (directed along displacement vector)
+ *        = 24 ε [ 2 (σ/r)^12 − (σ/r)^6 ] / r^2  * (dx,dy,dz)
+ * (The 1/r^2 factor shown here already appears after simplifying -(d/dr)( (σ/r)^n ) patterns and multiplying by unit vector.)
+ *
+ * Physical intuition (in reduced units):
+ *  - r << σ : strong repulsion (Pauli exclusion mimic) ~ (σ/r)^12 term dominates.
+ *  - r ≈ 1.122σ (minimum) : attractive and lowest potential.
+ *  - r >> σ : weak attraction tails off ~ (σ/r)^6 (dispersion / van der Waals).
+ *
  * Parameters:
  *  - epsilon: depth of the potential well (overall interaction strength).
  *  - sigma: distance where potential crosses zero (~"size" of particle core).
  * Implementation details:
  *  - Uses a standard analytical derivative giving the vector force without computing expensive roots repeatedly.
+ *
+ * Implementation notes:
+ *  - We compute sr2 = (σ^2)/r^2 then sr6 = sr2^3, sr12 = sr6^2 to avoid repeated pow().
+ *  - Force magnitude coefficient: 24 ε (2 sr12 − sr6) / r^2, multiplied by displacement components.
+ *  - We early exit on r2 === 0 to avoid division by zero (overlapping particles). Overlap is rare and usually corrected by
+ *    repulsive acceleration next steps; resolving via position shift is left as future work / constraints.
+ *  - This implementation does not shift or truncate the potential at cutoff (i.e. V(r_cut) ≠ 0). For stability-sensitive
+ *    long runs one could apply a tail correction or shifted-force variant (documented but not yet needed here).
  */
 
 export interface LennardJonesParams { epsilon: number; sigma: number }
 
 export class LennardJones implements ForceField {
   readonly name = 'lennardJones'
-  constructor(private readonly params: LennardJonesParams) {}
+  constructor(private readonly params: LennardJonesParams) { }
   apply(state: SimulationState, ctx: ForceContext): void {
     const { epsilon, sigma } = this.params
     const { forces } = state

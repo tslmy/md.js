@@ -16,6 +16,10 @@ const WRAP_MARKER_THICKNESS = 0.05
 // Shared temp vector to avoid allocations in loops
 const _tmpVec = new Vector3()
 
+/**
+ * Create a transient ring marker on the boundary exit / entry face for a wrapped particle.
+ * Used purely for user spatial intuition – does not affect physics.
+ */
 export function createWrapMarker(
     scene: Scene,
     surface: WrapSurface,
@@ -55,6 +59,7 @@ export function createWrapMarker(
     wrapMarkers.push({ mesh: ring, birth: performance.now() })
 }
 
+/** Fade & retire wrap markers over time (simple linear opacity & slight scale pulse). */
 export function updateWrapMarkers(scene: Scene): void {
     const now = performance.now()
     for (let i = wrapMarkers.length - 1; i >= 0; i--) {
