@@ -1,14 +1,43 @@
 import { SimulationEngine } from './SimulationEngine.js'
 import { type EngineConfig } from './config/types.js'
 import { settings } from '../control/settings.js'
-import { FIELD_BINDINGS, AUTO_PUSH_KEYS as BINDING_AUTO_KEYS, assignPath, pick } from './config/fieldBindings.js'
+import { SETTINGS_SCHEMA } from '../config/settingsSchema.js'
 
 // Guard to avoid recursive push->engine->config event->pull->property set->push loops.
 let suppressAutoPush = false
 
-/** Keys that participate in automatic push/pull with the engine. */
-export const AUTO_PUSH_KEYS = BINDING_AUTO_KEYS
-export type AutoPushKey = typeof AUTO_PUSH_KEYS[number]
+// Derive binding descriptors straight from unified SETTINGS_SCHEMA (single source of truth)
+interface Binding { key: string; path: string }
+const BINDINGS: Binding[] = SETTINGS_SCHEMA
+    .filter(d => d.enginePath && d.auto)
+    .map(d => ({ key: d.key, path: d.enginePath! }))
+
+/** Keys that participate in automatic push/pull with the engine (wrapped setters). */
+export const AUTO_PUSH_KEYS = BINDINGS.map(b => b.key) as readonly string[]
+export type AutoPushKey = (typeof AUTO_PUSH_KEYS)[number]
+
+// Utility: get value at dot path
+function pick(cfg: EngineConfig, path: string): unknown {
+    const segs = path.split('.')
+    let cur: unknown = cfg
+    for (const s of segs) {
+        if (cur == null || typeof cur !== 'object') return undefined
+        cur = (cur as Record<string, unknown>)[s]
+    }
+    return cur
+}
+// Utility: assign value creating intermediate objects
+function assignPath(root: Record<string, unknown>, path: string, value: unknown): void {
+    const parts = path.split('.')
+    let obj: Record<string, unknown> = root
+    for (let i = 0; i < parts.length - 1; i++) {
+        const p = parts[i]
+        let next = obj[p]
+        if (next == null || typeof next !== 'object') { next = {}; obj[p] = next }
+        obj = next as Record<string, unknown>
+    }
+    obj[parts[parts.length - 1]] = value
+}
 
 /**
  * Two-way synchronization helpers between legacy mutable `settings` object
@@ -28,10 +57,9 @@ export type AutoPushKey = typeof AUTO_PUSH_KEYS[number]
 export function pushSettingsToEngine(engine: SimulationEngine): void {
     if (suppressAutoPush) return
     const patch: Partial<EngineConfig> = {}
-    for (const b of FIELD_BINDINGS) {
+    for (const b of BINDINGS) {
         const raw = settings[b.key as keyof typeof settings]
-        const val = b.toEngine ? b.toEngine(raw) : raw
-        assignPath(patch as unknown as Record<string, unknown>, b.path, val)
+        assignPath(patch as unknown as Record<string, unknown>, b.path, raw)
     }
     engine.updateConfig(patch)
 }
@@ -40,10 +68,9 @@ export function pushSettingsToEngine(engine: SimulationEngine): void {
 export function pullEngineConfigToSettings(cfg: EngineConfig): void {
     suppressAutoPush = true
     try {
-        for (const b of FIELD_BINDINGS) {
+        for (const b of BINDINGS) {
             const v = pick(cfg, b.path)
-            const mapped = b.fromEngine ? b.fromEngine(v) : v
-                ; (settings as Record<string, unknown>)[b.key] = mapped
+                ; (settings as Record<string, unknown>)[b.key] = v
         }
     } finally {
         suppressAutoPush = false

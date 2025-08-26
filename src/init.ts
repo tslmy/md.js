@@ -43,12 +43,12 @@ export function init(settings: SettingsLike, colors: THREE.Color[]): InitResult 
   let boxMesh: THREE.Object3D | null = null
   if (settings.if_showUniverseBoundary) {
     boxMesh = drawBox(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ, scene)
-    // Preserve original dimensions for later proportional scaling (panel resets / changes)
-  ;(boxMesh as THREE.Object3D & { userData: { initialBounds?: { x: number; y: number; z: number } } }).userData.initialBounds = {
-      x: settings.spaceBoundaryX,
-      y: settings.spaceBoundaryY,
-      z: settings.spaceBoundaryZ
-    }
+      // Preserve original dimensions for later proportional scaling (panel resets / changes)
+      ; (boxMesh as THREE.Object3D & { userData: { initialBounds?: { x: number; y: number; z: number } } }).userData.initialBounds = {
+        x: settings.spaceBoundaryX,
+        y: settings.spaceBoundaryY,
+        z: settings.spaceBoundaryZ
+      }
   }
   scene.add(new THREE.AmbientLight(0xffffff, 0.35))
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(5, 10, 7); scene.add(dirLight)
