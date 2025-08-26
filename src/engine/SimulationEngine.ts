@@ -5,8 +5,8 @@ import { LennardJones } from '../core/forces/lennardJones.js'
 import { Gravity } from '../core/forces/gravity.js'
 import { Coulomb } from '../core/forces/coulomb.js'
 import { EwaldCoulomb, EwaldGravity } from '../core/forces/ewald.js'
-import type { EngineConfig } from './config/types.js'
-import { validateEngineConfig } from './config/types.js'
+import type { EngineConfig } from './config.js'
+import { validateEngineConfig } from './config.js'
 import { computeDiagnostics, type Diagnostics } from '../core/simulation/diagnostics.js'
 import type { ForceField } from '../core/forces/forceInterfaces.js'
 import { createNaiveNeighborStrategy, activateNeighborStrategy, type NeighborListStrategy, createCellNeighborStrategy } from '../core/neighbor/neighborList.js'
@@ -416,4 +416,4 @@ export class SimulationEngine {
   }
 }
 
-export type { EngineConfig } from './config/types.js'
+export type { EngineConfig } from './config.js'

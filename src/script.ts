@@ -11,7 +11,7 @@ import { generateMassesCharges, generatePositions } from './core/simulation/seed
 import type { Diagnostics } from './core/simulation/diagnostics.js'
 // Experimental engine
 import { SimulationEngine } from './engine/SimulationEngine.js'
-import { buildEngineConfig } from './engine/config/types.js'
+import { buildEngineConfig } from './engine/config.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
 import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer } from './visual/trajectory.js'

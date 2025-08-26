@@ -8,7 +8,7 @@
  *    back into the settings object so UI stays consistent.
  */
 import { SimulationEngine } from './SimulationEngine.js'
-import { type EngineConfig } from './config/types.js'
+import { type EngineConfig } from './config.js'
 import { settings } from '../control/settings.js'
 import { getAutoEngineBindings } from '../config/settingsSchema.js'
 
