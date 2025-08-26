@@ -5,7 +5,7 @@
 import { GUI } from 'dat.gui'
 import { Object3D } from 'three'
 
-import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults, settings as liveSettings, SETTINGS_SCHEMA } from './settings.js'
+import { resetSettingsToDefaults, settings as liveSettings, SETTINGS_SCHEMA } from './settings.js'
 import { clearEngineSnapshotInLocal } from '../engine/persist.js'
 import { saveSettingsToLocal } from './persist.js'
 import { clearVisualDataInLocal } from '../visual/persist.js'
@@ -94,9 +94,16 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     for (const d of byGroup('boundary')) addDescriptor(d, guiFolderBoundary)
     const guiFolderSize = guiFolderBoundary.addFolder('Custom size')
     const wrapBoxChange = (axis: 'spaceBoundaryX' | 'spaceBoundaryY' | 'spaceBoundaryZ', update: () => void) => () => { update(); clampCutoff(); if (cutoffController?.updateDisplay) cutoffController.updateDisplay() }
-    guiFolderSize.add(settings, 'spaceBoundaryX').name('Size, X').onChange(wrapBoxChange('spaceBoundaryX', () => { if (boxMesh) boxMesh.scale.x = Number(settings.spaceBoundaryX) / originalSpaceBoundaryX }))
-    guiFolderSize.add(settings, 'spaceBoundaryY').name('Size, Y').onChange(wrapBoxChange('spaceBoundaryY', () => { if (boxMesh) boxMesh.scale.y = Number(settings.spaceBoundaryY) / originalSpaceBoundaryY }))
-    guiFolderSize.add(settings, 'spaceBoundaryZ').name('Size, Z').onChange(wrapBoxChange('spaceBoundaryZ', () => { if (boxMesh) boxMesh.scale.z = Number(settings.spaceBoundaryZ) / originalSpaceBoundaryZ }))
+    const getInitial = () => (boxMesh as Object3D & { userData?: { initialBounds?: { x: number; y: number; z: number } } })?.userData?.initialBounds
+    guiFolderSize.add(settings, 'spaceBoundaryX').name('Size, X').onChange(wrapBoxChange('spaceBoundaryX', () => {
+        const init = getInitial(); if (boxMesh && init) boxMesh.scale.x = Number(settings.spaceBoundaryX) / init.x
+    }))
+    guiFolderSize.add(settings, 'spaceBoundaryY').name('Size, Y').onChange(wrapBoxChange('spaceBoundaryY', () => {
+        const init = getInitial(); if (boxMesh && init) boxMesh.scale.y = Number(settings.spaceBoundaryY) / init.y
+    }))
+    guiFolderSize.add(settings, 'spaceBoundaryZ').name('Size, Z').onChange(wrapBoxChange('spaceBoundaryZ', () => {
+        const init = getInitial(); if (boxMesh && init) boxMesh.scale.z = Number(settings.spaceBoundaryZ) / init.z
+    }))
     const guiFolderForces = guiFolderWorld.addFolder('Forces')
     for (const d of byGroup('forces')) addDescriptor(d, guiFolderForces)
     guiFolderWorld.open()
@@ -129,9 +136,12 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
             resetSettingsToDefaults()
             initializeGuiControls(settings, boxMesh)
             if (boxMesh) {
-                boxMesh.scale.x = Number(settings.spaceBoundaryX) / originalSpaceBoundaryX
-                boxMesh.scale.y = Number(settings.spaceBoundaryY) / originalSpaceBoundaryY
-                boxMesh.scale.z = Number(settings.spaceBoundaryZ) / originalSpaceBoundaryZ
+                const init = getInitial()
+                if (init) {
+                    boxMesh.scale.x = Number(settings.spaceBoundaryX) / init.x
+                    boxMesh.scale.y = Number(settings.spaceBoundaryY) / init.y
+                    boxMesh.scale.z = Number(settings.spaceBoundaryZ) / init.z
+                }
             }
             try { saveSettingsToLocal() } catch (e) { console.warn('Failed saving user settings:', e) }
         }

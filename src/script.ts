@@ -276,15 +276,14 @@ docReady(() => {
     // Trajectories persisted separately (visual aid) – defer restore after visuals ready.
   }
 
-  const values = init(settings, colors)
-  scene = values[0]
-  // values[1] was a legacy placeholder (always null) – removed
-  camera = values[2]
-  renderer = values[3]
-  controls = values[4]
-  stats = values[5]
-  temperaturePanel = values[6]
-  effect = values[7]
+  const initResult = init(settings, colors)
+  scene = initResult.scene
+  camera = initResult.camera
+  renderer = initResult.renderer
+  controls = initResult.controls
+  stats = initResult.stats
+  temperaturePanel = initResult.temperaturePanel
+  effect = initResult.effect
 
   if (!engine) {
     console.log('No engine found, creating a new one.')

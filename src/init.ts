@@ -25,13 +25,30 @@ function fullscreen(): void {
   else if (b.webkitRequestFullscreen) b.webkitRequestFullscreen()
 }
 
-export function init(settings: SettingsLike, colors: THREE.Color[]): [THREE.Scene, null, THREE.PerspectiveCamera, THREE.WebGLRenderer, OrbitControls, Stats, { update: (t: number, max: number) => void }, StereoEffect | undefined] {
+export interface InitResult {
+  scene: THREE.Scene
+  camera: THREE.PerspectiveCamera
+  renderer: THREE.WebGLRenderer
+  controls: OrbitControls
+  stats: Stats
+  temperaturePanel: { update: (t: number, max: number) => void }
+  effect?: StereoEffect
+  boxMesh: THREE.Object3D | null
+}
+
+export function init(settings: SettingsLike, colors: THREE.Color[]): InitResult {
   const scene = new THREE.Scene()
   if (settings.if_useFog) scene.fog = new THREE.Fog(0xffffff, 0, 20)
   // Optional wireframe box
   let boxMesh: THREE.Object3D | null = null
   if (settings.if_showUniverseBoundary) {
     boxMesh = drawBox(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ, scene)
+    // Preserve original dimensions for later proportional scaling (panel resets / changes)
+  ;(boxMesh as THREE.Object3D & { userData: { initialBounds?: { x: number; y: number; z: number } } }).userData.initialBounds = {
+      x: settings.spaceBoundaryX,
+      y: settings.spaceBoundaryY,
+      z: settings.spaceBoundaryZ
+    }
   }
   scene.add(new THREE.AmbientLight(0xffffff, 0.35))
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(5, 10, 7); scene.add(dirLight)
@@ -70,7 +87,7 @@ export function init(settings: SettingsLike, colors: THREE.Color[]): [THREE.Scen
   setTimeout(() => { resize(camera, effect, renderer) }, 1)
 
   initializeGuiControls(settings, boxMesh)
-  return [scene, null, camera, renderer, controls, stats, temperaturePanel, effect]
+  return { scene, camera, renderer, controls, stats, temperaturePanel, effect, boxMesh }
 }
 
 function resize(camera: THREE.PerspectiveCamera, effect: StereoEffect | undefined, renderer: THREE.WebGLRenderer): void {

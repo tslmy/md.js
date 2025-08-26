@@ -1,14 +1,10 @@
 import { buildSettings, SETTINGS_SCHEMA, type SettingsObject } from '../config/settingsSchema.js'
 
+// Mutable singleton settings object (GUI mutates in place)
 const settings: SettingsObject = buildSettings()
 
-const originalSpaceBoundaryX = settings.spaceBoundaryX as number
-const originalSpaceBoundaryY = settings.spaceBoundaryY as number
-const originalSpaceBoundaryZ = settings.spaceBoundaryZ as number
+// Reset by rebuilding from schema (avoids maintaining a deep cloned copy + keeps new schema additions)
+function resetSettingsToDefaults(): void { Object.assign(settings, buildSettings()) }
+function getDefaultSettingsSnapshot() { return buildSettings() }
 
-const _defaultSettings = JSON.parse(JSON.stringify(settings))
-
-function resetSettingsToDefaults(): void { Object.assign(settings, JSON.parse(JSON.stringify(_defaultSettings))) }
-function getDefaultSettingsSnapshot() { return JSON.parse(JSON.stringify(_defaultSettings)) }
-
-export { settings, originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults, getDefaultSettingsSnapshot, SETTINGS_SCHEMA }
+export { settings, resetSettingsToDefaults, getDefaultSettingsSnapshot, SETTINGS_SCHEMA }
