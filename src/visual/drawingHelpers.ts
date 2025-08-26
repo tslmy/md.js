@@ -26,25 +26,38 @@ export function drawBox(
   return boxMesh
 }
 
-/**
- * This function creates a line object that represents the trajectory of a particle.
- * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
+/** Build a new single-particle trajectory line object and add it to the scene.
  *
- * @param color - The color of the trajectory line.
- * @param position - The starting position of the trajectory.
- * @param maxLen - The maximum length of the trajectory.
+ * @param i - The index of the particle.
+ * @param positions - The positions buffer.
+ * @param colors - The colors array.
+ * @param scene - The THREE.js scene.
+ * @param maxTrajectoryLength - The maximum length of the trajectory.
  * @returns A line object representing the trajectory.
  */
-export function makeTrajectory(color: Color, position: Vector3, maxLen: number): Line {
+export function newTrajectory(i: number, positions: Float32Array, colors: Color[], scene: Scene, maxLen: number): Line {
+  const i3 = 3 * i
+  // Current position of the i-th particle.
+  const position = new Vector3(positions[i3], positions[i3 + 1], positions[i3 + 2])
+  // The color of the i-th particle. The trajectory will be colored based on this.
+  const color = colors[i] || new Color(0xffffff)
+  /*
+   * This function creates a line object that represents the trajectory of a particle.
+   * See <http://stackoverflow.com/questions/31399856/drawing-a-line-with-three-js-dynamically>.
+   */
   const geom = new BufferGeometry()
   const pts = new Float32Array(maxLen * 3)
   const cols = new Float32Array(maxLen * 3)
   geom.setAttribute('position', new BufferAttribute(pts, 3))
   geom.setAttribute('color', new BufferAttribute(cols, 3))
+  // The trajectory should fade to white as it extends away from the particle.
+  // This makes the trajectory appear as if it is getting erased.
   const white = new Color('#FFFFFF')
   for (let i = 0; i < maxLen; i++) {
     const t = (maxLen - i) / maxLen
     const c = color.clone().lerp(white, t); (geom.attributes.color as BufferAttribute).setXYZ(i, c.r, c.g, c.b); (geom.attributes.position as BufferAttribute).setXYZ(i, position.x, position.y, position.z)
   }
-  return new Line(geom, new LineBasicMaterial({ linewidth: 1, vertexColors: true }))
+  const line = new Line(geom, new LineBasicMaterial({ linewidth: 1, vertexColors: true }))
+  scene.add(line)
+  return line
 }

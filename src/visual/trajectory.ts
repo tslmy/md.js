@@ -1,5 +1,5 @@
 import { Vector3, Line, Color, BufferAttribute, Scene } from 'three'
-import { makeTrajectory } from './drawingHelpers.js'
+import { newTrajectory } from './drawingHelpers.js'
 import { settings } from '../control/settings.js'
 import type { SimulationState } from '../core/simulation/state.js'
 
@@ -42,7 +42,7 @@ function allocatePlaceholders(state: SimulationState): void {
 /** Create missing Line objects (if any) and mark all trajectories visible. */
 function showAndCreate(state: SimulationState, colors: Color[], scene: Scene): void {
     for (let i = 0; i < state.N; i++) {
-        trajectories[i] ??= buildTrajectory(i, state, colors, scene)
+        trajectories[i] ??= newTrajectory(i, state.positions, colors, scene, settings.maxTrajectoryLength)
         const line = trajectories[i]
         if (line) line.visible = true
     }
@@ -53,15 +53,6 @@ function hideAll(): void {
     for (const t of trajectories) { if (t) t.visible = false }
 }
 
-/** Build a new single-particle trajectory line object and add it to the scene. */
-function buildTrajectory(i: number, state: SimulationState, colors: Color[], scene: Scene): Line {
-    const i3 = 3 * i
-    const pos = new Vector3(state.positions[i3], state.positions[i3 + 1], state.positions[i3 + 2])
-    const color = colors[i] || new Color(0xffffff)
-    const line = makeTrajectory(color, pos, settings.maxTrajectoryLength)
-    scene.add(line)
-    return line
-}
 
 /**
  * Append the newest position to a fixed-length buffer by shifting existing

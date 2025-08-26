@@ -53,6 +53,8 @@ What am I looking at?
 
 The code base separates a **physics engine** (data + force/integration pipeline) from the **visualization layer** (Three.js scene graph + HUD) via an event boundary.
 
+For a concise catalog of engine classes, events and extension points see: [Simulation Engine API](src/README.md).
+
 ### Simulation Core (`src/core/`)
 
 This module is responsible for the physics computation. To physicists/chemists without a programming background, the most relevant part is perhaps the `force/` folder, which hosts scripts that each defines a force field. At any given timestep, instantaneous quantities of all particles (namely, velocities, positions, and forces) are described by a `SimulationState`. An integrator then iterates through all force fields to update the velocities and the positions at each timestep. That's the basic idea of all simulation software of molecular dynamics.
@@ -89,6 +91,8 @@ A 3D rendering module is located at `src/visual/`:
 * `InstancedArrows.ts` – Batched instanced arrows (velocity & net force) with per‑frame normalization & capping.
 * `drawingHelpers.ts` - Helper functions that plot boxes and lines. Tightly coupled to THREE.js currently.
 * `coloringAndDataSheet.ts` - Seeds colors for particles and adds rows to the HUD/Data Sheet.
+* `wrapMarkers.ts` - When PBC is applied, the simulation is bound by a box. Any particle attempting to cross this box will be wrapped ("teleported") to the opposite face. To facilitate visual intuition, a transient ring marker will be drawn on the exit point and another on the entry point. The visual style is inspired by [the video game series, _Portal_](https://en.wikipedia.org/wiki/Portal_(series)).
+* `trajectory.ts` -
 * `persist.ts` - Stores and loads information about visual aids, such as trejectories and particle colors. Note that velocity & net force arrows are not persisted, because they can be derived from simulation state data that are persisted in the engine module.
 
 ### Public (Test) Surface
