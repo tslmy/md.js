@@ -85,14 +85,17 @@ A "control and settings" module sits under `src/control/`:
 * `settings.ts` – Central tweakable parameters + feature flags; intentionally verbose / “kitchen sink” for experimentation.
 * `persist.ts` - Stores and loads settings.
 
-A 3D rendering module is located at `src/visual/`:
+A rendering module is located at `src/visual/`:
 
-* `InstancedSpheres.ts` – Batched instanced sphere renderer (primary + PBC clone copies for visualization).
-* `InstancedArrows.ts` – Batched instanced arrows (velocity & net force) with per‑frame normalization & capping.
-* `drawingHelpers.ts` - Helper functions that plot boxes and lines. Tightly coupled to THREE.js currently.
 * `coloringAndDataSheet.ts` - Seeds colors for particles and adds rows to the HUD/Data Sheet.
-* `wrapMarkers.ts` - When PBC is applied, the simulation is bound by a box. Any particle attempting to cross this box will be wrapped ("teleported") to the opposite face. To facilitate visual intuition, a transient ring marker will be drawn on the exit point and another on the entry point. The visual style is inspired by [the video game series, _Portal_](https://en.wikipedia.org/wiki/Portal_(series)).
-* `trajectory.ts` -
+* Several visual-aid features are available:
+  * `wrapMarkers.ts` - When PBC is applied, the simulation is bound by a box. Any particle attempting to cross this box will be wrapped ("teleported") to the opposite face. To facilitate visual intuition, a transient ring marker will be drawn on the exit point and another on the entry point. The visual style is inspired by [the video game series, _Portal_](https://en.wikipedia.org/wiki/Portal_(series)).
+  * `trajectory.ts` - As particle moves in space, a trajectory traces its path. This file manages that.
+  * `arrows.ts` - Two arrows stick out from each particle. One indicates the velocity, the other net force. This script handles that.
+* There are several scripts that deals with how THREE.js draws things:
+  * `InstancedSpheres.ts` – Batched instanced sphere renderer (primary + PBC clone copies for visualization).
+  * `InstancedArrows.ts` – Batched instanced arrows (velocity & net force) with per‑frame normalization & capping.
+  * `drawingHelpers.ts` - Helper functions that plot boxes and lines.
 * `persist.ts` - Stores and loads information about visual aids, such as trejectories and particle colors. Note that velocity & net force arrows are not persisted, because they can be derived from simulation state data that are persisted in the engine module.
 
 ### Public (Test) Surface
