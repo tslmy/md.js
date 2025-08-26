@@ -258,7 +258,6 @@ function docReady(fn: () => void): void {
 }
 docReady(() => {
   console.log('Ready.')
-
   // Attempt to hydrate engine first (if snapshot present) BEFORE building visual particle system.
   // Load persisted user settings first so fresh world uses them if no snapshot.
   loadSettingsFromLocal()
@@ -301,7 +300,7 @@ docReady(() => {
       N: simState.N,
       massLower: settings.massLowerBound,
       massUpper: settings.massUpperBound,
-      chargeOptions: settings.availableCharges,
+      chargeOptions: [...settings.availableCharges],
       sunMass: settings.sunMass,
       makeSun: settings.if_makeSun
     })
@@ -334,6 +333,10 @@ docReady(() => {
   // Allocate initial display-space positions & populate once before exposing API (ensures tests see centered values).
   displayPositions = new Float32Array(simState.positions.length)
   updateDisplayPositions(computeFrameOffset())
+  // Expose early so even if later visual initialization fails tests can still access simulation state.
+  const earlyApi = window.__mdjs || (window.__mdjs = { colors, settings })
+  earlyApi.simState = simState
+  if (displayPositions) (earlyApi.simState as typeof simState & { positions: Float32Array }).positions = displayPositions
   initSettingsSync(engine)
   // Auto-push: wrap selected mutable settings with setters triggering engine.updateConfig
   registerAutoPush(engine, AUTO_PUSH_KEYS)
@@ -369,7 +372,8 @@ docReady(() => {
   }
   engine.on('wrap', handleWrapEvent)
   engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
-  engine.run({ useRaf: true })
+  // In headless test (puppeteer) environment requestAnimationFrame may be stubbed / throttled; fall back to interval.
+  engine.run({ useRaf: typeof requestAnimationFrame === 'function' })
   // Create arrow visualizers once state & scene are ready
   if (simState) {
     // Ensure trajectories created/hidden per settings
@@ -392,7 +396,6 @@ docReady(() => {
   // Expose handle for automated headless tests. Reuse existing stub so references remain stable.
   const api = window.__mdjs || (window.__mdjs = { colors, settings })
   api.simState = simState
-  // Replace positions reference with display-space buffer (updated in-place each frame) for integration tests.
   if (displayPositions) (api.simState as typeof simState & { positions: Float32Array }).positions = displayPositions
   api.diagnostics = lastDiagnostics
   api.ready = true
@@ -418,5 +421,6 @@ docReady(() => {
     }
   })
 })
+
 // Clone position list now supplied by shared pbc module (returns plain objects); adapt to Vector3 instances on demand.
 // For existing usage we map to Vector3 once per invocation.

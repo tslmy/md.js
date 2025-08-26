@@ -5,7 +5,7 @@
 import { GUI } from 'dat.gui'
 import { Object3D } from 'three'
 
-import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults, settings as liveSettings } from './settings.js'
+import { originalSpaceBoundaryX, originalSpaceBoundaryY, originalSpaceBoundaryZ, resetSettingsToDefaults, settings as liveSettings, SETTINGS_SCHEMA } from './settings.js'
 import { clearEngineSnapshotInLocal } from '../engine/persist.js'
 import { saveSettingsToLocal } from './persist.js'
 import { clearVisualDataInLocal } from '../visual/persist.js'
@@ -29,78 +29,84 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     // Some users reported a dat.GUI error: "Object '[object Object]' has no property 'ewaldAlpha'" even though
     // the settings export defines it. To be maximally defensive we re-check *and* define numeric defaults if
     // absent or still undefined so dat.GUI never rejects the controller creation.
-    const ensureProp = <K extends keyof SettingsLike>(key: K, fallback: number) => {
-        if (!(key in settings)) {
-            (settings as Record<string, unknown>)[key as string] = fallback
-            console.debug('[panel] Injected missing settings key', key, '=>', fallback)
-        } else if ((settings as Record<string, unknown>)[key as string] == null) {
-            // Normalize null/undefined to a numeric fallback so sliders work.
-            ; (settings as Record<string, unknown>)[key as string] = fallback
+    const ensureProp = (key: keyof SettingsLike, fallback: number) => {
+        const current = settings[key] as unknown
+        if (current == null || typeof current !== 'number') {
+            settings[key as string] = fallback
         }
     }
-    const Lmin = Math.min(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ) || 1
+    const Lmin = Math.min(
+        Number(settings.spaceBoundaryX),
+        Number(settings.spaceBoundaryY),
+        Number(settings.spaceBoundaryZ)
+    ) || 1
     // Heuristic defaults: alpha ~ 5/Lmin, kMax modest integer for starter performance.
     ensureProp('ewaldAlpha' as keyof SettingsLike, 5 / Lmin)
     ensureProp('ewaldKMax' as keyof SettingsLike, 6)
     const gui = new GUI(); _activeGui = gui
-    const guiFolderWorld = gui.addFolder('World building')
-    guiFolderWorld.add(settings, 'if_constant_temperature').name('Constant T')
-    guiFolderWorld.add(settings, 'targetTemperature').name('Target temp.')
-    const guiFolderParameters = guiFolderWorld.addFolder('Parameters')
-    guiFolderParameters.add(settings, 'particleCount')
-    guiFolderParameters.add(settings, 'dt')
+    const guiFolderWorld = gui.addFolder('World & Runtime')
+    const guiFolderParameters = guiFolderWorld.addFolder('Core')
+    // Build controllers dynamically from schema
+    const byGroup = (g: string) => SETTINGS_SCHEMA.filter(d => d.group === g)
+    interface Controller { onChange?(cb: () => void): Controller; name(n: string): Controller; updateDisplay?(): void }
+    const createdControllers: Record<string, Controller> = {}
+    type FolderLike = { add: (obj: object, prop: string, opts?: Record<string, string>) => Controller }
+    const addDescriptor = (d: (typeof SETTINGS_SCHEMA)[number], folder: FolderLike) => {
+        // Avoid adding duplicate controllers (e.g. boundary size re-added under custom size folder)
+        if (createdControllers[d.key]) return
+        // Require key present on settings
+        if (!(d.key in settings)) return
+        const val = (settings as Record<string, unknown>)[d.key]
+        // If value is array or object (and not a select control), skip – unsupported primitive for default controller
+        // Skip non-primitive values (arrays/objects) unless explicitly handled as select.
+        if (Array.isArray(val)) { return }
+        // Skip plain objects (non-select) which dat.GUI can't bind directly.
+        // Previously filtered generic objects; allowing them now if dat.GUI can derive a controller (rare case)
+        const name = d.control?.label || d.key
+        let ctrl: Controller
+        if (d.control?.type === 'select' && d.control.options) {
+            ctrl = folder.add(settings, d.key, d.control.options).name(name)
+        } else {
+            ctrl = folder.add(settings, d.key).name(name)
+        }
+        createdControllers[d.key] = ctrl
+    }
+    for (const d of byGroup('world')) addDescriptor(d, guiFolderParameters)
+    for (const d of byGroup('runtime')) addDescriptor(d, guiFolderParameters)
     // Enforce LJ cutoff not exceeding half-box length (minimum of half-lengths) for physical correctness under PBC.
-    const cutoffController = guiFolderParameters.add(settings, 'cutoffDistance').name('Cutoff')
+    const cutoffController = createdControllers['cutoffDistance']
     const clampCutoff = () => {
-        const maxHalf = Math.min(settings.spaceBoundaryX, settings.spaceBoundaryY, settings.spaceBoundaryZ)
-        if (settings.cutoffDistance > maxHalf) settings.cutoffDistance = maxHalf
-        if (settings.cutoffDistance <= 0) settings.cutoffDistance = maxHalf * 0.1 // arbitrary small positive default
-        cutoffController.updateDisplay()
+        const maxHalf = Math.min(Number(settings.spaceBoundaryX), Number(settings.spaceBoundaryY), Number(settings.spaceBoundaryZ))
+        if (Number(settings.cutoffDistance) > maxHalf) {
+            settings.cutoffDistance = maxHalf as unknown as number
+        }
+        if (Number(settings.cutoffDistance) <= 0) {
+            settings.cutoffDistance = (maxHalf * 0.1) as unknown as number
+        }
+        if (cutoffController?.updateDisplay) cutoffController.updateDisplay()
     }
-    cutoffController.onChange(clampCutoff)
-    guiFolderParameters.add(settings, 'integrator', { 'Velocity Verlet': 'velocityVerlet', 'Euler': 'euler' }).name('Integrator')
-    guiFolderParameters.add(settings, 'neighborStrategy', { 'Cell': 'cell', 'Naive': 'naive' }).name('Neighbor list')
-    const guiFolderConstants = guiFolderWorld.addFolder('Physical Constants')
-    guiFolderConstants.add(settings, 'EPSILON')
-    guiFolderConstants.add(settings, 'DELTA')
-    guiFolderConstants.add(settings, 'G')
-    guiFolderConstants.add(settings, 'K')
-    guiFolderConstants.add(settings, 'kB').name('kB')
-    const guiFolderEwald = guiFolderWorld.addFolder('Ewald (PBC long-range)')
-    try {
-        guiFolderEwald.add(settings, 'ewaldAlpha').name('Alpha').onChange(() => { /* engine auto-push will rebuild forces */ })
-    } catch (e) {
-        console.error('Failed adding ewaldAlpha controller; settings keys present?', e, settings)
-    }
-    try {
-        guiFolderEwald.add(settings, 'ewaldKMax').name('kMax').onChange(() => { /* engine auto-push will rebuild forces */ })
-    } catch (e) {
-        console.error('Failed adding ewaldKMax controller; settings keys present?', e, settings)
-    }
-    const guiFolderBoundary = guiFolderWorld.addFolder('Universe boundary')
-    guiFolderBoundary.add(settings, 'if_showUniverseBoundary')
-    guiFolderBoundary.add(settings, 'if_use_periodic_boundary_condition').name('Use PBC')
+    cutoffController?.onChange?.(clampCutoff)
+    const guiFolderConstants = guiFolderWorld.addFolder('Constants')
+    for (const d of byGroup('constants')) addDescriptor(d, guiFolderConstants)
+    const guiFolderEwald = guiFolderWorld.addFolder('Ewald')
+    for (const d of byGroup('ewald')) addDescriptor(d, guiFolderEwald)
+    const guiFolderBoundary = guiFolderWorld.addFolder('Boundary')
+    for (const d of byGroup('boundary')) addDescriptor(d, guiFolderBoundary)
     const guiFolderSize = guiFolderBoundary.addFolder('Custom size')
-    const wrapBoxChange = (axis: 'spaceBoundaryX' | 'spaceBoundaryY' | 'spaceBoundaryZ', update: () => void) => () => { update(); clampCutoff(); cutoffController.updateDisplay() }
-    guiFolderSize.add(settings, 'spaceBoundaryX').name('Size, X').onChange(wrapBoxChange('spaceBoundaryX', () => { if (boxMesh) boxMesh.scale.x = settings.spaceBoundaryX / originalSpaceBoundaryX }))
-    guiFolderSize.add(settings, 'spaceBoundaryY').name('Size, Y').onChange(wrapBoxChange('spaceBoundaryY', () => { if (boxMesh) boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY }))
-    guiFolderSize.add(settings, 'spaceBoundaryZ').name('Size, Z').onChange(wrapBoxChange('spaceBoundaryZ', () => { if (boxMesh) boxMesh.scale.z = settings.spaceBoundaryZ / originalSpaceBoundaryZ }))
-    const guiFolderForces = guiFolderWorld.addFolder('Forcefields to apply')
-    guiFolderForces.add(settings, 'if_apply_LJpotential').name('LJ potential')
-    guiFolderForces.add(settings, 'if_apply_gravitation').name('Gravitation')
-    guiFolderForces.add(settings, 'if_apply_coulombForce').name('Coulomb Force')
+    const wrapBoxChange = (axis: 'spaceBoundaryX' | 'spaceBoundaryY' | 'spaceBoundaryZ', update: () => void) => () => { update(); clampCutoff(); if (cutoffController?.updateDisplay) cutoffController.updateDisplay() }
+    guiFolderSize.add(settings, 'spaceBoundaryX').name('Size, X').onChange(wrapBoxChange('spaceBoundaryX', () => { if (boxMesh) boxMesh.scale.x = Number(settings.spaceBoundaryX) / originalSpaceBoundaryX }))
+    guiFolderSize.add(settings, 'spaceBoundaryY').name('Size, Y').onChange(wrapBoxChange('spaceBoundaryY', () => { if (boxMesh) boxMesh.scale.y = Number(settings.spaceBoundaryY) / originalSpaceBoundaryY }))
+    guiFolderSize.add(settings, 'spaceBoundaryZ').name('Size, Z').onChange(wrapBoxChange('spaceBoundaryZ', () => { if (boxMesh) boxMesh.scale.z = Number(settings.spaceBoundaryZ) / originalSpaceBoundaryZ }))
+    const guiFolderForces = guiFolderWorld.addFolder('Forces')
+    for (const d of byGroup('forces')) addDescriptor(d, guiFolderForces)
     guiFolderWorld.open()
-    const guiFolderPlotting = gui.addFolder('Plotting')
-    guiFolderPlotting.add(settings, 'referenceFrameMode', { 'Fixed': 'fixed', 'Sun': 'sun', 'Center of Mass': 'com' }).name('Reference frame')
-    const guiFolderTraj = guiFolderPlotting.addFolder('Particle trajectories')
-    guiFolderTraj.add(settings, 'if_showTrajectory').name('Trace')
-    guiFolderTraj.add(settings, 'maxTrajectoryLength').name('Length')
-    const guiFolderArrows = guiFolderPlotting.addFolder('Arrows for forces and velocities')
-    guiFolderArrows.add(settings, 'if_showArrows').name('Show arrows')
-    guiFolderArrows.add(settings, 'if_limitArrowsMaxLength').name('Limit length')
-    guiFolderArrows.add(settings, 'maxArrowLength').name('Max length')
-    guiFolderArrows.add(settings, 'unitArrowLength').name('Unit length')
-    guiFolderArrows.add(settings, 'if_showMapscale').name('Show scales').onChange(() => { toggle('.mapscale') })
+    const guiFolderPlotting = gui.addFolder('Visual / Plotting')
+    for (const d of byGroup('visual')) addDescriptor(d, guiFolderPlotting)
+    const guiFolderTraj = guiFolderPlotting.addFolder('Trajectories')
+    for (const d of byGroup('trajectories')) addDescriptor(d, guiFolderTraj)
+    const guiFolderArrows = guiFolderPlotting.addFolder('Arrows')
+    for (const d of byGroup('arrows')) addDescriptor(d, guiFolderArrows)
+    if (createdControllers['if_showMapscale']?.onChange) createdControllers['if_showMapscale'].onChange(() => { toggle('.mapscale') })
     const commands = {
         stop: () => { try { (window as unknown as { __pauseEngine?: () => void }).__pauseEngine?.() } catch { /* ignore */ } },
         toggleHUD: () => { toggle('#hud') },
@@ -123,9 +129,9 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
             resetSettingsToDefaults()
             initializeGuiControls(settings, boxMesh)
             if (boxMesh) {
-                boxMesh.scale.x = settings.spaceBoundaryX / originalSpaceBoundaryX
-                boxMesh.scale.y = settings.spaceBoundaryY / originalSpaceBoundaryY
-                boxMesh.scale.z = settings.spaceBoundaryZ / originalSpaceBoundaryZ
+                boxMesh.scale.x = Number(settings.spaceBoundaryX) / originalSpaceBoundaryX
+                boxMesh.scale.y = Number(settings.spaceBoundaryY) / originalSpaceBoundaryY
+                boxMesh.scale.z = Number(settings.spaceBoundaryZ) / originalSpaceBoundaryZ
             }
             try { saveSettingsToLocal() } catch (e) { console.warn('Failed saving user settings:', e) }
         }

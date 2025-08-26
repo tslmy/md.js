@@ -29,7 +29,7 @@ export function pushSettingsToEngine(engine: SimulationEngine): void {
     if (suppressAutoPush) return
     const patch: Partial<EngineConfig> = {}
     for (const b of FIELD_BINDINGS) {
-        const raw = (settings as Record<string, unknown>)[b.key]
+        const raw = settings[b.key as keyof typeof settings]
         const val = b.toEngine ? b.toEngine(raw) : raw
         assignPath(patch as unknown as Record<string, unknown>, b.path, val)
     }
@@ -73,7 +73,7 @@ export function registerAutoPush(engine: SimulationEngine, keys: readonly AutoPu
         if (!(k in settings)) continue
         const desc = Object.getOwnPropertyDescriptor(settings, k)
         if (desc?.set) continue
-        let value = (settings as Record<string, unknown>)[k]
+        let value = settings[k as keyof typeof settings]
         Object.defineProperty(settings, k, {
             configurable: true,
             enumerable: true,

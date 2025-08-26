@@ -1,4 +1,5 @@
 import type { EngineConfig } from './types.js'
+import { SETTINGS_SCHEMA } from '../../config/settingsSchema.js'
 
 /** Descriptor mapping a legacy settings key to EngineConfig path segments. */
 export interface FieldBinding {
@@ -15,25 +16,9 @@ export interface FieldBinding {
 }
 
 /** Declarative table for all synchronized fields. */
-export const FIELD_BINDINGS: FieldBinding[] = [
-  { key: 'particleCount', path: 'world.particleCount', auto: true },
-  { key: 'spaceBoundaryX', path: 'world.box.x', auto: true },
-  { key: 'spaceBoundaryY', path: 'world.box.y', auto: true },
-  { key: 'spaceBoundaryZ', path: 'world.box.z', auto: true },
-  { key: 'dt', path: 'runtime.dt', auto: true },
-  { key: 'cutoffDistance', path: 'runtime.cutoff', auto: true },
-  // Newly exposed advanced runtime / algorithm selections
-  { key: 'integrator', path: 'runtime.integrator', auto: true },
-  { key: 'neighborStrategy', path: 'neighbor.strategy', auto: true },
-  { key: 'if_apply_LJpotential', path: 'forces.lennardJones', toEngine: v => !!v, fromEngine: v => !!v, auto: true },
-  { key: 'if_apply_gravitation', path: 'forces.gravity', toEngine: v => !!v, fromEngine: v => !!v, auto: true },
-  { key: 'if_apply_coulombForce', path: 'forces.coulomb', toEngine: v => !!v, fromEngine: v => !!v, auto: true },
-  { key: 'EPSILON', path: 'constants.epsilon', auto: true },
-  { key: 'DELTA', path: 'constants.sigma', auto: true },
-  { key: 'G', path: 'constants.G', auto: true },
-  { key: 'K', path: 'constants.K', auto: true },
-  { key: 'kB', path: 'constants.kB', auto: true }
-]
+export const FIELD_BINDINGS: FieldBinding[] = SETTINGS_SCHEMA
+  .filter(d => d.enginePath && d.auto)
+  .map(d => ({ key: d.key, path: d.enginePath!, auto: true }))
 
 /** Auto-push key list derived from bindings. */
 export const AUTO_PUSH_KEYS = FIELD_BINDINGS.filter(b => b.auto).map(b => b.key) as readonly string[]
