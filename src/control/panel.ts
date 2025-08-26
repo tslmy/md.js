@@ -44,76 +44,64 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     ensureProp('ewaldAlpha' as keyof SettingsLike, 5 / Lmin)
     ensureProp('ewaldKMax' as keyof SettingsLike, 6)
     const gui = new GUI(); _activeGui = gui
-    const guiFolderWorld = gui.addFolder('World & Runtime')
-    const guiFolderParameters = guiFolderWorld.addFolder('Core')
-    // Build controllers dynamically from schema
-    const byGroup = (g: string) => SETTINGS_SCHEMA.filter(d => d.group === g)
     interface Controller { onChange?(cb: () => void): Controller; name(n: string): Controller; updateDisplay?(): void }
-    const createdControllers: Record<string, Controller> = {}
-    type FolderLike = { add: (obj: object, prop: string, opts?: Record<string, string>) => Controller }
-    const addDescriptor = (d: (typeof SETTINGS_SCHEMA)[number], folder: FolderLike) => {
-        // Avoid adding duplicate controllers (e.g. boundary size re-added under custom size folder)
-        if (createdControllers[d.key]) return
-        // Require key present on settings
+    const controllers: Record<string, Controller> = {}
+    const folders: Record<string, GUI> = {}
+    const LABEL: Record<string, string> = {
+        world: 'World', runtime: 'Runtime', forces: 'Forces', constants: 'Constants', boundary: 'Boundary', ewald: 'Ewald', advanced: 'Advanced',
+        visual: 'Visual', trajectories: 'Trajectories', arrows: 'Arrows', ui: 'UI'
+    }
+    const folder = (g: string) => folders[g] || (folders[g] = gui.addFolder(LABEL[g] || g))
+    const initialBounds = (boxMesh as Object3D & { userData?: { initialBounds?: { x: number; y: number; z: number } } })?.userData?.initialBounds
+    const add = (d: (typeof SETTINGS_SCHEMA)[number]) => {
         if (!(d.key in settings)) return
         const val = (settings as Record<string, unknown>)[d.key]
-        // If value is array or object (and not a select control), skip – unsupported primitive for default controller
-        // Skip non-primitive values (arrays/objects) unless explicitly handled as select.
-        if (Array.isArray(val)) { return }
-        // Skip plain objects (non-select) which dat.GUI can't bind directly.
-        // Previously filtered generic objects; allowing them now if dat.GUI can derive a controller (rare case)
+        if (Array.isArray(val)) return
+        const f = folder(d.group)
         const name = d.control?.label || d.key
-        let ctrl: Controller
-        if (d.control?.type === 'select' && d.control.options) {
-            ctrl = folder.add(settings, d.key, d.control.options).name(name)
-        } else {
-            ctrl = folder.add(settings, d.key).name(name)
+        let c: Controller
+        if (d.control?.type === 'select' && d.control.options) c = f.add(settings, d.key, d.control.options).name(name)
+        else c = f.add(settings, d.key).name(name)
+        controllers[d.key] = c
+        // Generic numeric clamp & step enforcement (skip selects / booleans)
+        if (d.control?.type !== 'select' && typeof (settings as Record<string, unknown>)[d.key] === 'number' && (d.control?.min !== undefined || d.control?.max !== undefined || d.control?.step !== undefined)) {
+            c.onChange?.(() => {
+                let v = (settings as Record<string, unknown>)[d.key] as number
+                if (typeof v !== 'number' || Number.isNaN(v)) return
+                if (d.control?.min !== undefined && v < d.control.min) v = d.control.min
+                if (d.control?.max !== undefined && v > d.control.max) v = d.control.max
+                if (d.control?.step !== undefined && d.control.step > 0) {
+                    const k = Math.round(v / d.control.step)
+                    v = k * d.control.step
+                }
+                if (v !== (settings as Record<string, unknown>)[d.key]) {
+                    (settings as Record<string, unknown>)[d.key] = v
+                    c.updateDisplay?.()
+                }
+            })
         }
-        createdControllers[d.key] = ctrl
     }
-    for (const d of byGroup('world')) addDescriptor(d, guiFolderParameters)
-    for (const d of byGroup('runtime')) addDescriptor(d, guiFolderParameters)
-    // Enforce LJ cutoff not exceeding half-box length (minimum of half-lengths) for physical correctness under PBC.
-    const cutoffController = createdControllers['cutoffDistance']
+    for (const d of SETTINGS_SCHEMA) add(d)
+    // Clamp + scaling hooks
     const clampCutoff = () => {
         const maxHalf = Math.min(Number(settings.spaceBoundaryX), Number(settings.spaceBoundaryY), Number(settings.spaceBoundaryZ))
-        if (Number(settings.cutoffDistance) > maxHalf) {
-            settings.cutoffDistance = maxHalf as unknown as number
-        }
-        if (Number(settings.cutoffDistance) <= 0) {
-            settings.cutoffDistance = (maxHalf * 0.1) as unknown as number
-        }
-        if (cutoffController?.updateDisplay) cutoffController.updateDisplay()
+        if (Number(settings.cutoffDistance) > maxHalf) settings.cutoffDistance = maxHalf as unknown as number
+        if (Number(settings.cutoffDistance) <= 0) settings.cutoffDistance = (maxHalf * 0.1) as unknown as number
+        controllers.cutoffDistance?.updateDisplay?.()
     }
-    cutoffController?.onChange?.(clampCutoff)
-    const guiFolderConstants = guiFolderWorld.addFolder('Constants')
-    for (const d of byGroup('constants')) addDescriptor(d, guiFolderConstants)
-    const guiFolderEwald = guiFolderWorld.addFolder('Ewald')
-    for (const d of byGroup('ewald')) addDescriptor(d, guiFolderEwald)
-    const guiFolderBoundary = guiFolderWorld.addFolder('Boundary')
-    for (const d of byGroup('boundary')) addDescriptor(d, guiFolderBoundary)
-    const guiFolderSize = guiFolderBoundary.addFolder('Custom size')
-    const wrapBoxChange = (axis: 'spaceBoundaryX' | 'spaceBoundaryY' | 'spaceBoundaryZ', update: () => void) => () => { update(); clampCutoff(); if (cutoffController?.updateDisplay) cutoffController.updateDisplay() }
-    const getInitial = () => (boxMesh as Object3D & { userData?: { initialBounds?: { x: number; y: number; z: number } } })?.userData?.initialBounds
-    guiFolderSize.add(settings, 'spaceBoundaryX').name('Size, X').onChange(wrapBoxChange('spaceBoundaryX', () => {
-        const init = getInitial(); if (boxMesh && init) boxMesh.scale.x = Number(settings.spaceBoundaryX) / init.x
-    }))
-    guiFolderSize.add(settings, 'spaceBoundaryY').name('Size, Y').onChange(wrapBoxChange('spaceBoundaryY', () => {
-        const init = getInitial(); if (boxMesh && init) boxMesh.scale.y = Number(settings.spaceBoundaryY) / init.y
-    }))
-    guiFolderSize.add(settings, 'spaceBoundaryZ').name('Size, Z').onChange(wrapBoxChange('spaceBoundaryZ', () => {
-        const init = getInitial(); if (boxMesh && init) boxMesh.scale.z = Number(settings.spaceBoundaryZ) / init.z
-    }))
-    const guiFolderForces = guiFolderWorld.addFolder('Forces')
-    for (const d of byGroup('forces')) addDescriptor(d, guiFolderForces)
-    guiFolderWorld.open()
-    const guiFolderPlotting = gui.addFolder('Visual / Plotting')
-    for (const d of byGroup('visual')) addDescriptor(d, guiFolderPlotting)
-    const guiFolderTraj = guiFolderPlotting.addFolder('Trajectories')
-    for (const d of byGroup('trajectories')) addDescriptor(d, guiFolderTraj)
-    const guiFolderArrows = guiFolderPlotting.addFolder('Arrows')
-    for (const d of byGroup('arrows')) addDescriptor(d, guiFolderArrows)
-    if (createdControllers['if_showMapscale']?.onChange) createdControllers['if_showMapscale'].onChange(() => { toggle('.mapscale') })
+    const scaleHandler = (axis: 'spaceBoundaryX' | 'spaceBoundaryY' | 'spaceBoundaryZ', dim: 'x' | 'y' | 'z') => () => {
+        if (!boxMesh || !initialBounds) return
+        (boxMesh.scale as Record<'x' | 'y' | 'z', number>)[dim] = Number(settings[axis]) / initialBounds[dim]
+        clampCutoff()
+    }
+    controllers.spaceBoundaryX?.onChange?.(scaleHandler('spaceBoundaryX', 'x'))
+    controllers.spaceBoundaryY?.onChange?.(scaleHandler('spaceBoundaryY', 'y'))
+    controllers.spaceBoundaryZ?.onChange?.(scaleHandler('spaceBoundaryZ', 'z'))
+    controllers.cutoffDistance?.onChange?.(clampCutoff)
+    controllers.if_showMapscale?.onChange?.(() => { toggle('.mapscale') })
+    // Optional: open key folders
+    folders.world?.open(); folders.visual?.open()
+    gui.close()
     const commands = {
         stop: () => { try { (window as unknown as { __pauseEngine?: () => void }).__pauseEngine?.() } catch { /* ignore */ } },
         toggleHUD: () => { toggle('#hud') },
@@ -135,22 +123,19 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
         resetDefaults: () => {
             resetSettingsToDefaults()
             initializeGuiControls(settings, boxMesh)
-            if (boxMesh) {
-                const init = getInitial()
-                if (init) {
-                    boxMesh.scale.x = Number(settings.spaceBoundaryX) / init.x
-                    boxMesh.scale.y = Number(settings.spaceBoundaryY) / init.y
-                    boxMesh.scale.z = Number(settings.spaceBoundaryZ) / init.z
-                }
+            if (boxMesh && initialBounds) {
+                boxMesh.scale.x = Number(settings.spaceBoundaryX) / initialBounds.x
+                boxMesh.scale.y = Number(settings.spaceBoundaryY) / initialBounds.y
+                boxMesh.scale.z = Number(settings.spaceBoundaryZ) / initialBounds.z
             }
             try { saveSettingsToLocal() } catch (e) { console.warn('Failed saving user settings:', e) }
         }
     }
-    guiFolderWorld.add(commands, 'randomizeParticles').name('New world')
-    const guiFolderCommands = gui.addFolder('Commands')
-    guiFolderCommands.add(commands, 'resetDefaults').name('Reset defaults')
-    guiFolderCommands.add(commands, 'stop').name('Halt')
+    // Place command folders at root
+    gui.add(commands, 'randomizeParticles').name('New world')
+    const cmd = gui.addFolder('Commands')
+    cmd.add(commands, 'resetDefaults').name('Reset defaults')
+    cmd.add(commands, 'stop').name('Halt')
     gui.add(commands, 'toggleHUD').name('Show Detail HUD')
-    guiFolderCommands.open()
-    gui.close()
+    cmd.open(); gui.close()
 }
