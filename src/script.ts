@@ -11,7 +11,7 @@ import { generateMassesCharges, generatePositions } from './core/simulation/seed
 import type { Diagnostics } from './core/simulation/diagnostics.js'
 // Experimental engine
 import { SimulationEngine } from './engine/SimulationEngine.js'
-import { fromSettings } from './engine/config/types.js'
+import { buildEngineConfig } from './engine/config/types.js'
 import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEYS } from './engine/settingsSync.js'
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
 import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer } from './visual/trajectory.js'
@@ -324,7 +324,7 @@ docReady(() => {
         vel[i3] = vx; vel[i3 + 1] = vy; vel[i3 + 2] = vz
       }
     }
-    engine = new SimulationEngine(fromSettings(settings))
+    engine = new SimulationEngine(buildEngineConfig(settings))
     engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
   }
   simState = engine.getState()

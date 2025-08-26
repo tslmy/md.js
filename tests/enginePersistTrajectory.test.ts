@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { fromSettings } from '../built/engine/config/types.js'
+import { buildEngineConfig } from '../built/engine/config/types.js'
 import { snapshot, hydrate } from '../built/engine/persistence/persist.js'
 import { settings } from '../built/settings.js'
 
 describe('engine snapshot remains visualization-free (trajectories excluded)', () => {
     it('does not contain trajectory arrays', () => {
-        const cfg = fromSettings(settings)
+        const cfg = buildEngineConfig(settings)
         const engine = new SimulationEngine(cfg)
         // step a bit to change time
         for (let s = 0; s < 3; s++) engine.step()

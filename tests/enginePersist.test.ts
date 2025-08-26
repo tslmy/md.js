@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { fromSettings } from '../built/engine/config/types.js'
+import { buildEngineConfig } from '../built/engine/config/types.js'
 import { snapshot, hydrate } from '../built/engine/persistence/persist.js'
 import { settings } from '../built/settings.js'
 
 describe('engine snapshot/hydrate', () => {
   it('round-trips sample state', () => {
-    const cfg = fromSettings(settings)
+    const cfg = buildEngineConfig(settings)
     const engine = new SimulationEngine(cfg)
     const st = engine.getState()
     for (let i = 0; i < st.N; i++) {

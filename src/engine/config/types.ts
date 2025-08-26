@@ -1,18 +1,33 @@
 /**
- * Engine configuration types & lightweight runtime guards.
+ * Engine configuration model (types + construction helpers).
  *
- * This is an initial scaffold for the future higher‑level SimulationEngine.
- * It intentionally mirrors a subset of the existing `settings.ts` shape but
- * remains decoupled so we can evolve internal naming & validation without
- * disturbing the UI / legacy path. Later we will introduce a schema (zod or
- * custom) plus versioned migrations. For now we keep it minimal and rely on
- * TypeScript + a couple of runtime assertions.
+ * Design (post-refactor):
+ *  - The whole program has a single authoritative `SETTINGS_SCHEMA`
+ *    (see `src/config/settingsSchema.ts`). Each descriptor optionally declares
+ *    an `enginePath` (dot path into `EngineConfig`) plus an `auto` flag. Those
+ *    flagged entries participate in automatic push/pull with the running
+ *    `SimulationEngine` and are also used here to build an initial config.
+ *  - `buildEngineConfig(settings)` walks those schema bindings and materializes
+ *    a plain `EngineConfig` object (no bespoke manual mapping per field).
+ *  - `validateEngineConfig` supplies a thin runtime sanity check (positivity /
+ *    finiteness / allowed enums). This intentionally stays minimal; richer
+ *    constraints can later be folded back into the schema itself (e.g. adding
+ *    `min`, `max`, or enumerated options for every numeric/enum engine-bound
+ *    setting) allowing this function to shrink or disappear.
  *
- * NOTE: This module is **internal / experimental** and not yet consumed by the
- * existing test scripts (which still directly build `Simulation`). It is safe
- * to iterate rapidly here.
+ * Extension:
+ *  - To introduce a new engine-affecting setting, add a descriptor with
+ *    `enginePath` + `auto: true` in `SETTINGS_SCHEMA`; no engine-side mapping
+ *    edits are required unless new structural validation rules are needed.
+ *  - If a field demands cross-field validation (e.g. dt * cutoff < some limit)
+ *    implement it inside `validateEngineConfig` until a schema-driven solution
+ *    exists.
+ *
+ * Testing:
+ *  - Unit tests exercise `validateEngineConfig`; integration tests indirectly
+ *    cover `buildEngineConfig` by spinning up a `SimulationEngine` from GUI
+ *    settings in `script.ts`.
  */
-
 export interface EngineForcesConfig {
   /** Enable Lennard‑Jones force. */
   lennardJones: boolean
@@ -71,7 +86,20 @@ export interface EngineConfig {
   neighbor?: EngineNeighborConfig
 }
 
-/** Minimal runtime validation. Throws if a required numeric field is NaN. */
+/**
+ * Minimal runtime validation for `EngineConfig` objects.
+ *
+ * Current responsibilities (kept intentionally small):
+ *  - Ensure required numeric scalars are finite and > 0.
+ *  - Enforce allow-lists for `integrator` and `neighbor.strategy`.
+ *  - Guard obviously invalid particle counts.
+ *
+ * Not (yet) handled:
+ *  - Cross-field invariants / dimensional consistency.
+ *  - Range constraints driven from schema metadata (future enhancement).
+ *
+ * Throws: Error with a short descriptive message on first failure.
+ */
 export function validateEngineConfig(cfg: EngineConfig): void {
   const nums: Array<[string, number]> = [
     ['dt', cfg.runtime.dt],
@@ -94,51 +122,45 @@ export function validateEngineConfig(cfg: EngineConfig): void {
   if (cfg.neighbor?.strategy && !['naive', 'cell'].includes(cfg.neighbor.strategy)) throw new Error('Unsupported neighbor strategy ' + cfg.neighbor.strategy)
 }
 
-/** Shape of the mutable UI `settings` object. */
-interface SettingsLike {
-  particleCount: number
-  spaceBoundaryX: number; spaceBoundaryY: number; spaceBoundaryZ: number
-  dt: number; cutoffDistance: number
-  if_apply_LJpotential?: boolean
-  if_apply_gravitation?: boolean
-  if_apply_coulombForce?: boolean
-  if_use_periodic_boundary_condition?: boolean
-  EPSILON: number; DELTA: number; G: number; K: number; kB: number
-  integrator?: 'velocityVerlet' | 'euler'
-  neighborStrategy?: 'naive' | 'cell'
-  ewaldAlpha?: number
-  ewaldKMax?: number
+// New streamlined config constructor: derive entirely from unified SETTINGS_SCHEMA
+// eliminating the bespoke mapping above. This reduces duplication and keeps the
+// engine config in lock‑step with schema evolutions (single source of truth).
+import { getAutoEngineBindings, type SettingsObject } from '../../config/settingsSchema.js'
+
+// Minimal path assignment helper (duplicated locally to avoid cross‑module churn)
+type MutableEngineConfig = {
+  world: Partial<EngineWorldConfig & { box: Partial<EngineWorldConfig['box']> }>
+  runtime: Partial<EngineRuntimeConfig>
+  forces: Partial<EngineForcesConfig>
+  constants: Partial<EnginePhysicalConstants>
+  neighbor?: Partial<EngineNeighborConfig>
+}
+
+function assignPath(root: Record<string, unknown>, path: string, value: unknown): void {
+  const parts = path.split('.')
+  let obj: Record<string, unknown> = root
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i]
+    let next = obj[p]
+    if (next == null || typeof next !== 'object') { next = {}; obj[p] = next }
+    obj = next as Record<string, unknown>
+  }
+  obj[parts[parts.length - 1]] = value
 }
 
 /**
- * Convert the UI `settings` object into an EngineConfig. This is a thin mapping
- * layer isolating the engine from the sprawling kitchen‑sink settings object.
+ * Build a fresh `EngineConfig` from a full mutable GUI `settings` object.
+ *
+ * Implementation details:
+ *  - Iterates over auto engine bindings (derived from unified schema).
+ *  - Assigns into a lightweight mutable structure (lazily creating nested
+ *    objects) then casts to `EngineConfig` after validation.
+ *  - Unspecified engine fields remain absent (caller responsibility to ensure
+ *    schema covers all required engine inputs).
  */
-
-import { canonicalizeIntegrator, canonicalizeNeighborStrategy } from '../../util/canonical.js'
-
-export function fromSettings(settings: SettingsLike): EngineConfig {
-  const runtime: EngineRuntimeConfig = { dt: settings.dt, cutoff: settings.cutoffDistance }
-  runtime.integrator = canonicalizeIntegrator(settings.integrator)
-  if (settings.if_use_periodic_boundary_condition != null) runtime.pbc = settings.if_use_periodic_boundary_condition
-  if (settings.ewaldAlpha != null) runtime.ewaldAlpha = settings.ewaldAlpha
-  if (settings.ewaldKMax != null) runtime.ewaldKMax = settings.ewaldKMax
-  const neighbor = canonicalizeNeighborStrategy(settings.neighborStrategy)
-  return {
-    world: { particleCount: settings.particleCount, box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ } },
-    runtime,
-    forces: {
-      lennardJones: !!settings.if_apply_LJpotential,
-      gravity: !!settings.if_apply_gravitation,
-      coulomb: !!settings.if_apply_coulombForce
-    },
-    constants: {
-      epsilon: settings.EPSILON,
-      sigma: settings.DELTA,
-      G: settings.G,
-      K: settings.K,
-      kB: settings.kB
-    },
-    neighbor: neighbor ? { strategy: neighbor } : undefined
-  }
+export function buildEngineConfig(settings: SettingsObject): EngineConfig {
+  const cfg: MutableEngineConfig = { world: {}, runtime: {}, forces: {}, constants: {} }
+  for (const b of getAutoEngineBindings()) assignPath(cfg as unknown as Record<string, unknown>, b.path, settings[b.key])
+  validateEngineConfig(cfg as EngineConfig)
+  return cfg as EngineConfig
 }

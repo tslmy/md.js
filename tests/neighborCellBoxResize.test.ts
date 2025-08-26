@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { fromSettings } from '../built/engine/config/types.js'
+import { buildEngineConfig } from '../built/engine/config/types.js'
 import { settings } from '../built/settings.js'
 import { forEachPair } from '../built/core/forces/forceInterfaces.js'
 
 describe('cell neighbor strategy box resize', () => {
   it('rebuilds grid when world box dimensions change', () => {
-    const cfg = fromSettings(settings)
+    const cfg = buildEngineConfig(settings)
     cfg.world.particleCount = 10
     cfg.forces.gravity = false
     cfg.forces.coulomb = false
