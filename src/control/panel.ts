@@ -51,7 +51,37 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
         world: 'World', runtime: 'Runtime', forces: 'Forces', constants: 'Constants', boundary: 'Boundary', ewald: 'Ewald', advanced: 'Advanced',
         visual: 'Visual', trajectories: 'Trajectories', arrows: 'Arrows', ui: 'UI'
     }
-    const folder = (g: string) => folders[g] || (folders[g] = gui.addFolder(LABEL[g] || g))
+    const DESC: Record<string, string> = {
+        world: 'Particle population & initial mass/charge distribution.',
+        runtime: 'Integrator timestep & neighbor / performance parameters.',
+        forces: 'Enable or disable individual force contributions.',
+        constants: 'Physical constants scaling the forces.',
+        boundary: 'Simulation box & periodic boundary condition.',
+        ewald: 'Ewald summation tuning for long-range Coulomb (experimental).',
+        advanced: 'Lower-level engine / algorithm switches.',
+        visual: 'Camera, fog and reference frame visualization.',
+        trajectories: 'Particle trail visibility & length.',
+        arrows: 'Force / velocity arrow visualization parameters.',
+        ui: 'Heads-up display & UI toggles.'
+    }
+    const folder = (g: string) => {
+        if (folders[g]) return folders[g]
+        const f = gui.addFolder(LABEL[g] || g)
+        // Inject a lightweight description line (first child) if description exists
+        const desc = DESC[g]
+        if (desc) {
+            try {
+                const li = document.createElement('li')
+                li.textContent = desc
+                li.style.cssText = 'padding:4px 6px;font:11px/1.2 sans-serif;opacity:0.75;color:#eee;white-space:normal;'
+                // Insert after title bar (ul first child is title, second is our controllers list anchor)
+                const ul = f.domElement.querySelector('ul')
+                if (ul) ul.insertBefore(li, ul.children[1] || null)
+            } catch { /* ignore DOM issues */ }
+        }
+        folders[g] = f
+        return f
+    }
     const initialBounds = (boxMesh as Object3D & { userData?: { initialBounds?: { x: number; y: number; z: number } } })?.userData?.initialBounds
     const add = (d: (typeof SETTINGS_SCHEMA)[number]) => {
         if (!(d.key in settings)) return
