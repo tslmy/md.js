@@ -1,5 +1,5 @@
 import { SimulationState, index3 } from '../simulation/state.js'
-import { configurePBC, currentPBC } from '../pbc.js'
+import { currentPBC } from '../pbc.js'
 
 /**
  * A ForceField encapsulates one physical interaction rule (e.g. gravity, electrostatics, Lennard-Jones).
@@ -34,12 +34,6 @@ export type PairHandler = (i: number, j: number, dx: number, dy: number, dz: num
  * Replaces direct O(N^2) loops so we can later introduce spatial partition acceleration structures.
  */
 export type PairIterationImpl = (state: SimulationState, cutoff: number, handler: PairHandler) => void
-
-// Backwards-compatible API (re-exported) now delegating to central PBC module.
-export function setPeriodicBox(box: { x: number; y: number; z: number }, enabled: boolean): void { configurePBC(box, enabled) }
-export function getPeriodicBox(): { enabled: boolean; x: number; y: number; z: number } {
-  const { enabled, box } = currentPBC(); return { enabled, x: box.x, y: box.y, z: box.z }
-}
 
 let pairImpl: PairIterationImpl = function naive(state, cutoff, handler) {
   const { N, positions } = state

@@ -2,9 +2,6 @@ import { settings, normalizeSettings } from './settings.js'
 import { lsGet, lsRemove, lsSet } from '../util/storage.js'
 const SETTINGS_KEY = 'mdJsUserSettings'
 
-// We now persist the full settings object (JSON-serializable fields only) for broader config retention.
-// Backward compatibility: if an older (subset) object is found, we still map its fields.
-
 /** Persist current UI settings (full object). */
 export function saveSettingsToLocal(): void {
     const clone: Record<string, unknown> = {}
@@ -40,14 +37,14 @@ function canonicalizeIntegrator(): void {
     const raw = (settings as Record<string, unknown>).integrator
     if (typeof raw !== 'string') return
     const norm = raw.trim().toLowerCase()
-    ; (settings as Record<string, unknown>).integrator = (norm === 'euler') ? 'euler' : 'velocityVerlet'
+        ; (settings as Record<string, unknown>).integrator = (norm === 'euler') ? 'euler' : 'velocityVerlet'
 }
 
 function canonicalizeNeighborStrategy(): void {
     const raw = (settings as Record<string, unknown>).neighborStrategy
     if (typeof raw !== 'string') return
     const norm = raw.trim().toLowerCase()
-    ; (settings as Record<string, unknown>).neighborStrategy = (norm === 'cell') ? 'cell' : 'naive'
+        ; (settings as Record<string, unknown>).neighborStrategy = (norm === 'cell') ? 'cell' : 'naive'
 }
 
 function ensureDefaults(): void {

@@ -1,5 +1,6 @@
 import { SimulationState, index3 } from '../simulation/state.js'
-import { ForceContext, ForceField, forEachPair, getPeriodicBox } from './forceInterfaces.js'
+import { ForceContext, ForceField, forEachPair } from './forceInterfaces.js'
+import { currentPBC } from '../pbc.js'
 
 /**
  * Minimal / crude Ewald summation for Coulomb & gravity (shared kernel with different sign / prefactors).
@@ -38,8 +39,8 @@ export abstract class BaseEwaldForce implements ForceField {
      * Otherwise falls back to simple pairwise 1/r^2 style handled by subclass-specific fallbackApply().
      */
     apply(state: SimulationState, ctx: ForceContext): void {
-        const box = getPeriodicBox()
-        if (!box.enabled) return this.fallbackApply(state, ctx)
+        const pbc = currentPBC()
+        if (!pbc.enabled) return this.fallbackApply(state, ctx)
         const { positions, forces, N } = state
         const { alpha } = this.ewald
         const { prefactor, chargesOrMasses } = this.getKernelParams(state)
@@ -62,7 +63,7 @@ export abstract class BaseEwaldForce implements ForceField {
             forces[j3] -= fx; forces[j3 + 1] -= fy; forces[j3 + 2] -= fz
         })
         // Reciprocal space contribution
-        const ks = makeKVectors(box, this.ewald.kMax)
+        const ks = makeKVectors(pbc.box, this.ewald.kMax)
         for (const { kx, ky, kz, k2 } of ks) {
             const expFactor = Math.exp(-k2 / (4 * alpha2)) / k2
             let Sk_re = 0, Sk_im = 0
@@ -90,7 +91,7 @@ export abstract class BaseEwaldForce implements ForceField {
         // Self-energy correction handled only in potential path.
     }
     potential(state: SimulationState, ctx: ForceContext): number {
-        const box = getPeriodicBox(); if (!box.enabled) return this.fallbackPotential(state, ctx)
+        const pbc = currentPBC(); if (!pbc.enabled) return this.fallbackPotential(state, ctx)
         const { positions, N } = state
         const { alpha } = this.ewald
         const { prefactor, chargesOrMasses } = this.getKernelParams(state)
@@ -102,8 +103,8 @@ export abstract class BaseEwaldForce implements ForceField {
             const qiqj = (chargesOrMasses[i] || 0) * (chargesOrMasses[j] || 0)
             V += prefactor * qiqj * erfc(alpha * r) / r
         })
-        const ks = makeKVectors(box, this.ewald.kMax)
-        const Lx = 2 * box.x, Ly = 2 * box.y, Lz = 2 * box.z
+        const ks = makeKVectors(pbc.box, this.ewald.kMax)
+        const Lx = 2 * pbc.box.x, Ly = 2 * pbc.box.y, Lz = 2 * pbc.box.z
         const volume = Lx * Ly * Lz
         let reciprocal = 0
         for (const { kx, ky, kz, k2 } of ks) {
