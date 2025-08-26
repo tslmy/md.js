@@ -57,19 +57,32 @@ For a concise catalog of engine classes, events and extension points see: [Simul
 
 ### Simulation Core (`src/core/`)
 
-This module is responsible for the physics computation. To physicists/chemists without a programming background, the most relevant part is perhaps the `force/` folder, which hosts scripts that each defines a force field. At any given timestep, instantaneous quantities of all particles (namely, velocities, positions, and forces) are described by a `SimulationState`. An integrator then iterates through all force fields to update the velocities and the positions at each timestep. That's the basic idea of all simulation software of molecular dynamics.
+This module is responsible for the physics computation.
 
-* `state.ts` – Structure‑of‑Arrays (`positions`, `velocities`, `forces`, `masses`, `charges`, flags). Functions: `createState`, `zeroForces`.
+To physicists/chemists without a programming background, the most relevant part is perhaps the `force/` folder. It hosts scripts that each defines a force field (Lennard‑Jones, gravity, and Coulomb). When PBC is enabled, gravity and coulomb calculations are replaced with Ewald summations. LJ potential, however, is employed as-is, assuming that the cut-off distance is way smaller than half the extent of the bounding box.
+
+At any given timestep, instantaneous quantities of all particles (namely, velocities, positions, and forces) are described by a `SimulationState`. An integrator then iterates through all force fields to update the velocities and the positions at each timestep. That's the basic idea of all simulation software of molecular dynamics.
+
+In the `simulation/` subdirectory:
+
 * `Simulation.ts` – Low‑level timestep driver used internally by the high‑level engine.
-* `integrators.ts` – Integrator strategies (currently Explicit Euler & Velocity Verlet). Verlet is the default for better energy behavior.
+* At each timestep, the computation involves many considerations, each of which may be implemented with different strategies:
+  * `integrators.ts` – Integrator strategies (currently Explicit Euler & Velocity Verlet). Verlet is the default for better energy behavior.
+  * `neighborList.ts` – Neighbor list strategies (naive O(N²) and uniform cell list) with periodic indexing + minimum‑image support when PBC active.
+* Several scripts are used during **initialization** of simulations:
+  * `seeding.ts` - Responsible for randomly picking physical quantities for a particle during the initialization of a simulation. Note that non-physical properties, such as color, is not within the scope of `core/`.
+  * `orbitInit.ts` - When randomly generating a new simulation with a "sun particle", we may initialize other particles with velocities that make them orbiting around the "sun". This is eye-candy only, merely for giving some visually-pleasing trajectories. Stability of this little "solar system" is not guaranteed.
+* `diagnostics.ts` - At times, you may want to look at numbers rather than flying spheres. This script derives all the quantities that does not affect simulation but may be informational to a user. They include potential energies, kinetic energies, temperature, etc. These numerical data are then emitted to `coloringAndDataSheet.ts`, which renders a "heads-up display" (HUD) table.
+* `state.ts` – Structure‑of‑Arrays (`positions`, `velocities`, `forces`, `masses`, `charges`, flags). Functions: `createState`, `zeroForces`.
 * `serialize.ts` – Serialize / hydrate typed arrays to plain objects (future: use for cross‑tab sharing or worker offloading).
-* `forces/*.ts` – Individual `ForceField` implementations (Lennard‑Jones, Gravity, Coulomb). Pair displacements use minimum‑image wrapping when PBC enabled.
-* `neighbor/*.ts` – Neighbor list strategies (naive O(N²) and uniform cell list) with periodic indexing + minimum‑image support when PBC active.
 
-### Engine Orchestration (`src/engine/`)
+### Orchestration Engine (`src/engine/`)
+
+The engine drives the simulation to evolve and emits "please render graphics" events to the visualization layer.
 
 * `SimulationEngine.ts` – High‑level orchestrator: owns mutable SoA state, rebuilds force plugin list on config changes, emits `frame` & `diagnostics` events, and shields the rest of the app from direct mutation.
-* `config/fieldBindings.ts` – Declarative mapping between legacy mutable `settings` keys and structured `EngineConfig` paths; replaces ad‑hoc push/pull logic for consolidation.
+* `config.ts` – Defines configuration options (and provide configurability) of everything that may affect how a simulation unfolds.
+* `settingsSync.ts` - Binds configuration changes bidirectionally across the simulation and the GUI control pane. This allows you to change physical constants or change computation strategies on-the-fly.
 * `persist.ts` – Snapshot / hydrate utilities (JSON‑serializable) for future cross‑tab or worker scenarios.
 
 ### Visualization & UI Layer
@@ -87,7 +100,7 @@ A "control and settings" module sits under `src/control/`:
 
 A rendering module is located at `src/visual/`:
 
-* `coloringAndDataSheet.ts` - Seeds colors for particles and adds rows to the HUD/Data Sheet.
+* `coloringAndDataSheet.ts` - Seeds colors for particles and adds rows to the HUD/Data Sheet. You can toggle on/off the HUD by pressing the `tab` key.
 * Several visual-aid features are available:
   * `wrapMarkers.ts` - When PBC is applied, the simulation is bound by a box. Any particle attempting to cross this box will be wrapped ("teleported") to the opposite face. To facilitate visual intuition, a transient ring marker will be drawn on the exit point and another on the entry point. The visual style is inspired by [the video game series, _Portal_](https://en.wikipedia.org/wiki/Portal_(series)).
   * `trajectory.ts` - As particle moves in space, a trajectory traces its path. This file manages that.
