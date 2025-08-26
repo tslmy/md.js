@@ -9,7 +9,7 @@ import type { EngineConfig } from './config.js'
 import { validateEngineConfig } from './config.js'
 import { computeDiagnostics, type Diagnostics } from '../core/simulation/diagnostics.js'
 import type { ForceField } from '../core/forces/forceInterfaces.js'
-import { createNaiveNeighborStrategy, activateNeighborStrategy, type NeighborListStrategy, createCellNeighborStrategy } from '../core/neighbor/neighborList.js'
+import { createNaiveNeighborStrategy, activateNeighborStrategy, type NeighborListStrategy, createCellNeighborStrategy } from '../core/simulation/neighborList.js'
 import { configurePBC, wrapIntoBox } from '../core/pbc.js'
 
 /**

@@ -1,7 +1,7 @@
 /** Neighbor list abstraction scaffold.
  * Current implementation delegates to naive O(N^2) but records structure for future cell lists.
  */
-import type { SimulationState } from '../simulation/state.js'
+import type { SimulationState } from './state.js'
 import { setPairIterationImpl, PairIterationImpl } from '../forces/forceInterfaces.js'
 import { currentPBC, minimumImageDisplacement } from '../pbc.js'
 
