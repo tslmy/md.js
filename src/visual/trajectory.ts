@@ -1,6 +1,5 @@
 import { Vector3, Line, Color, BufferAttribute, Scene } from 'three'
 import { makeTrajectory } from './drawingHelpers.js'
-import { wrapIntoBox } from '../core/pbc.js'
 import { settings } from '../control/settings.js'
 import type { SimulationState } from '../core/simulation/state.js'
 
@@ -72,16 +71,4 @@ export function updateTrajectoryBuffer(pos: Vector3, trajectory: BufferAttribute
     for (let j = 0; j < maxLen - 1; j++) trajectory.copyAt(j, trajectory, j + 1)
     trajectory.setXYZ(maxLen - 1, pos.x, pos.y, pos.z)
     trajectory.needsUpdate = true
-}
-
-/**
- * Apply periodic boundary conditions to a position. If a trajectory buffer is
- * provided, shift its historical coordinates by the same wrapped displacement
- * to keep the rendered path continuous visually across wraps.
- */
-export function applyPbc(pos: Vector3, _trajectory: BufferAttribute | null, _maxLen: number, bx: number, by: number, bz: number): void {
-    // Defensive confinement only; trajectory history translation handled by engine 'wrap' events.
-    pos.x = wrapIntoBox(pos.x, bx)
-    pos.y = wrapIntoBox(pos.y, by)
-    pos.z = wrapIntoBox(pos.z, bz)
 }
