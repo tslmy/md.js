@@ -115,15 +115,15 @@ interface SettingsLike {
  * layer isolating the engine from the sprawling kitchen‑sink settings object.
  */
 
+import { canonicalizeIntegrator, canonicalizeNeighborStrategy } from '../../util/canonical.js'
+
 export function fromSettings(settings: SettingsLike): EngineConfig {
   const runtime: EngineRuntimeConfig = { dt: settings.dt, cutoff: settings.cutoffDistance }
-  const rawInt = (settings.integrator || 'velocityVerlet').toString().toLowerCase()
-  runtime.integrator = rawInt === 'euler' ? 'euler' : 'velocityVerlet'
+  runtime.integrator = canonicalizeIntegrator(settings.integrator)
   if (settings.if_use_periodic_boundary_condition != null) runtime.pbc = settings.if_use_periodic_boundary_condition
   if (settings.ewaldAlpha != null) runtime.ewaldAlpha = settings.ewaldAlpha
   if (settings.ewaldKMax != null) runtime.ewaldKMax = settings.ewaldKMax
-  const neighborRaw = (settings.neighborStrategy || 'cell').toString().toLowerCase()
-  const neighborCanonical: 'naive' | 'cell' | undefined = neighborRaw === 'cell' ? 'cell' : 'naive'
+  const neighbor = canonicalizeNeighborStrategy(settings.neighborStrategy)
   return {
     world: { particleCount: settings.particleCount, box: { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ } },
     runtime,
@@ -139,6 +139,6 @@ export function fromSettings(settings: SettingsLike): EngineConfig {
       K: settings.K,
       kB: settings.kB
     },
-    neighbor: neighborCanonical ? { strategy: neighborCanonical } : undefined
+    neighbor: neighbor ? { strategy: neighbor } : undefined
   }
 }
