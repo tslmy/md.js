@@ -2,7 +2,8 @@
  * Current implementation delegates to naive O(N^2) but records structure for future cell lists.
  */
 import type { SimulationState } from '../simulation/state.js'
-import { getPeriodicBox, setPairIterationImpl, PairIterationImpl } from '../forces/forceInterfaces.js'
+import { setPairIterationImpl, PairIterationImpl } from '../forces/forceInterfaces.js'
+import { currentPBC, minimumImageDisplacement } from '../pbc.js'
 
 export interface NeighborListStrategy {
   /** Human-readable identifier. */
@@ -148,14 +149,8 @@ function cellForEachPair(state: SimulationState, cutoff: number, handler: (i: nu
   const { positions } = state
   const { heads, next, dims } = data
   const [nx, ny, nz] = dims
-  const { enabled: pbcEnabled, x: bx, y: by, z: bz } = getPeriodicBox()
-  const spanX = 2 * bx, spanY = 2 * by, spanZ = 2 * bz
-  const usePbc = pbcEnabled && bx > 0 && by > 0 && bz > 0
-  const wrapDelta = (d: number, half: number, span: number) => {
-    if (d > half) return d - span
-    if (d < -half) return d + span
-    return d
-  }
+  const { enabled: pbcEnabled, box } = currentPBC()
+  const usePbc = pbcEnabled && box.x > 0 && box.y > 0 && box.z > 0
   const emitPairsForCells = (baseIdx: number, neighborIdx: number) => {
     for (let a = heads[baseIdx]; a !== -1; a = next[a]) {
       const a3 = 3 * a
@@ -168,9 +163,9 @@ function cellForEachPair(state: SimulationState, cutoff: number, handler: (i: nu
         let dy = ay - positions[b3 + 1]
         let dz = az - positions[b3 + 2]
         if (usePbc) {
-          dx = wrapDelta(dx, bx, spanX)
-          dy = wrapDelta(dy, by, spanY)
-          dz = wrapDelta(dz, bz, spanZ)
+          dx = minimumImageDisplacement(dx, box.x)
+          dy = minimumImageDisplacement(dy, box.y)
+          dz = minimumImageDisplacement(dz, box.z)
         }
         const r2 = dx * dx + dy * dy + dz * dz
         if (r2 <= cutoff2) handler(a, b, dx, dy, dz, r2)

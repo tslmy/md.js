@@ -1,4 +1,5 @@
 import { SimulationState, index3 } from '../simulation/state.js'
+import { configurePBC, currentPBC } from '../pbc.js'
 
 /**
  * A ForceField encapsulates one physical interaction rule (e.g. gravity, electrostatics, Lennard-Jones).
@@ -34,23 +35,17 @@ export type PairHandler = (i: number, j: number, dx: number, dy: number, dz: num
  */
 export type PairIterationImpl = (state: SimulationState, cutoff: number, handler: PairHandler) => void
 
-// Default naive implementation (module-local so tests can still wrap via setter)
-// Periodic box (half-lengths) for minimum-image distances (engine configured).
-let _pbcEnabled = false
-let _bx = 0; let _by = 0; let _bz = 0
-export function setPeriodicBox(box: { x: number; y: number; z: number }, enabled: boolean): void {
-  _pbcEnabled = enabled; _bx = box.x; _by = box.y; _bz = box.z
-}
+// Backwards-compatible API (re-exported) now delegating to central PBC module.
+export function setPeriodicBox(box: { x: number; y: number; z: number }, enabled: boolean): void { configurePBC(box, enabled) }
 export function getPeriodicBox(): { enabled: boolean; x: number; y: number; z: number } {
-  return { enabled: _pbcEnabled, x: _bx, y: _by, z: _bz }
+  const { enabled, box } = currentPBC(); return { enabled, x: box.x, y: box.y, z: box.z }
 }
 
 let pairImpl: PairIterationImpl = function naive(state, cutoff, handler) {
   const { N, positions } = state
   const cutoff2 = cutoff * cutoff
-  const usePbc = _pbcEnabled
-  const bx = _bx, by = _by, bz = _bz
-  const spanX = 2 * bx, spanY = 2 * by, spanZ = 2 * bz
+  const { enabled, box } = currentPBC()
+  const spanX = 2 * box.x, spanY = 2 * box.y, spanZ = 2 * box.z
   const wrap = (d: number, half: number, span: number) => {
     if (d > half) return d - span
     if (d < -half) return d + span
@@ -64,10 +59,10 @@ let pairImpl: PairIterationImpl = function naive(state, cutoff, handler) {
       let dx = ix - positions[j3]
       let dy = iy - positions[j3 + 1]
       let dz = iz - positions[j3 + 2]
-      if (usePbc) {
-        dx = wrap(dx, bx, spanX)
-        dy = wrap(dy, by, spanY)
-        dz = wrap(dz, bz, spanZ)
+      if (enabled) {
+        dx = wrap(dx, box.x, spanX)
+        dy = wrap(dy, box.y, spanY)
+        dz = wrap(dz, box.z, spanZ)
       }
       const r2 = dx * dx + dy * dy + dz * dz
       if (r2 <= cutoff2) handler(i, j, dx, dy, dz, r2)
