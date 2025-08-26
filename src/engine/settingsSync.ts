@@ -1,3 +1,12 @@
+/**
+ * Two-way synchronization helpers between mutable `settings` object
+ * and the new SimulationEngine configuration/state.
+ *
+ * Design goals:
+ *  - Allow user tweaking controls on the GUI to patch engine live.
+ *  - Reflect engine-driven structural changes (e.g. particle count resize)
+ *    back into the settings object so UI stays consistent.
+ */
 import { SimulationEngine } from './SimulationEngine.js'
 import { type EngineConfig } from './config/types.js'
 import { settings } from '../control/settings.js'
@@ -37,19 +46,6 @@ function assignPath(root: Record<string, unknown>, path: string, value: unknown)
     obj[parts[parts.length - 1]] = value
 }
 
-/**
- * Two-way synchronization helpers between legacy mutable `settings` object
- * (dat.GUI bound) and the new SimulationEngine configuration/state.
- *
- * Design goals:
- *  - Keep legacy UI decoupled from internal engine config structure.
- *  - Allow user tweaking GUI controls to patch engine live.
- *  - Reflect engine-driven structural changes (e.g. particle count resize)
- *    back into the settings object so UI stays consistent.
- *
- * This module is intentionally minimal and can evolve toward a declarative
- * schema + diffing approach later. For now we perform targeted field copies.
- */
 
 /** Apply selected fields from settings into an EngineConfig patch and send to engine. */
 export function pushSettingsToEngine(engine: SimulationEngine): void {
@@ -78,8 +74,6 @@ export function initSettingsSync(engine: SimulationEngine): void {
     pullEngineConfigToSettings(engine.getConfig())
     // Listen for engine config patches
     engine.on('config', cfg => { pullEngineConfigToSettings(cfg) })
-    // On state reallocation reflect particleCount (already in config event also)
-    engine.on('stateReallocated', () => { /* no-op; config event covers count */ })
 }
 
 /** Wire a settings change handler (e.g., from dat.GUI) to automatically push to engine. */
@@ -108,4 +102,3 @@ export function registerAutoPush(engine: SimulationEngine, keys: readonly AutoPu
         })
     }
 }
-// (Removed unused createEngineFromSettings; engine construction handled in script bootstrap.)
