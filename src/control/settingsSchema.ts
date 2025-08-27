@@ -21,7 +21,7 @@ export type SettingDescriptor = {
 
 // Central list. Adding a new setting: append descriptor here only.
 export const SETTINGS_SCHEMA: SettingDescriptor[] = [
-    { key: 'particleCount', default: 10 as const, group: 'world', enginePath: 'world.particleCount', auto: true, control: { type: 'number' } },
+    { key: 'particleCount', default: 10 as const, group: 'world', enginePath: 'world.particleCount', auto: true, control: { type: 'number', step: 1 } },
     { key: 'maxTrajectoryLength', default: 200 as const, group: 'trajectories', control: { type: 'number', label: 'Length' } },
     { key: 'unitArrowLength', default: 0.1 as const, group: 'arrows', control: { type: 'number', label: 'Unit length', step: 0.01 } },
     { key: 'maxArrowLength', default: 2 as const, group: 'arrows', control: { type: 'number', label: 'Max length', step: 0.1 } },
