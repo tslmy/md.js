@@ -40,6 +40,7 @@ import { getHud } from './visual/hud.js'
 import { computeCircularOrbitVelocity } from './core/simulation/orbitInit.js'
 import { makeClonePositionsList, minimumImagePoint } from './core/pbc.js'
 import { createWrapMarker, updateWrapMarkers, type WrapEventRecord } from './visual/wrapMarkers.js'
+import { SettingsObject } from './control/settingsSchema.js'
 
 // global variables
 interface StereoEffectLike { render(scene: Scene, camera: Camera): void; setSize?(w: number, h: number): void }
@@ -78,7 +79,7 @@ const lastFrameOffset = new Vector3(0, 0, 0)
 
 // Expose minimal state for headless smoke tests (non-production usage). We install a stub immediately
 // (before DOM ready) so test harness code that runs right after the load event always sees an object.
-declare global { interface Window { __mdjs?: { colors: Color[]; settings: typeof settings; simState?: SimulationState; diagnostics?: Diagnostics; ready?: boolean }; __pauseEngine?: () => void } }
+declare global { interface Window { __mdjs?: { colors: Color[]; settings: SettingsObject; simState?: SimulationState; diagnostics?: Diagnostics; ready?: boolean }; __pauseEngine?: () => void } }
 if (typeof window !== 'undefined') {
   // Preserve any existing reference (in case of hot reload) and just update fields.
   const api = window.__mdjs || (window.__mdjs = { colors, settings })
@@ -390,7 +391,7 @@ docReady(() => {
   // Expose early so even if later visual initialization fails tests can still access simulation state.
   const earlyApi = window.__mdjs || (window.__mdjs = { colors, settings })
   earlyApi.simState = simState
-  if (displayPositions) (earlyApi.simState as typeof simState & { positions: Float32Array }).positions = displayPositions
+  if (displayPositions) (earlyApi.simState as SimulationState & { positions: Float32Array }).positions = displayPositions
   initSettingsSync(engine)
   // Auto-push: wrap selected mutable settings with setters triggering engine.updateConfig
   registerAutoPush(engine, AUTO_PUSH_KEYS)
@@ -432,7 +433,9 @@ docReady(() => {
   engine.on('wrap', handleWrapEvent)
   engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
   // In headless test (puppeteer) environment requestAnimationFrame may be stubbed / throttled; fall back to interval.
-  engine.run({ useRaf: typeof requestAnimationFrame === 'function' })
+  const useRaf = typeof requestAnimationFrame === 'function'
+
+  engine.run({ useRaf })
   // Create arrow visualizers once state & scene are ready
   if (simState) {
     // Ensure trajectories created/hidden per settings
@@ -455,7 +458,7 @@ docReady(() => {
   // Expose handle for automated headless tests. Reuse existing stub so references remain stable.
   const api = window.__mdjs || (window.__mdjs = { colors, settings })
   api.simState = simState
-  if (displayPositions) (api.simState as typeof simState & { positions: Float32Array }).positions = displayPositions
+  if (displayPositions) (api.simState as SimulationState & { positions: Float32Array }).positions = displayPositions
   api.diagnostics = lastDiagnostics
   api.ready = true
   window.__pauseEngine = () => { engine?.pause() }

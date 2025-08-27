@@ -10,7 +10,7 @@
 import { SimulationEngine } from './SimulationEngine.js'
 import { type EngineConfig } from './config.js'
 import { settings } from '../control/settings.js'
-import { getAutoEngineBindings } from '../control/settingsSchema.js'
+import { getAutoEngineBindings, SettingsObject } from '../control/settingsSchema.js'
 
 // Guard to avoid recursive push->engine->config event->pull->property set->push loops.
 let suppressAutoPush = false
@@ -55,7 +55,7 @@ export function pushSettingsToEngine(engine: SimulationEngine): void {
     if (suppressAutoPush) return
     const patch: Partial<EngineConfig> = {}
     for (const b of BINDINGS) {
-        const val = settings[b.key as keyof typeof settings]
+        const val = settings[b.key as keyof SettingsObject]
         assignPath(patch as unknown as Record<string, unknown>, b.path, val)
     }
     engine.updateConfig(patch)
@@ -98,7 +98,7 @@ export function registerAutoPush(engine: SimulationEngine, keys: readonly AutoPu
         if (!(k in settings)) continue
         const desc = Object.getOwnPropertyDescriptor(settings, k)
         if (desc?.set) continue
-        let value = settings[k as keyof typeof settings]
+        let value = settings[k as keyof SettingsObject]
         Object.defineProperty(settings, k, {
             configurable: true,
             enumerable: true,

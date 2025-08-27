@@ -10,11 +10,9 @@ import { StereoEffect } from 'StereoEffect'
 import { drawBox } from './visual/drawingHelpers.js'
 import { initHud } from './visual/hud.js'
 import { initializeGuiControls } from './control/panel.js'
-import { settings as liveSettings } from './control/settings.js'
 import { generateParticleColors } from './visual/colors.js'
+import { SettingsObject } from './control/settingsSchema.js'
 
-// Narrow settings type (duck typed from settings.ts export)
-type SettingsLike = typeof liveSettings
 
 const ifMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
@@ -37,7 +35,7 @@ export interface InitResult {
   boxMesh: THREE.Object3D | null
 }
 
-export function init(settings: SettingsLike, colors: THREE.Color[]): InitResult {
+export function init(settings: SettingsObject, colors: THREE.Color[]): InitResult {
   const scene = new THREE.Scene()
   if (settings.if_useFog) scene.fog = new THREE.Fog(0xffffff, 0, 20)
   // Optional wireframe box

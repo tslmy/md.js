@@ -5,13 +5,12 @@
 import { GUI } from 'dat.gui'
 import { Object3D } from 'three'
 
-import { resetSettingsToDefaults, settings as liveSettings, SETTINGS_SCHEMA, normalizeSettings } from './settings.js'
+import { resetSettingsToDefaults, SETTINGS_SCHEMA, normalizeSettings } from './settings.js'
 import { clearEngineSnapshotInLocal } from '../engine/persist.js'
 import { saveSettingsToLocal } from './persist.js'
 import { clearVisualDataInLocal } from '../visual/persist.js'
+import { SettingDescriptor, SettingsObject } from './settingsSchema.js'
 
-// Narrow settings type (duck typed from settings.ts export)
-type SettingsLike = typeof liveSettings
 
 let _activeGui: GUI | null = null
 
@@ -26,10 +25,10 @@ export function toggle(selector: string): void {
  * (Re)create the dat.GUI panel reflecting current settings schema.
  * Adds lightweight description text per folder & installs command buttons (reset, halt, new world, HUD toggle).
  */
-export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D | null): void {
+export function initializeGuiControls(settings: SettingsObject, boxMesh: Object3D | null): void {
     try { _activeGui?.destroy(); _activeGui = null } catch { /* ignore */ }
     // Ensure derived numeric defaults present
-    normalizeSettings(settings as unknown as SettingsLike)
+    normalizeSettings(settings)
     const gui = new GUI(); _activeGui = gui
     interface Controller { onChange?(cb: () => void): Controller; name(n: string): Controller; updateDisplay?(): void }
     const controllers: Record<string, Controller> = {}
@@ -71,7 +70,7 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     }
     const initialBounds = (boxMesh as Object3D & { userData?: { initialBounds?: { x: number; y: number; z: number } } })?.userData?.initialBounds
     // (No longer storing separate select mapping metadata; we bind canonical values directly.)
-    const add = (d: (typeof SETTINGS_SCHEMA)[number]) => {
+    const add = (d: SettingDescriptor[][number]) => {
         if (!(d.key in settings)) return
         const val = (settings as Record<string, unknown>)[d.key]
         if (Array.isArray(val)) return
