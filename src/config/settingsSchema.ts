@@ -109,7 +109,13 @@ export function buildSettings(): SettingsObject {
         })
     for (const d of SETTINGS_SCHEMA) {
         // Assign with type assertion – schema is source of truth
-        ; (obj as Record<string, unknown>)[d.key] = clone(d.default)
+        const value = clone(d.default)
+        if (d.key === 'particleCount') {
+            if (!Number.isInteger(value)) {
+                throw new Error('particleCount must be an integer')
+            }
+        }
+        (obj as Record<string, unknown>)[d.key] = value
     }
     return obj as SettingsObject
 }
