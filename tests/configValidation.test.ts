@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateEngineConfig } from '../built/engine/config/types.js'
+import { validateEngineConfig } from '../built/engine/config.js'
 
 describe('engine config validation', () => {
   it('rejects invalid numeric values', () => {

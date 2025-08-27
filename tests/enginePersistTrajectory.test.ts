@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { buildEngineConfig } from '../built/engine/config/types.js'
-import { snapshot, hydrate } from '../built/engine/persistence/persist.js'
-import { settings } from '../built/settings.js'
+import { buildEngineConfig } from '../built/engine/config.js'
+import { snapshot, hydrate } from '../built/engine/persist.js'
+import { settings } from '../built/control/settings.js'
 
 describe('engine snapshot remains visualization-free (trajectories excluded)', () => {
     it('does not contain trajectory arrays', () => {

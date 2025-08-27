@@ -20,7 +20,7 @@ describe('wrapMarkers visual lifecycle', () => {
         const frameOffset = new Vector3(0, 0, 0)
 
         withFakeNow([0, 1000], () => {
-            createWrapMarker(scene, surface, { x: 1, y: 2, z: 3 }, frameOffset, 0xff0000)
+            createWrapMarker(scene, surface, { x: 1, y: 2, z: 3 }, frameOffset, 0xff0000, { x: 0, y: 0, z: 1 })
             expect(scene.children.length).toBe(1)
             const mesh = scene.children[0] as Mesh & { material: { opacity: number } }
             // Initial opacity set at creation
@@ -37,7 +37,7 @@ describe('wrapMarkers visual lifecycle', () => {
         const frameOffset = new Vector3(0, 0, 0)
 
         withFakeNow([0, 2500], () => {
-            createWrapMarker(scene, surface, { x: -2, y: 0.5, z: 0 }, frameOffset, 0x00ff00)
+            createWrapMarker(scene, surface, { x: -2, y: 0.5, z: 0 }, frameOffset, 0x00ff00, { x: 0, y: 1, z: 0 })
             expect(scene.children.length).toBe(1)
             const mesh = scene.children[0] as Mesh
             // Advance beyond lifetime

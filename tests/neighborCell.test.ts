@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { buildEngineConfig } from '../built/engine/config/types.js'
-import { settings } from '../built/settings.js'
+import { buildEngineConfig } from '../built/engine/config.js'
+import { settings } from '../built/control/settings.js'
 import { forEachPair, setPairIterationImpl } from '../built/core/forces/forceInterfaces.js'
 
 describe('neighbor cell strategy', () => {

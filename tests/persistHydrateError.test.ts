@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { hydrate, snapshot } from '../built/engine/persistence/persist.js'
+import { hydrate, snapshot } from '../built/engine/persist.js'
 import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { buildEngineConfig } from '../built/engine/config/types.js'
-import { settings } from '../built/settings.js'
+import { buildEngineConfig } from '../built/engine/config.js'
+import { settings } from '../built/control/settings.js'
 
 describe('hydrate snapshot error handling', () => {
   it('rejects unsupported snapshot version', () => {
