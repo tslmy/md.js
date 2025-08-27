@@ -377,7 +377,10 @@ docReady(() => {
         vel[i3] = vx; vel[i3 + 1] = vy; vel[i3 + 2] = vz
       }
     }
-    engine = new SimulationEngine(buildEngineConfig(settings))
+    // Build engine config and manually assign particleCount (not auto-bound)
+    const config = buildEngineConfig(settings)
+    config.world.particleCount = settings.particleCount
+    engine = new SimulationEngine(config)
     engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
   }
   simState = engine.getState()
