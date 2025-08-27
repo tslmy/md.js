@@ -21,7 +21,7 @@ export type SettingDescriptor = {
 
 // Central list. Adding a new setting: append descriptor here only.
 export const SETTINGS_SCHEMA: SettingDescriptor[] = [
-    { key: 'particleCount', default: 20 as const, group: 'world', enginePath: 'world.particleCount', auto: true, control: { type: 'number' } },
+    { key: 'particleCount', default: 10 as const, group: 'world', enginePath: 'world.particleCount', auto: true, control: { type: 'number' } },
     { key: 'maxTrajectoryLength', default: 200 as const, group: 'trajectories', control: { type: 'number', label: 'Length' } },
     { key: 'unitArrowLength', default: 0.1 as const, group: 'arrows', control: { type: 'number', label: 'Unit length', step: 0.01 } },
     { key: 'maxArrowLength', default: 2 as const, group: 'arrows', control: { type: 'number', label: 'Max length', step: 0.1 } },
@@ -32,7 +32,7 @@ export const SETTINGS_SCHEMA: SettingDescriptor[] = [
     { key: 'massLowerBound', default: 16 as const, group: 'world' },
     { key: 'massUpperBound', default: 20 as const, group: 'world' },
     { key: 'availableCharges', default: [-3, -2, -1, 0, 1, 2, 3] as const, group: 'world' },
-    { key: 'dt', default: 0.01 as const, group: 'runtime', enginePath: 'runtime.dt', auto: true, control: { type: 'number' } },
+    { key: 'dt', default: 0.005 as const, group: 'runtime', enginePath: 'runtime.dt', auto: true, control: { type: 'number' } },
     { key: 'sunMass', default: 500 as const, group: 'world' },
     { key: 'targetTemperature', default: 100 as const, group: 'runtime', control: { type: 'number', label: 'Target temp.' } },
     { key: 'if_use_periodic_boundary_condition', default: true as const, group: 'boundary', enginePath: 'runtime.pbc', auto: true, control: { type: 'boolean', label: 'Use PBC' } },
