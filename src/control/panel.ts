@@ -105,7 +105,12 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
             })
         }
     }
-    for (const d of SETTINGS_SCHEMA) { add(d) }
+    for (const d of SETTINGS_SCHEMA) {
+        try { add(d) } catch (e) {
+            // Handle errors (e.g. log them)
+            console.error('Failed to add setting:', d.key, e)
+        }
+    }
     // No hidden mapping metadata needed; settings already hold canonical values.
     // Clamp + scaling hooks
     const clampCutoff = () => {
