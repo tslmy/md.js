@@ -61,6 +61,7 @@ export function init(settings: SettingsLike, colors: THREE.Color[]): InitResult 
   scene.add(camera)
 
   const renderer = new THREE.WebGLRenderer({ alpha: true })
+  renderer.setPixelRatio(window.devicePixelRatio)
   renderer.setSize(window.innerWidth, window.innerHeight)
   let effect: StereoEffect | undefined
   if (ifMobileDevice) effect = new StereoEffect(renderer)
@@ -95,6 +96,7 @@ function resize(camera: THREE.PerspectiveCamera, effect: StereoEffect | undefine
   const height = document.body.offsetHeight
   camera.aspect = width / height
   camera.updateProjectionMatrix()
+  renderer.setPixelRatio(window.devicePixelRatio)
   renderer.setSize(width, height)
   if (ifMobileDevice && effect) effect.setSize(width, height)
 }
