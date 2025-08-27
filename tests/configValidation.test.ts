@@ -3,7 +3,7 @@ import { validateEngineConfig } from '../built/engine/config.js'
 
 describe('engine config validation', () => {
   it('rejects invalid numeric values', () => {
-  const cfg = {
+    const cfg = {
       world: { particleCount: 2, box: { x: 1, y: 1, z: 1 } },
       runtime: { dt: -0.1, cutoff: 1 },
       forces: { lennardJones: true, gravity: true, coulomb: true },
@@ -12,9 +12,9 @@ describe('engine config validation', () => {
     expect(() => validateEngineConfig(cfg)).toThrow()
   })
   it('rejects unsupported integrator name', () => {
-  const cfg = {
+    const cfg = {
       world: { particleCount: 2, box: { x: 1, y: 1, z: 1 } },
-  runtime: { dt: 0.01, cutoff: 1, integrator: 'weird' },
+      runtime: { dt: 0.01, cutoff: 1, integrator: 'weird' },
       forces: { lennardJones: true, gravity: true, coulomb: true },
       constants: { epsilon: 1, sigma: 1, G: 1, K: 1, kB: 1 }
     }

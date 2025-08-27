@@ -28,19 +28,19 @@ function buildParticles(count: number, len: number) {
 
 describe('visual snapshot (trajectories)', () => {
     it('captures and reapplies trajectory data', () => {
-    const particles = buildParticles(3, 4)
-    const trajectories = particles.map(p => p.trajectory)
-    // mutate some points so not all identical
-    const attr0 = trajectories[0]!.geometry.getAttribute('position') as BufferAttribute
-    attr0.setXYZ(1, 10, 11, 12)
-    const snap = captureVisualData(trajectories)
-    expect(snap).not.toBeNull()
-    if (!snap) return
-    // Wipe trajectories then reapply
-    const attr1 = trajectories[0]!.geometry.getAttribute('position') as BufferAttribute
-    attr1.setXYZ(1, 0, 0, 0)
-    applyVisualData(snap, trajectories)
-    const attr2 = trajectories[0]!.geometry.getAttribute('position') as BufferAttribute
-    expect([attr2.getX(1), attr2.getY(1), attr2.getZ(1)]).toEqual([10, 11, 12])
+        const particles = buildParticles(3, 4)
+        const trajectories = particles.map(p => p.trajectory)
+        // mutate some points so not all identical
+        const attr0 = trajectories[0]!.geometry.getAttribute('position') as BufferAttribute
+        attr0.setXYZ(1, 10, 11, 12)
+        const snap = captureVisualData(trajectories)
+        expect(snap).not.toBeNull()
+        if (!snap) return
+        // Wipe trajectories then reapply
+        const attr1 = trajectories[0]!.geometry.getAttribute('position') as BufferAttribute
+        attr1.setXYZ(1, 0, 0, 0)
+        applyVisualData(snap, trajectories)
+        const attr2 = trajectories[0]!.geometry.getAttribute('position') as BufferAttribute
+        expect([attr2.getX(1), attr2.getY(1), attr2.getZ(1)]).toEqual([10, 11, 12])
     })
 })
