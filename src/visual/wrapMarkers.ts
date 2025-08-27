@@ -17,21 +17,28 @@ const WRAP_MARKER_THICKNESS = 0.05
 const _tmpVec = new Vector3()
 
 /**
- * Create a transient ring marker on the boundary exit / entry face for a wrapped particle.
+ * Create a transient ring marker at the wrap event, oriented perpendicular to the velocity direction.
  * Used purely for user spatial intuition – does not affect physics.
+ * @param scene - The THREE.Scene to add the marker to
+ * @param surface - The wrap surface (for legacy position logic, not orientation)
+ * @param rawWorld - The raw world coordinates of the crossing
+ * @param frameOffset - The frame offset for display
+ * @param color - The color of the marker
+ * @param velocity - The velocity vector of the particle (THREE.Vector3 or {x,y,z})
  */
 export function createWrapMarker(
     scene: Scene,
     surface: WrapSurface,
     rawWorld: { x: number; y: number; z: number },
     frameOffset: Vector3,
-    color: number
+    color: number,
+    velocity: { x: number; y: number; z: number } | Vector3
 ): void {
     const inner = WRAP_MARKER_RADIUS - WRAP_MARKER_THICKNESS
     const geom = new RingGeometry(inner, WRAP_MARKER_RADIUS, 32)
     const mat = new MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: 2 })
     const ring = new Mesh(geom, mat)
-    // Position ring flush with boundary plane, centered; orientation depends on axis.
+    // Position ring at the crossing point (as before)
     const bx = settings.spaceBoundaryX
     const by = settings.spaceBoundaryY
     const bz = settings.spaceBoundaryZ
@@ -46,14 +53,26 @@ export function createWrapMarker(
     const disp = settings.if_use_periodic_boundary_condition
         ? minimumImagePoint(_tmpVec.set(relX, relY, relZ), { x: settings.spaceBoundaryX, y: settings.spaceBoundaryY, z: settings.spaceBoundaryZ })
         : _tmpVec.set(relX, relY, relZ)
+    // Position as before
     if (surface.axis === 'x') {
         ring.position.set(dist, disp.y, disp.z)
-        ring.rotation.y = Math.PI / 2
     } else if (surface.axis === 'y') {
         ring.position.set(disp.x, dist, disp.z)
-        ring.rotation.x = -Math.PI / 2
     } else { // z
         ring.position.set(disp.x, disp.y, dist)
+    }
+    // Orient the ring so its normal matches the velocity direction
+    // (default ring normal is +z in local space)
+    let v: Vector3
+    if (velocity instanceof Vector3) {
+        v = velocity.clone()
+    } else {
+        v = new Vector3(velocity.x, velocity.y, velocity.z)
+    }
+    if (v.lengthSq() > 0) {
+        v.normalize()
+        // Set quaternion so that +z (default ring normal) aligns with velocity
+        ring.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), v)
     }
     scene.add(ring)
     wrapMarkers.push({ mesh: ring, birth: performance.now() })

@@ -417,8 +417,13 @@ docReady(() => {
     if (!scene || !settings.if_use_periodic_boundary_condition) return
     // Use precise crossing exit + entry points from engine payload.
     for (const c of w.crossings) {
-      createWrapMarker(scene, { axis: c.axis, sign: c.sign }, c.exit, newFrameOffset, 0xffaa00)
-      createWrapMarker(scene, { axis: c.axis, sign: (c.sign * -1) as 1 | -1 }, c.entry, newFrameOffset, 0x007bff)
+      // Get the velocity of the particle at the time of wrap
+      // Use w.i as the particle index
+      const i3 = 3 * w.i
+      const velocities = simState?.velocities
+      const v = velocities ? { x: velocities[i3], y: velocities[i3 + 1], z: velocities[i3 + 2] } : { x: 0, y: 0, z: 1 }
+      createWrapMarker(scene, { axis: c.axis, sign: c.sign }, c.exit, newFrameOffset, 0xffaa00, v)
+      createWrapMarker(scene, { axis: c.axis, sign: (c.sign * -1) as 1 | -1 }, c.entry, newFrameOffset, 0x007bff, v)
     }
   }
   engine.on('wrap', handleWrapEvent)
