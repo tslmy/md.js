@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { createState } from '../built/core/simulation/state.js'
-import { forEachPair } from '../built/core/forces/forceInterfaces.js'
+import { createState } from '../src/core/simulation/state'
+import { forEachPair } from '../src/core/forces/forceInterfaces'
 
 function collectPairs(state: ReturnType<typeof createState>, cutoff: number) {
-  const pairs: Array<{i:number;j:number}> = []
-  forEachPair(state, cutoff, (i,j) => { pairs.push({ i, j }) })
+  const pairs: Array<{ i: number; j: number }> = []
+  forEachPair(state, cutoff, (i, j) => { pairs.push({ i, j }) })
   return pairs
 }
 
@@ -16,13 +16,13 @@ describe('pair enumeration', () => {
       const i3 = 3 * i
       state.positions[i3] = i
     }
-  const allPairs: Array<{i:number;j:number}> = []
-  forEachPair(state, 100, (i,j) => { allPairs.push({ i,j }) })
-    expect(allPairs.length).toBe(N*(N-1)/2)
+    const allPairs: Array<{ i: number; j: number }> = []
+    forEachPair(state, 100, (i, j) => { allPairs.push({ i, j }) })
+    expect(allPairs.length).toBe(N * (N - 1) / 2)
     expect(allPairs.every(p => p.i < p.j)).toBe(true)
     const keys = new Set(allPairs.map(p => `${p.i}-${p.j}`))
     expect(keys.size).toBe(allPairs.length)
     const neighborPairs = collectPairs(state, 1.5)
-    expect(neighborPairs.length).toBe(N-1)
+    expect(neighborPairs.length).toBe(N - 1)
   })
 })

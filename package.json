@@ -33,9 +33,9 @@
     "cov:open": "open coverage/lcov-report/index.html || xdg-open coverage/lcov-report/index.html || true",
     "dev": "nodemon --watch src --ext ts,js --exec \"npm run build && npx serve -l 8000 .\"",
     "start": "npm run build && npx serve -l 8000 .",
-    "test": "npm run build && vitest run",
-    "test:cov": "npm run build && vitest run --coverage",
-    "test:watch": "npm run build && vitest",
+    "test": "vitest run",
+    "test:cov": "vitest run --coverage",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "watch": "tsc --watch"
   },

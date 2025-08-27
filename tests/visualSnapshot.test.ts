@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { Color, Vector3, Line, BufferAttribute, Scene } from 'three'
-import { newTrajectory } from '../built/visual/drawingHelpers.js'
-import { captureVisualData, applyVisualData } from '../built/visual/persist.js'
+import { newTrajectory } from '../src/visual/drawingHelpers'
+import { captureVisualData, applyVisualData } from '../src/visual/persist'
 
 // Minimal Particle-like shape for test (align with src/particleSystem.ts)
 class FakeParticle {

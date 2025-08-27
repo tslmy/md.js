@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateEngineConfig } from '../built/engine/config.js'
+import { validateEngineConfig } from '../src/engine/config'
 
 describe('engine config validation', () => {
   it('rejects invalid numeric values', () => {
@@ -9,7 +9,7 @@ describe('engine config validation', () => {
       forces: { lennardJones: true, gravity: true, coulomb: true },
       constants: { epsilon: 1, sigma: 1, G: 1, K: 1, kB: 1 }
     }
-    expect(() => validateEngineConfig(cfg)).toThrow()
+    expect(() => validateEngineConfig(cfg as unknown as import('../src/engine/config').EngineConfig)).toThrow()
   })
   it('rejects unsupported integrator name', () => {
     const cfg = {
@@ -18,6 +18,6 @@ describe('engine config validation', () => {
       forces: { lennardJones: true, gravity: true, coulomb: true },
       constants: { epsilon: 1, sigma: 1, G: 1, K: 1, kB: 1 }
     }
-    expect(() => validateEngineConfig(cfg)).toThrow()
+    expect(() => validateEngineConfig(cfg as unknown as import('../src/engine/config').EngineConfig)).toThrow()
   })
 })

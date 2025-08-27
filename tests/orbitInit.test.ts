@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeCircularOrbitVelocity } from '../built/core/simulation/orbitInit.js'
+import { computeCircularOrbitVelocity } from '../src/core/simulation/orbitInit'
 
 // Basic physics helpers for test clarity
 function dot(ax: number, ay: number, az: number, bx: number, by: number, bz: number) {

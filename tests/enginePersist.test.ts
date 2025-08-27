@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { SimulationEngine } from '../built/engine/SimulationEngine.js'
-import { buildEngineConfig } from '../built/engine/config.js'
-import { snapshot, hydrate } from '../built/engine/persist.js'
-import { settings } from '../built/control/settings.js'
+import { SimulationEngine } from '../src/engine/SimulationEngine'
+import { buildEngineConfig } from '../src/engine/config'
+import { snapshot, hydrate } from '../src/engine/persist'
+import { settings } from '../src/control/settings'
 
 describe('engine snapshot/hydrate', () => {
   it('round-trips sample state', () => {
