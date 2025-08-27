@@ -68,15 +68,55 @@ export function init(settings: SettingsLike, colors: THREE.Color[]): InitResult 
   const element = renderer.domElement
   document.body.appendChild(element)
 
-  const controls = new OrbitControls(camera, element)
-  function setOrientationControls(e: DeviceOrientationEvent): void {
-    if (!e.alpha) return
-    const devCtrls = new DeviceOrientationControls(camera, true)
-    devCtrls.connect(); devCtrls.update()
-    element.addEventListener('click', fullscreen, false)
-    window.removeEventListener('deviceorientation', setOrientationControls, true)
+  let controls: OrbitControls | DeviceOrientationControls = new OrbitControls(camera, element)
+  if (ifMobileDevice && typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
+    // iOS 13+ requires permission for device orientation
+    function enableDeviceOrientation() {
+      controls = new DeviceOrientationControls(camera, true)
+      controls.connect(); controls.update()
+      element.addEventListener('click', fullscreen, false)
+      console.log('[md.js] DeviceOrientationControls enabled')
+    }
+    // Only show overlay if permission API exists
+    type DeviceOrientationEventWithPermission = typeof DeviceOrientationEvent & { requestPermission?: () => Promise<'granted' | 'denied'> }
+    const DeviceOrientationEventTyped = window.DeviceOrientationEvent as DeviceOrientationEventWithPermission | undefined
+    if (typeof DeviceOrientationEventTyped?.requestPermission === 'function') {
+      // Create overlay button
+      const overlay = document.createElement('div')
+      overlay.style.position = 'fixed'
+      overlay.style.top = '0'
+      overlay.style.left = '0'
+      overlay.style.width = '100vw'
+      overlay.style.height = '100vh'
+      overlay.style.background = 'rgba(0,0,0,0.85)'
+      overlay.style.display = 'flex'
+      overlay.style.alignItems = 'center'
+      overlay.style.justifyContent = 'center'
+      overlay.style.zIndex = '9999'
+      overlay.innerHTML = '<button style="font-size:2rem;padding:1em 2em;border-radius:1em;border:none;background:#fff;color:#222;">Enable Motion Controls</button>'
+      document.body.appendChild(overlay)
+      overlay.querySelector('button')?.addEventListener('click', () => {
+        DeviceOrientationEventTyped!.requestPermission!().then((response) => {
+          if (response === 'granted') {
+            enableDeviceOrientation()
+            overlay.remove()
+          } else {
+            overlay.innerHTML = '<div style="color:#fff;font-size:1.5rem;text-align:center;">Permission denied.\nReload to try again.</div>'
+          }
+        }).catch((err: unknown) => {
+          overlay.innerHTML = '<div style="color:#fff;font-size:1.5rem;text-align:center;">Error requesting permission.<br>' + String(err) + '</div>'
+        })
+      })
+    } else {
+      // Non-iOS: enable on first deviceorientation event
+      function setOrientationControls(e: DeviceOrientationEvent): void {
+        if (!e.alpha) return
+        window.removeEventListener('deviceorientation', setOrientationControls, true)
+        enableDeviceOrientation()
+      }
+      window.addEventListener('deviceorientation', setOrientationControls, true)
+    }
   }
-  window.addEventListener('deviceorientation', setOrientationControls, true)
 
   const stats = new Stats()
   const PanelCtor = (Stats as unknown as { Panel: new (n: string, fg: string, bg: string) => unknown }).Panel
