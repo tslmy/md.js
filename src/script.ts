@@ -36,7 +36,7 @@ import { initSettingsSync, pushSettingsToEngine, registerAutoPush, AUTO_PUSH_KEY
 import { InstancedSpheres } from './visual/InstancedSpheres.js'
 import { trajectories, ensureTrajectories, shouldShiftTrajectory, markTrajectorySnapshot, updateTrajectoryBuffer } from './visual/trajectory.js'
 import { createArrows, updateScaleBars, finalizeArrows, type ArrowSet } from './visual/arrows.js'
-import { getHud } from './visual/coloringAndDataSheet.js'
+import { getHud } from './visual/hud.js'
 import { computeCircularOrbitVelocity } from './core/simulation/orbitInit.js'
 import { makeClonePositionsList, minimumImagePoint } from './core/pbc.js'
 import { createWrapMarker, updateWrapMarkers, type WrapEventRecord } from './visual/wrapMarkers.js'

@@ -34,35 +34,7 @@ export class HudTable {
   private readonly rows: HTMLTableRowElement[] = []
   private readonly sparkCells: SparkCell[][] = [] // [particle][metricIndex]
   private readonly metricList = METRICS
-  constructor(private readonly particleCount: number, private readonly colors: Color[], private readonly makeSun: boolean) {
-    this.ensureColors()
-    this.buildTable()
-  }
-  update(i: number, data: ParticleDynamicData): void {
-    const row = this.rows[i]
-    if (!row) return
-    const speed2 = data.vx * data.vx + data.vy * data.vy + data.vz * data.vz
-    const speed = Math.sqrt(speed2)
-    const ke = 0.5 * speed2 * data.mass
-    const totalF = Math.hypot(data.fx, data.fy, data.fz)
-    // Static-ish
-    this.setCell(i, 'mass', formatMassCharge(data.mass))
-    this.setCell(i, 'charge', formatCharge(data.charge))
-    // Dynamics
-    this.setMetric(i, 'speed', speed)
-    this.setMetric(i, 'kineticEnergy', ke)
-    this.setMetric(i, 'TotalForceStrength', totalF)
-    if (data.perForce) this.updatePerForce(i, data.perForce)
-  }
-  // --- internals ---
-  private ensureColors(): void {
-    while (this.colors.length < this.particleCount) {
-      const idx = this.colors.length
-      const color = (this.makeSun && idx === 0) ? new Color(0, 0, 0) : new Color(Math.random(), Math.random(), Math.random())
-      this.colors.push(color)
-    }
-  }
-  private buildTable(): void {
+  constructor(private readonly particleCount: number, private readonly colors: Color[]) {
     const tbody = document.querySelector('#tabularInfo > tbody')
     if (!tbody) return
     for (let i = 0; i < this.particleCount; i++) {
@@ -90,6 +62,22 @@ export class HudTable {
       this.rows[i] = row
       this.sparkCells[i] = sparkRow
     }
+  }
+  update(i: number, data: ParticleDynamicData): void {
+    const row = this.rows[i]
+    if (!row) return
+    const speed2 = data.vx * data.vx + data.vy * data.vy + data.vz * data.vz
+    const speed = Math.sqrt(speed2)
+    const ke = 0.5 * speed2 * data.mass
+    const totalF = Math.hypot(data.fx, data.fy, data.fz)
+    // Static-ish
+    this.setCell(i, 'mass', formatMassCharge(data.mass))
+    this.setCell(i, 'charge', formatCharge(data.charge))
+    // Dynamics
+    this.setMetric(i, 'speed', speed)
+    this.setMetric(i, 'kineticEnergy', ke)
+    this.setMetric(i, 'TotalForceStrength', totalF)
+    if (data.perForce) this.updatePerForce(i, data.perForce)
   }
   private setCell(i: number, metricId: string, text: string): void {
     const row = this.rows[i]; if (!row) return
@@ -119,8 +107,8 @@ export class HudTable {
 }
 
 let _hud: HudTable | null = null
-export function initHud(particleCount: number, colors: Color[], makeSun: boolean): HudTable {
-  _hud = new HudTable(particleCount, colors, makeSun)
+export function initHud(particleCount: number, colors: Color[]): HudTable {
+  _hud = new HudTable(particleCount, colors)
   return _hud
 }
 export function getHud(): HudTable | null { return _hud }

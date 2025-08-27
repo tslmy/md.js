@@ -8,9 +8,10 @@ import Stats from 'Stats'
 // @ts-expect-error external import map module (no types)
 import { StereoEffect } from 'StereoEffect'
 import { drawBox } from './visual/drawingHelpers.js'
-import { initHud } from './visual/coloringAndDataSheet.js'
+import { initHud } from './visual/hud.js'
 import { initializeGuiControls } from './control/panel.js'
 import { settings as liveSettings } from './control/settings.js'
+import { generateParticleColors } from './util/colorPalette.js'
 
 // Narrow settings type (duck typed from settings.ts export)
 type SettingsLike = typeof liveSettings
@@ -54,7 +55,13 @@ export function init(settings: SettingsLike, colors: THREE.Color[]): InitResult 
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(5, 10, 7); scene.add(dirLight)
   scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 0.4))
 
-  initHud(settings.particleCount, colors, settings.if_makeSun)
+  // Ensure we have enough particle colors.
+  if (colors.length < settings.particleCount) {
+    const needed = generateParticleColors(settings.particleCount, settings.if_makeSun, colors.length)
+    colors.push(...needed)
+  }
+
+  initHud(settings.particleCount, colors)
 
   const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 1_000_000)
   camera.position.set(0, 2, 10)
