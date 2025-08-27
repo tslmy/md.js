@@ -100,11 +100,18 @@ export interface SettingsObject {
     [key: string]: unknown
 }
 
+/**
+ * Builds and returns a new `SettingsObject` instance using the default values defined in `SETTINGS_SCHEMA`.
+ */
 export function buildSettings(): SettingsObject {
     const obj: Partial<SettingsObject> = {}
     const clone = typeof structuredClone === 'function'
-        ? structuredClone
+        ? (<T>(v: T) => {
+            console.log('[buildSettings] Using structuredClone for cloning');
+            return structuredClone(v);
+        })
         : (<T>(v: T): T => {
+            console.log('[buildSettings] Using JSON stringify/parse for cloning');
             try { return JSON.parse(JSON.stringify(v)) } catch { return v }
         })
     for (const d of SETTINGS_SCHEMA) {
