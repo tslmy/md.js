@@ -11,7 +11,7 @@ import { drawBox } from './visual/drawingHelpers.js'
 import { initHud } from './visual/hud.js'
 import { initializeGuiControls } from './control/panel.js'
 import { settings as liveSettings } from './control/settings.js'
-import { generateParticleColors } from './util/colorPalette.js'
+import { generateParticleColors } from './visual/colors.js'
 
 // Narrow settings type (duck typed from settings.ts export)
 type SettingsLike = typeof liveSettings
