@@ -132,40 +132,35 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     // Optional: open key folders
     folders.world?.open(); folders.visual?.open()
     gui.close()
+    const randomizeParticles = () => {
+        try {
+            // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
+            saveSettingsToLocal()
+            clearVisualDataInLocal()
+            clearEngineSnapshotInLocal()
+        } catch (e) {
+            console.warn('Failed clearing stored snapshot(s):', e)
+        }
+        // Prevent saving the soon-to-be-discarded state during reload
+        try { window.onbeforeunload = null } catch (e) {
+            console.warn('Failed clearing onbeforeunload handler, and the soon-to-be-discarded state may be saved:', e)
+        }
+        location.reload()
+    }
     const commands = {
         stop: () => { try { (window as unknown as { __pauseEngine?: () => void }).__pauseEngine?.() } catch { /* ignore */ } },
         toggleHUD: () => { toggle('#hud') },
-        randomizeParticles: () => {
-            try {
-                // Persist current (possibly tweaked) settings so after reload we build a fresh world using them.
-                saveSettingsToLocal()
-                clearVisualDataInLocal()
-                clearEngineSnapshotInLocal()
-            } catch (e) {
-                console.warn('Failed clearing stored snapshot(s):', e)
-            }
-            // Prevent saving the soon-to-be-discarded state during reload
-            try { window.onbeforeunload = null } catch (e) {
-                console.warn('Failed clearing onbeforeunload handler, and the soon-to-be-discarded state may be saved:', e)
-            }
-            location.reload()
-        },
+        randomizeParticles,
         resetDefaults: () => {
             resetSettingsToDefaults()
-            initializeGuiControls(settings, boxMesh)
-            if (boxMesh && initialBounds) {
-                boxMesh.scale.x = Number(settings.spaceBoundaryX) / initialBounds.x
-                boxMesh.scale.y = Number(settings.spaceBoundaryY) / initialBounds.y
-                boxMesh.scale.z = Number(settings.spaceBoundaryZ) / initialBounds.z
-            }
-            try { saveSettingsToLocal() } catch (e) { console.warn('Failed saving user settings:', e) }
+            randomizeParticles()
         }
     }
     // Place command folders at root
-    gui.add(commands, 'randomizeParticles').name('New world')
     const cmd = gui.addFolder('Commands')
-    cmd.add(commands, 'resetDefaults').name('Reset defaults')
-    cmd.add(commands, 'stop').name('Halt')
-    gui.add(commands, 'toggleHUD').name('Show Detail HUD')
+    cmd.add(commands, 'randomizeParticles').name('New simulation')
+    cmd.add(commands, 'stop').name('Freeze simulation')
+    cmd.add(commands, 'resetDefaults').name('Reset settings to defaults')
+    gui.add(commands, 'toggleHUD').name('Toggle datasheet HUD')
     cmd.open(); gui.close()
 }
