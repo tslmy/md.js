@@ -1,0 +1,97 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="84">
+            <item index="0" class="java.lang.String" itemvalue="SpeechRecognition" />
+            <item index="1" class="java.lang.String" itemvalue="pynput" />
+            <item index="2" class="java.lang.String" itemvalue="pycaw" />
+            <item index="3" class="java.lang.String" itemvalue="mediapipe" />
+            <item index="4" class="java.lang.String" itemvalue="opencv-python" />
+            <item index="5" class="java.lang.String" itemvalue="screen-brightness-control" />
+            <item index="6" class="java.lang.String" itemvalue="pyttsx3" />
+            <item index="7" class="java.lang.String" itemvalue="pyautogui" />
+            <item index="8" class="java.lang.String" itemvalue="wikipedia" />
+            <item index="9" class="java.lang.String" itemvalue="comtypes" />
+            <item index="10" class="java.lang.String" itemvalue="eel" />
+            <item index="11" class="java.lang.String" itemvalue="traitlets" />
+            <item index="12" class="java.lang.String" itemvalue="bs4" />
+            <item index="13" class="java.lang.String" itemvalue="mypy" />
+            <item index="14" class="java.lang.String" itemvalue="pickleshare" />
+            <item index="15" class="java.lang.String" itemvalue="types-docutils" />
+            <item index="16" class="java.lang.String" itemvalue="pre-commit" />
+            <item index="17" class="java.lang.String" itemvalue="setuptools" />
+            <item index="18" class="java.lang.String" itemvalue="llama-index-embeddings-openai" />
+            <item index="19" class="java.lang.String" itemvalue="pymupdf" />
+            <item index="20" class="java.lang.String" itemvalue="pycparser" />
+            <item index="21" class="java.lang.String" itemvalue="executing" />
+            <item index="22" class="java.lang.String" itemvalue="astroid" />
+            <item index="23" class="java.lang.String" itemvalue="llama-index-agent-openai" />
+            <item index="24" class="java.lang.String" itemvalue="filelock" />
+            <item index="25" class="java.lang.String" itemvalue="mccabe" />
+            <item index="26" class="java.lang.String" itemvalue="soupsieve" />
+            <item index="27" class="java.lang.String" itemvalue="llama-index-readers-llama-parse" />
+            <item index="28" class="java.lang.String" itemvalue="beautifulsoup4" />
+            <item index="29" class="java.lang.String" itemvalue="nodeenv" />
+            <item index="30" class="java.lang.String" itemvalue="cryptography" />
+            <item index="31" class="java.lang.String" itemvalue="pexpect" />
+            <item index="32" class="java.lang.String" itemvalue="pypdf" />
+            <item index="33" class="java.lang.String" itemvalue="appnope" />
+            <item index="34" class="java.lang.String" itemvalue="types-setuptools" />
+            <item index="35" class="java.lang.String" itemvalue="types-protobuf" />
+            <item index="36" class="java.lang.String" itemvalue="jedi" />
+            <item index="37" class="java.lang.String" itemvalue="codespell" />
+            <item index="38" class="java.lang.String" itemvalue="pure-eval" />
+            <item index="39" class="java.lang.String" itemvalue="striprtf" />
+            <item index="40" class="java.lang.String" itemvalue="asttokens" />
+            <item index="41" class="java.lang.String" itemvalue="backcall" />
+            <item index="42" class="java.lang.String" itemvalue="platformdirs" />
+            <item index="43" class="java.lang.String" itemvalue="llama-index-multi-modal-llms-openai" />
+            <item index="44" class="java.lang.String" itemvalue="virtualenv" />
+            <item index="45" class="java.lang.String" itemvalue="llama-parse" />
+            <item index="46" class="java.lang.String" itemvalue="distlib" />
+            <item index="47" class="java.lang.String" itemvalue="types-deprecated" />
+            <item index="48" class="java.lang.String" itemvalue="cfgv" />
+            <item index="49" class="java.lang.String" itemvalue="pathspec" />
+            <item index="50" class="java.lang.String" itemvalue="decorator" />
+            <item index="51" class="java.lang.String" itemvalue="matplotlib-inline" />
+            <item index="52" class="java.lang.String" itemvalue="ptyprocess" />
+            <item index="53" class="java.lang.String" itemvalue="cffi" />
+            <item index="54" class="java.lang.String" itemvalue="wcwidth" />
+            <item index="55" class="java.lang.String" itemvalue="llama-index-program-openai" />
+            <item index="56" class="java.lang.String" itemvalue="llama-index-cli" />
+            <item index="57" class="java.lang.String" itemvalue="llama-index-indices-managed-llama-cloud" />
+            <item index="58" class="java.lang.String" itemvalue="tomlkit" />
+            <item index="59" class="java.lang.String" itemvalue="stack-data" />
+            <item index="60" class="java.lang.String" itemvalue="prompt-toolkit" />
+            <item index="61" class="java.lang.String" itemvalue="tomli" />
+            <item index="62" class="java.lang.String" itemvalue="pymupdfb" />
+            <item index="63" class="java.lang.String" itemvalue="types-pyyaml" />
+            <item index="64" class="java.lang.String" itemvalue="pygments" />
+            <item index="65" class="java.lang.String" itemvalue="llama-index-readers-file" />
+            <item index="66" class="java.lang.String" itemvalue="llama-index-core" />
+            <item index="67" class="java.lang.String" itemvalue="identify" />
+            <item index="68" class="java.lang.String" itemvalue="parso" />
+            <item index="69" class="java.lang.String" itemvalue="llama-index-legacy" />
+            <item index="70" class="java.lang.String" itemvalue="types-pyopenssl" />
+            <item index="71" class="java.lang.String" itemvalue="black" />
+            <item index="72" class="java.lang.String" itemvalue="ipython" />
+            <item index="73" class="java.lang.String" itemvalue="dill" />
+            <item index="74" class="java.lang.String" itemvalue="types-redis" />
+            <item index="75" class="java.lang.String" itemvalue="types-requests" />
+            <item index="76" class="java.lang.String" itemvalue="llama-index-question-gen-openai" />
+            <item index="77" class="java.lang.String" itemvalue="lazy-object-proxy" />
+            <item index="78" class="java.lang.String" itemvalue="pylint" />
+            <item index="79" class="java.lang.String" itemvalue="ruff" />
+            <item index="80" class="java.lang.String" itemvalue="isort" />
+            <item index="81" class="java.lang.String" itemvalue="llama-index-llms-openai" />
+            <item index="82" class="java.lang.String" itemvalue="tokenize-rt" />
+            <item index="83" class="java.lang.String" itemvalue="types-urllib3" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
