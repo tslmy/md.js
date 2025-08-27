@@ -1,4 +1,4 @@
-import { buildSettings, SETTINGS_SCHEMA, type SettingsObject } from '../config/settingsSchema.js'
+import { buildSettings, SETTINGS_SCHEMA, type SettingsObject } from './settingsSchema.js'
 
 // Mutable singleton settings object (GUI mutates in place)
 const settings: SettingsObject = buildSettings()

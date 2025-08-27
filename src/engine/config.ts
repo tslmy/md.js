@@ -125,7 +125,7 @@ export function validateEngineConfig(cfg: EngineConfig): void {
 // New streamlined config constructor: derive entirely from unified SETTINGS_SCHEMA
 // eliminating the bespoke mapping above. This reduces duplication and keeps the
 // engine config in lock‑step with schema evolutions (single source of truth).
-import { getAutoEngineBindings, type SettingsObject } from '../config/settingsSchema.js'
+import { getAutoEngineBindings, type SettingsObject } from '../control/settingsSchema.js'
 
 // Minimal path assignment helper (duplicated locally to avoid cross‑module churn)
 type MutableEngineConfig = {

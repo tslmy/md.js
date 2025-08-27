@@ -10,7 +10,7 @@
 import { SimulationEngine } from './SimulationEngine.js'
 import { type EngineConfig } from './config.js'
 import { settings } from '../control/settings.js'
-import { getAutoEngineBindings } from '../config/settingsSchema.js'
+import { getAutoEngineBindings } from '../control/settingsSchema.js'
 
 // Guard to avoid recursive push->engine->config event->pull->property set->push loops.
 let suppressAutoPush = false
