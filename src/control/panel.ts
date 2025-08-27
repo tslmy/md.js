@@ -159,8 +159,8 @@ export function initializeGuiControls(settings: SettingsLike, boxMesh: Object3D 
     // Place command folders at root
     const cmd = gui.addFolder('Commands')
     cmd.add(commands, 'randomizeParticles').name('New simulation')
-    cmd.add(commands, 'stop').name('Freeze simulation')
-    cmd.add(commands, 'resetDefaults').name('Reset settings to defaults')
+    cmd.add(commands, 'stop').name('Freeze')
+    cmd.add(commands, 'resetDefaults').name('Reset settings')
     gui.add(commands, 'toggleHUD').name('Toggle datasheet HUD')
     cmd.open(); gui.close()
 }
