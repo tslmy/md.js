@@ -18,6 +18,5 @@ export function normalizeSettings(s: SettingsObject): void {
 
 // Reset by rebuilding from schema (avoids maintaining a deep cloned copy + keeps new schema additions)
 function resetSettingsToDefaults(): void { Object.assign(settings, buildSettings()) }
-function getDefaultSettingsSnapshot() { return buildSettings() }
 
-export { settings, resetSettingsToDefaults, getDefaultSettingsSnapshot, SETTINGS_SCHEMA }
+export { settings, resetSettingsToDefaults, SETTINGS_SCHEMA }
