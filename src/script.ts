@@ -39,6 +39,7 @@ import { createArrows, updateScaleBars, finalizeArrows, type ArrowSet } from './
 import { getHud } from './visual/hud.js'
 import { computeCircularOrbitVelocity } from './core/simulation/orbitInit.js'
 import { makeClonePositionsList, minimumImagePoint } from './core/pbc.js'
+import { computeFrameOffset, updateDisplayPositions } from './core/frameOfReference.js'
 import { createWrapMarker, updateWrapMarkers, type WrapEventRecord } from './visual/wrapMarkers.js'
 import { SettingsObject } from './control/settingsSchema.js'
 
@@ -218,9 +219,9 @@ function renderCloneSpheres(frameOffset: Vector3): void {
  */
 function applyVisualUpdates(): void {
   updateScaleBars(lastDiagnostics)
-  const frameOffset = computeFrameOffset()
+  const frameOffset = computeFrameOffset(simState, settings)
   // Update display-space positions first so per-particle logic & HUD see centered coordinates if needed.
-  updateDisplayPositions(frameOffset)
+  displayPositions = updateDisplayPositions(simState, frameOffset, displayPositions)
   updateFromSimulation(frameOffset)
   updateWrapMarkers(scene)
   // Update / toggle arrows after particle positions refreshed
@@ -235,48 +236,6 @@ function applyVisualUpdates(): void {
   update(); render(renderer, effect); stats.update()
   lastFrameOffset.copy(frameOffset)
 }
-
-/**
- * Determine the frame offset based on the selected reference frame mode.
- *  - fixed: origin remains at (0,0,0)
- *  - sun: subtract position of particle 0
- *  - com: subtract instantaneous center-of-mass (translational DOF removal)
- */
-function computeFrameOffset(): Vector3 {
-  if (!simState) return new Vector3(0, 0, 0)
-  const direct = (settings as unknown as Record<string, unknown>).referenceFrameMode as string | undefined
-  const mode = (direct && typeof direct === 'string') ? direct.toLowerCase() : undefined
-  if (mode === 'sun' && simState.N > 0) return new Vector3(simState.positions[0], simState.positions[1], simState.positions[2])
-  if (mode === 'com') {
-    const { masses, positions, N } = simState
-    let mx = 0, my = 0, mz = 0, mTot = 0
-    for (let i = 0; i < N; i++) {
-      const i3 = 3 * i; const m = masses[i] || 1
-      mx += m * positions[i3]; my += m * positions[i3 + 1]; mz += m * positions[i3 + 2]; mTot += m
-    }
-    if (mTot > 0) return new Vector3(mx / mTot, my / mTot, mz / mTot)
-  }
-  return new Vector3(0, 0, 0)
-}
-
-/**
- * Recompute the display-space (reference-frame shifted) positions array.
- * Does not mutate the engine's authoritative `SimulationState.positions` buffer.
- */
-function updateDisplayPositions(frameOffset: Vector3): void {
-  if (!simState) return
-  if (!displayPositions || displayPositions.length !== simState.positions.length) {
-    displayPositions = new Float32Array(simState.positions.length)
-  }
-  const src = simState.positions
-  for (let i = 0; i < simState.N; i++) {
-    const i3 = 3 * i
-    displayPositions[i3] = src[i3] - frameOffset.x
-    displayPositions[i3 + 1] = src[i3 + 1] - frameOffset.y
-    displayPositions[i3 + 2] = src[i3 + 2] - frameOffset.z
-  }
-}
-
 
 /**
  * Per-frame camera / controls maintenance (projection matrix updates & orbit control damping).
@@ -387,7 +346,7 @@ docReady(() => {
   simState = engine.getState()
   // Allocate initial display-space positions & populate once before exposing API (ensures tests see centered values).
   displayPositions = new Float32Array(simState.positions.length)
-  updateDisplayPositions(computeFrameOffset())
+  displayPositions = updateDisplayPositions(simState, computeFrameOffset(simState, settings), displayPositions)
   // Expose early so even if later visual initialization fails tests can still access simulation state.
   const earlyApi = window.__mdjs || (window.__mdjs = { colors, settings })
   earlyApi.simState = simState
@@ -400,7 +359,7 @@ docReady(() => {
   // so rendered path remains continuous (avoid long teleport segments across box).
   const handleWrapEvent = ({ wraps }: { wraps: WrapEventRecord[] }) => {
     if (!settings.if_showTrajectory || wraps.length === 0) return
-    const newFrameOffset = computeFrameOffset()
+    const newFrameOffset = computeFrameOffset(simState, settings)
     const dFx = newFrameOffset.x - lastFrameOffset.x
     const dFy = newFrameOffset.y - lastFrameOffset.y
     const dFz = newFrameOffset.z - lastFrameOffset.z
