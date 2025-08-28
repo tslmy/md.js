@@ -1,11 +1,7 @@
 import * as THREE from 'three'
-// @ts-expect-error external import map module (no types)
 import { OrbitControls } from 'OrbitControls'
-// @ts-expect-error external import map module (no types)
 import { DeviceOrientationControls } from 'DeviceOrientationControls'
-// @ts-expect-error external import map module (no types)
 import Stats from 'Stats'
-// @ts-expect-error external import map module (no types)
 import { StereoEffect } from 'StereoEffect'
 import { drawBox } from './visual/drawingHelpers.js'
 import { initHud } from './visual/hud.js'

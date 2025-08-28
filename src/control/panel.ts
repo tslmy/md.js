@@ -1,7 +1,6 @@
 /**
  * This script is responsible for initializing the control panel GUI.
  */
-// @ts-expect-error external import map module (no types)
 import { GUI } from 'dat.gui'
 import { Object3D } from 'three'
 
