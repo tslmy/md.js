@@ -21,6 +21,7 @@
 import { settings } from './control/settings.js'
 import { init, ifMobileDevice } from './init.js'
 import { toggle } from './control/panel.js'
+import { ConfigModal } from './control/modal.js'
 import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
 import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
@@ -414,13 +415,22 @@ docReady(() => {
     // Attempt to restore persisted visual data (colors always; trajectories only if enabled)
     loadVisualDataFromLocal(settings.if_showTrajectory ? trajectories : [], colors)
   }
-  // Expose handle for automated headless tests. Reuse existing stub so references remain stable.
   const api = window.__mdjs || (window.__mdjs = { colors, settings })
   api.simState = simState
   if (displayPositions) (api.simState as SimulationState & { positions: Float32Array }).positions = displayPositions
   api.diagnostics = lastDiagnostics
   api.ready = true
   window.__pauseEngine = () => { engine?.pause() }
+
+  // Initialize configuration modal
+  let configModal: ConfigModal | null = null
+  try {
+    configModal = new ConfigModal(settings)
+    configModal.initialize()
+  } catch (e) {
+    console.error('[script.ts] Failed to initialize config modal:', e)
+  }
+
   // Install full-state persistence handler (overrides placeholder in init.js)
   window.onbeforeunload = () => {
     try { saveSettingsToLocal() } catch { /* ignore */ }
@@ -436,6 +446,10 @@ docReady(() => {
     if (e.key === 'Tab') {
       e.preventDefault()
       toggle('#hud')
+    }
+    if (e.key === 'c' || e.key === 'C') {
+      e.preventDefault()
+      if (configModal) configModal.show()
     }
     if (e.key === 'p') { // quick dev key: push current settings to engine
       if (engine) pushSettingsToEngine(engine)
