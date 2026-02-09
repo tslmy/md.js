@@ -119,6 +119,90 @@
             }
         }
 
+        /* Toast notification styles */
+        .toast {
+            min-width: 350px;
+            max-width: 500px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .toast.toast-critical {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .toast.toast-critical .toast-header {
+            background-color: #b02a37;
+            color: white;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .toast.toast-critical .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .toast.toast-severe {
+            background-color: #fd7e14;
+            color: white;
+        }
+
+        .toast.toast-severe .toast-header {
+            background-color: #e36b0a;
+            color: white;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .toast.toast-severe .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .toast.toast-warning {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .toast.toast-warning .toast-header {
+            background-color: #e0a800;
+            color: #000;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .toast-body {
+            font-size: 0.9rem;
+        }
+
+        .toast-details {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.75rem;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+            word-break: break-all;
+        }
+
+        .toast-suggestions {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .toast-suggestions ul {
+            padding-left: 1rem;
+            margin-bottom: 0;
+        }
+
+        .toast-suggestions li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Mobile responsive toasts */
+        @media (max-width: 768px) {
+            .toast {
+                min-width: 280px;
+                max-width: 90vw;
+            }
+        }
+
         /* removed empty .particle rule */
     </style>
 </head>
@@ -154,6 +238,11 @@
 
     <!-- Modal Container (populated by TypeScript) -->
     <div id="configModalContainer"></div>
+
+    <!-- Toast Container for instability notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container" style="z-index: 9999; margin-bottom: 80px;">
+        <!-- Toasts inserted dynamically by toast.ts -->
+    </div>
 
     <!-- Bootstrap Bundle JS (includes Popper.js) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"

@@ -11,6 +11,7 @@ import { computeDiagnostics, type Diagnostics } from '../core/simulation/diagnos
 import type { ForceField } from '../core/forces/forceInterfaces.js'
 import { createNaiveNeighborStrategy, activateNeighborStrategy, type NeighborListStrategy, createCellNeighborStrategy } from '../core/simulation/neighborList.js'
 import { configurePBC, wrapIntoBox } from '../core/pbc.js'
+import { StabilityMonitor, type StabilityResult } from '../core/simulation/stabilityMonitor.js'
 
 /**
  * Lightweight event emitter (internal). Kept minimal to avoid pulling in a dependency.
@@ -50,6 +51,8 @@ interface EngineEvents {
   stateReallocated: SimulationState
   /** Fired after position wrapping when one or more particles crossed a periodic boundary. */
   wrap: { wraps: WrapRecord[] }
+  /** Fired when numerical instability is detected (does NOT auto-pause). */
+  instability: StabilityResult
 }
 
 type WrapSurface = { axis: 'x' | 'y' | 'z'; sign: 1 | -1 }
@@ -95,6 +98,8 @@ export class SimulationEngine {
   private readonly diagnosticsEvery = 1
   /** Active neighbor list strategy (currently naive only). */
   private neighborStrategy: NeighborListStrategy
+  /** Stability monitor for detecting numerical instabilities. */
+  private readonly stabilityMonitor = new StabilityMonitor()
 
   /**
    * Create a new engine using the provided configuration. Particles are
@@ -190,6 +195,19 @@ export class SimulationEngine {
       if (this.stepCount % this.diagnosticsEvery === 0) {
         const d = computeDiagnostics(this.state, this.sim.getForces(), { cutoff: this.config.runtime.cutoff, kB: this.config.constants.kB })
         this.emitter.emit('diagnostics', d)
+
+        // Check for numerical instability after diagnostics computed
+        // Note: thermostat settings are not in EngineConfig, so we pass conservative defaults
+        const stabilityResult = this.stabilityMonitor.check(d, {
+          thermostatEnabled: false, // Conservative: assume no thermostat (will be passed from script.ts later if needed)
+          targetTemperature: 100, // Reasonable default
+          dt: this.config.runtime.dt
+        })
+
+        if (stabilityResult) {
+          this.emitter.emit('instability', stabilityResult)
+          // Do NOT auto-pause - user requirement #2
+        }
       }
     } catch (e) {
       this.pause()
@@ -363,6 +381,8 @@ export class SimulationEngine {
       }
       activateNeighborStrategy(this.neighborStrategy)
     }
+    // Reset stability monitor on significant config changes
+    this.stabilityMonitor.reset()
     this.emitter.emit('config', this.getConfig())
   }
 

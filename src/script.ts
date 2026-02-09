@@ -25,6 +25,7 @@ import { ConfigModal } from './control/modal.js'
 import { saveToLocal, loadEngineFromLocal } from './engine/persist.js'
 import { loadSettingsFromLocal, saveSettingsToLocal } from './control/persist.js'
 import { saveVisualDataToLocal, loadVisualDataFromLocal } from './visual/persist.js'
+import { showToast, clearToastFlags } from './ui/toast.js'
 import { Scene, Camera, PerspectiveCamera, WebGLRenderer, Color, Vector3, BufferAttribute } from 'three'
 // New SoA simulation core imports
 import { createState, seedInitialState, type SimulationState } from './core/simulation/state.js'
@@ -345,6 +346,8 @@ docReady(() => {
     engine.seed({ positions: simState.positions, velocities: simState.velocities, masses: simState.masses, charges: simState.charges })
   }
   simState = engine.getState()
+  // Clear toast flags on fresh start/reload so warnings can appear again
+  clearToastFlags()
   // Allocate initial display-space positions & populate once before exposing API (ensures tests see centered values).
   displayPositions = new Float32Array(simState.positions.length)
   displayPositions = updateDisplayPositions(simState, computeFrameOffset(simState, settings), displayPositions)
@@ -392,6 +395,44 @@ docReady(() => {
   }
   engine.on('wrap', handleWrapEvent)
   engine.on('diagnostics', (d) => { lastDiagnostics = d; if (window.__mdjs) window.__mdjs.diagnostics = d })
+
+  // Listen for numerical instability events and display toast notifications
+  engine.on('instability', (result) => {
+    const { level, message, diagnostics, suggestions } = result
+
+    // Format diagnostic details for display
+    const details = [
+      `Speed: ${diagnostics.maxSpeed.toFixed(2)}`,
+      `Force: ${diagnostics.maxForceMag.toFixed(2)}`,
+      `Energy: ${diagnostics.total.toFixed(2)}`,
+      `Temp: ${diagnostics.temperature.toFixed(1)}`
+    ].join(' | ')
+
+    // Map level to title and toast type
+    let title = ''
+    let toastType: 'critical' | 'severe' | 'warning' = 'warning'
+
+    if (level === 'critical') {
+      title = '🚨 Simulation Crashed'
+      toastType = 'critical'
+    } else if (level === 'severe') {
+      title = '⚠️ Severe Instability'
+      toastType = 'severe'
+    } else if (level === 'warning') {
+      title = '⚠️ Possible Instability'
+      toastType = 'warning'
+    }
+
+    showToast({
+      type: toastType,
+      title,
+      message,
+      details,
+      suggestions,
+      persistent: true
+    })
+  })
+
   // In headless test (puppeteer) environment requestAnimationFrame may be stubbed / throttled; fall back to interval.
   const useRaf = typeof requestAnimationFrame === 'function'
 
