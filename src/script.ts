@@ -43,6 +43,7 @@ import { computeCircularOrbitVelocity } from './core/simulation/orbitInit.js'
 import { makeClonePositionsList, minimumImagePoint } from './core/pbc.js'
 import { computeFrameOffset, updateDisplayPositions } from './core/frameOfReference.js'
 import { createWrapMarker, updateWrapMarkers, type WrapEventRecord } from './visual/wrapMarkers.js'
+import { radiusFromMass } from './util/vectorMath.js'
 import { SettingsObject } from './control/settingsSchema.js'
 
 // global variables
@@ -179,7 +180,7 @@ function renderPrimarySpheres(frameOffset: Vector3): void {
       minimumImageVec(tmpPos, tmpPos.x, tmpPos.y, tmpPos.z)
     }
     const m = masses[i] || 1
-    const radius = 0.08 * Math.cbrt(m / 10)
+    const radius = radiusFromMass(m)
     sphereMesh.update(i, tmpPos, radius, colors[i] || new Color(0xffffff))
   }
   sphereMesh.commit()
@@ -207,7 +208,7 @@ function renderCloneSpheres(frameOffset: Vector3): void {
       if (settings.if_use_periodic_boundary_condition) minimumImageVec(basePos, basePos.x, basePos.y, basePos.z)
       clonePos.set(basePos.x + offset.x, basePos.y + offset.y, basePos.z + offset.z)
       const m = masses[i] || 1
-      const radius = 0.08 * Math.cbrt(m / 10)
+      const radius = radiusFromMass(m)
       sphereCloneMesh.update(baseIndex + i, clonePos, radius, colors[i] || new Color(0xffffff))
     }
     baseIndex += N

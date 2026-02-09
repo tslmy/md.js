@@ -1,5 +1,6 @@
 import { SimulationState, index3 } from '../simulation/state.js'
 import { currentPBC } from '../pbc.js'
+import { magnitudeSquared } from '../../util/vectorMath.js'
 
 /**
  * A ForceField encapsulates one physical interaction rule (e.g. gravity, electrostatics, Lennard‑Jones).
@@ -66,7 +67,7 @@ let pairImpl: PairIterationImpl = function naive(state, cutoff, handler) {
         dy = wrap(dy, box.y, spanY)
         dz = wrap(dz, box.z, spanZ)
       }
-      const r2 = dx * dx + dy * dy + dz * dz
+      const r2 = magnitudeSquared(dx, dy, dz)
       if (r2 <= cutoff2) handler(i, j, dx, dy, dz, r2)
     }
   }

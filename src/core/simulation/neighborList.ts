@@ -4,6 +4,7 @@
 import type { SimulationState } from './state.js'
 import { setPairIterationImpl, PairIterationImpl } from '../forces/forceInterfaces.js'
 import { currentPBC, minimumImageDisplacement } from '../pbc.js'
+import { magnitudeSquared } from '../../util/vectorMath.js'
 
 export interface NeighborListStrategy {
   /** Human-readable identifier. */
@@ -33,7 +34,7 @@ export function createNaiveNeighborStrategy(): NeighborListStrategy {
           const dx = ix - positions[j3]
           const dy = iy - positions[j3 + 1]
           const dz = iz - positions[j3 + 2]
-          const r2 = dx * dx + dy * dy + dz * dz
+          const r2 = magnitudeSquared(dx, dy, dz)
           if (r2 <= cutoff2) handler(i, j, dx, dy, dz, r2)
         }
       }
@@ -167,7 +168,7 @@ function cellForEachPair(state: SimulationState, cutoff: number, handler: (i: nu
           dy = minimumImageDisplacement(dy, box.y)
           dz = minimumImageDisplacement(dz, box.z)
         }
-        const r2 = dx * dx + dy * dy + dz * dz
+        const r2 = magnitudeSquared(dx, dy, dz)
         if (r2 <= cutoff2) handler(a, b, dx, dy, dz, r2)
       }
     }
