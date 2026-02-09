@@ -1,6 +1,12 @@
 import { SimulationState, index3 } from '../simulation/state.js'
 import { ForceContext, ForceField, forEachPair } from './forceInterfaces.js'
 import { currentPBC } from '../pbc.js'
+import {
+  applyPairwiseForce,
+  computePairwisePotential,
+  makeUnsoftenedForceCoefficient,
+  makeUnsoftenedPotential
+} from './forceHelpers.js'
 
 /**
  * Simplified 3D Ewald summation for long‑range 1/r potentials (Coulomb & gravity).
@@ -155,55 +161,43 @@ export abstract class BaseEwaldForce implements ForceField {
 export class EwaldCoulomb extends BaseEwaldForce {
     readonly name = 'coulomb'
     constructor(private readonly K: number, ewald: EwaldParams) { super(ewald) }
-    fallbackApply(state: SimulationState, ctx: ForceContext): void {
-        const { charges, forces } = state
-        forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
-            if (r2 === 0) return
-            const r = Math.sqrt(r2)
-            const invR3 = 1 / (r2 * r)
-            const coeff = this.K * (charges[i] || 0) * (charges[j] || 0) * invR3
-            const fx = coeff * dx, fy = coeff * dy, fz = coeff * dz
-            const i3 = index3(i), j3 = index3(j)
-            forces[i3] += fx; forces[i3 + 1] += fy; forces[i3 + 2] += fz
-            forces[j3] -= fx; forces[j3 + 1] -= fy; forces[j3 + 2] -= fz
-        })
-    }
-    fallbackPotential(state: SimulationState, ctx: ForceContext): number {
-        const { charges } = state
-        let V = 0
-        forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
-            if (r2 === 0) return
-            V += this.K * (charges[i] || 0) * (charges[j] || 0) / Math.sqrt(r2)
-        })
-        return V
-    }
+  fallbackApply(state: SimulationState, ctx: ForceContext): void {
+    const { charges, forces } = state
+    const coeffFn = makeUnsoftenedForceCoefficient(this.K)
+    forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
+      applyPairwiseForce(forces, i, j, dx, dy, dz, r2, coeffFn, charges[i] || 0, charges[j] || 0)
+    })
+  }
+  fallbackPotential(state: SimulationState, ctx: ForceContext): number {
+    const { charges } = state
+    const potentialFn = makeUnsoftenedPotential(this.K)
+    let V = 0
+    forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
+      V += computePairwisePotential(r2, potentialFn, charges[i] || 0, charges[j] || 0)
+    })
+    return V
+  }
     protected getKernelParams(state: SimulationState): KernelParams { return { prefactor: this.K, chargesOrMasses: state.charges, attractive: false } }
 }
 export class EwaldGravity extends BaseEwaldForce {
     readonly name = 'gravity'
     constructor(private readonly G: number, ewald: EwaldParams) { super(ewald) }
-    fallbackApply(state: SimulationState, ctx: ForceContext): void {
-        const { masses, forces } = state
-        forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
-            if (r2 === 0) return
-            const r = Math.sqrt(r2)
-            const invR3 = 1 / (r2 * r)
-            const coeff = -this.G * (masses[i] || 1) * (masses[j] || 1) * invR3
-            const fx = coeff * dx, fy = coeff * dy, fz = coeff * dz
-            const i3 = index3(i), j3 = index3(j)
-            forces[i3] += fx; forces[i3 + 1] += fy; forces[i3 + 2] += fz
-            forces[j3] -= fx; forces[j3 + 1] -= fy; forces[j3 + 2] -= fz
-        })
-    }
-    fallbackPotential(state: SimulationState, ctx: ForceContext): number {
-        const { masses } = state
-        let V = 0
-        forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
-            if (r2 === 0) return
-            V += -this.G * (masses[i] || 1) * (masses[j] || 1) / Math.sqrt(r2)
-        })
-        return V
-    }
+  fallbackApply(state: SimulationState, ctx: ForceContext): void {
+    const { masses, forces } = state
+    const coeffFn = makeUnsoftenedForceCoefficient(-this.G)
+    forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
+      applyPairwiseForce(forces, i, j, dx, dy, dz, r2, coeffFn, masses[i] || 1, masses[j] || 1)
+    })
+  }
+  fallbackPotential(state: SimulationState, ctx: ForceContext): number {
+    const { masses } = state
+    const potentialFn = makeUnsoftenedPotential(-this.G)
+    let V = 0
+    forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
+      V += computePairwisePotential(r2, potentialFn, masses[i] || 1, masses[j] || 1)
+    })
+    return V
+  }
     protected getKernelParams(state: SimulationState): KernelParams { return { prefactor: -this.G, chargesOrMasses: state.masses, attractive: true } }
 }
 
