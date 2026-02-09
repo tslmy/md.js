@@ -12,6 +12,7 @@ import type { ForceField } from '../core/forces/forceInterfaces.js'
 import { createNaiveNeighborStrategy, activateNeighborStrategy, type NeighborListStrategy, createCellNeighborStrategy } from '../core/simulation/neighborList.js'
 import { configurePBC, wrapIntoBox } from '../core/pbc.js'
 import { StabilityMonitor, type StabilityResult } from '../core/simulation/stabilityMonitor.js'
+import { computeSofteningLength } from '../util/physics.js'
 
 /**
  * Lightweight event emitter (internal). Kept minimal to avoid pulling in a dependency.
@@ -138,12 +139,9 @@ export class SimulationEngine {
     if (this.config.forces.lennardJones) forces.push(new LennardJones({ epsilon: this.config.constants.epsilon, sigma: this.config.constants.sigma }))
     if (this.config.forces.gravity) {
       // Derive a softening length ~ 0.15 * average inter-particle spacing to tame singularity
-      const N = Math.max(1, this.config.world.particleCount)
-      const box = this.config.world.box
-      const volume = (2 * box.x) * (2 * box.y) * (2 * box.z)
-      const spacing = Math.cbrt(volume / N)
-      const softening = 0.15 * spacing
+      const softening = computeSofteningLength(this.config.world.particleCount, this.config.world.box, 0.15)
       if (this.config.runtime.pbc) {
+        const box = this.config.world.box
         const Lmin = 2 * Math.min(box.x, box.y, box.z)
         const alpha = this.config.runtime.ewaldAlpha ?? (5 / Lmin)
         const kMax = this.config.runtime.ewaldKMax ?? 3
@@ -154,12 +152,9 @@ export class SimulationEngine {
     }
     if (this.config.forces.coulomb) {
       // Use a slightly smaller softening for Coulomb (repulsion often prevents extreme overlap)
-      const N = Math.max(1, this.config.world.particleCount)
-      const box = this.config.world.box
-      const volume = (2 * box.x) * (2 * box.y) * (2 * box.z)
-      const spacing = Math.cbrt(volume / N)
-      const softening = 0.1 * spacing
+      const softening = computeSofteningLength(this.config.world.particleCount, this.config.world.box, 0.1)
       if (this.config.runtime.pbc) {
+        const box = this.config.world.box
         const Lmin = 2 * Math.min(box.x, box.y, box.z)
         const alpha = this.config.runtime.ewaldAlpha ?? (5 / Lmin)
         const kMax = this.config.runtime.ewaldKMax ?? 3
