@@ -30,11 +30,12 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf built/*",
+    "cov:badge": "node scripts/generate-coverage-badge.mjs",
     "cov:open": "open coverage/lcov-report/index.html || xdg-open coverage/lcov-report/index.html || true",
     "dev": "nodemon --watch src --ext ts,js --exec \"npm run build && npx serve -l 8000 .\"",
     "start": "npm run build && npx serve -l 8000 .",
     "test": "vitest run",
-    "test:cov": "vitest run --coverage",
+    "test:cov": "vitest run --coverage && npm run cov:badge && node scripts/update-readme-badge.mjs",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "watch": "tsc --watch"

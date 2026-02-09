@@ -5,6 +5,7 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/tslmy/md.js/main.svg)](https://results.pre-commit.ci/latest/github/tslmy/md.js/main)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/4b928847-32c8-456a-912d-f502d3e3c2c0/deploy-status)](https://app.netlify.com/sites/mdjs/deploys)
+![Coverage](https://img.shields.io/badge/coverage-62.36%25-yellow)
 
 A VR-ready [molecular dynamics](https://en.wikipedia.org/wiki/Molecular_dynamics) demo that you can [watch right away][dm].
 
@@ -100,14 +101,14 @@ A "control and settings" module sits under `src/control/`:
 
 A rendering module is located at `src/visual/`:
 
-* `coloringAndDataSheet.ts` - Seeds colors for particles and adds rows to the HUD/Data Sheet. You can toggle on/off the HUD by pressing the `tab` key.  
+* `coloringAndDataSheet.ts` - Seeds colors for particles and adds rows to the HUD/Data Sheet. You can toggle on/off the HUD by pressing the `tab` key.
   <img width="800" alt="image" src="https://github.com/user-attachments/assets/7b025de5-2902-4c55-ad51-b7cda8cc12b1" />
 * Several visual-aid features are available:
   * `wrapMarkers.ts` - When PBC is applied, the simulation is bound by a box. Any particle attempting to cross this box will be wrapped ("teleported") to the opposite face. To facilitate visual intuition, a transient ring marker will be drawn on the exit point and another on the entry point. The visual style is inspired by [the video game series, _Portal_](https://en.wikipedia.org/wiki/Portal_(series)).
     <img width="415" height="131" alt="image" src="https://github.com/user-attachments/assets/7c4fd7e5-621a-4dc4-aea4-ebffcc7a2400" />
-  * `trajectory.ts` - As particle moves in space, a trajectory traces its path. This file manages that.  
+  * `trajectory.ts` - As particle moves in space, a trajectory traces its path. This file manages that.
     <img width="700" alt="image" src="https://github.com/user-attachments/assets/eae89324-8adb-4a72-920f-78212d8ceca5" />
-  * `arrows.ts` - Two arrows stick out from each particle. One indicates the velocity, the other net force. This script handles that.  
+  * `arrows.ts` - Two arrows stick out from each particle. One indicates the velocity, the other net force. This script handles that.
     <img width="380" alt="image" src="https://github.com/user-attachments/assets/d7fdfbc8-27df-4dda-b308-2b4e865ce118" />
 * There are several scripts that deals with how THREE.js draws things:
   * `InstancedSpheres.ts` – Batched instanced sphere renderer (primary + PBC clone copies for visualization).
@@ -179,9 +180,13 @@ npm run build       # tsc compile -> built/
 npm run watch       # incremental rebuild
 npm run typecheck   # strict type checking (no emit)
 npm test            # run vitest suite (headless + browser harness)
-npm run test:cov    # full test suite + v8 coverage report
+npm run test:cov    # full test suite + v8 coverage report + auto-update badge
+npm run cov:badge   # generate coverage badge JSON (standalone)
+npm run cov:open    # open coverage HTML report in browser
 npm run clean       # remove build output
 ```
+
+**Coverage Badge**: The coverage badge in the README header auto-updates when you run `npm run test:cov`. It generates a JSON file in `.badges/coverage.json` (git-ignored) and updates the badge URL in this README to reflect current coverage percentages.
 
 ## Configuration & Tuning
 

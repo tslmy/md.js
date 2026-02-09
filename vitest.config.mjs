@@ -9,11 +9,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reportsDirectory: 'coverage',
-  reporter: ['text', 'lcov'],
-  lines: 70,
-  statements: 70,
-  functions: 70,
-  branches: 50
+      reporter: ['text', 'lcov', 'json-summary'],
+      lines: 70,
+      statements: 70,
+      functions: 70,
+      branches: 50
     }
   }
 })
