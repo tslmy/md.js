@@ -30,12 +30,25 @@ export function wrapPoint<T extends { x: number; y: number; z: number }>(p: T, b
     return p
 }
 
-/** Apply minimum-image mapping to a displacement vector components (not absolute position). */
-export function minimumImageVec<T extends { x: number; y: number; z: number }>(d: T, box: HalfBox): T {
-    d.x = minimumImageDisplacement(d.x, box.x)
-    d.y = minimumImageDisplacement(d.y, box.y)
-    d.z = minimumImageDisplacement(d.z, box.z)
-    return d
+/**
+ * Apply minimum‑image convention to a 3D vector in place (component-wise, single adjustment per axis).
+ *
+ * Use cases:
+ *  - Displacement vectors (dx, dy, dz) between particles in PBC
+ *  - Display-space positions for visualization (assumes |coord| ≲ few*L)
+ *
+ * Note: For absolute particle positions that may have drifted far, use {@link wrapPoint} instead
+ * (wrapPoint handles multiple ±2L translations, minimumImageVec3 assumes |coord| is near box).
+ *
+ * @param v Vector object with x, y, z properties (mutated in place)
+ * @param box Half-box extents
+ * @returns The same vector object (for chaining)
+ */
+export function minimumImageVec3<T extends { x: number; y: number; z: number }>(v: T, box: HalfBox): T {
+    v.x = minimumImageDisplacement(v.x, box.x)
+    v.y = minimumImageDisplacement(v.y, box.y)
+    v.z = minimumImageDisplacement(v.z, box.z)
+    return v
 }
 
 /**
@@ -74,25 +87,6 @@ export function makeClonePositionsList(x: number, y: number, z: number): Array<{
     ]
 }
 
-/** Convenience: standalone minimum image for a single coordinate. */
-export function minimumImageCoord(v: number, half: number): number { return minimumImageDisplacement(v, half) }
-
-/**
- * Apply minimum‑image mapping to an absolute position (component-wise, single adjustment per axis).
- * Differs from {@link wrapPoint}: wrapPoint may apply multiple ±2L translations if coordinate drifted far;
- * this helper assumes |coord| ≲ few*L and is meant for display-space adjustment / reference frame math.
- */
-export function minimumImagePoint<T extends { x: number; y: number; z: number }>(p: T, box: HalfBox): T {
-    p.x = minimumImageCoord(p.x, box.x)
-    p.y = minimumImageCoord(p.y, box.y)
-    p.z = minimumImageCoord(p.z, box.z)
-    return p
-}
-
-/** Apply minimum-image convention to raw displacement components in place and return tuple. */
-export function minimumImageVector(dxdyz: { dx: number; dy: number; dz: number }, box: HalfBox): { dx: number; dy: number; dz: number } {
-    dxdyz.dx = minimumImageDisplacement(dxdyz.dx, box.x)
-    dxdyz.dy = minimumImageDisplacement(dxdyz.dy, box.y)
-    dxdyz.dz = minimumImageDisplacement(dxdyz.dz, box.z)
-    return dxdyz
-}
+// Backward-compatibility alias (deprecated - use minimumImageVec3 instead)
+/** @deprecated Use {@link minimumImageVec3} instead */
+export const minimumImagePoint = minimumImageVec3
