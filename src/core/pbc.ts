@@ -58,7 +58,7 @@ export function minimumImageVec<T extends { x: number; y: number; z: number }>(d
  * Used purely for visualization (ghost copies); physics uses minimum‑image without instantiating clones.
  * NOTE: Order is arbitrary but stable; consumers relying on specific ordering should document why.
  */
-export function makeClonePositionsList(x: number, y: number, z: number) {
+export function makeClonePositionsList(x: number, y: number, z: number): Array<{ x: number; y: number; z: number }> {
     return [
         { x: 2 * x, y: 0, z: 0 },
         { x: -2 * x, y: 0, z: 0 },

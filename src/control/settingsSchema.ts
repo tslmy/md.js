@@ -127,6 +127,6 @@ export function buildSettings(): SettingsObject {
     return obj as SettingsObject
 }
 
-export function getAutoEngineBindings() {
+export function getAutoEngineBindings(): Array<{ key: string; path: string }> {
     return SETTINGS_SCHEMA.filter(d => d.enginePath && d.auto).map(d => ({ key: d.key, path: d.enginePath! }))
 }
