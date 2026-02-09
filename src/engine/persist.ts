@@ -8,6 +8,7 @@
 import type { EngineConfig } from './config.js'
 import { SimulationEngine } from './SimulationEngine.js'
 import { lsGet, lsRemove, lsSet } from '../util/storage.js'
+import { toFloat32Array } from '../util/arrays.js'
 const KEY = 'mdJsEngineSnapshot'
 
 /** Serialized representation of engine core state. */
@@ -64,10 +65,10 @@ export function hydrate(snap: EngineSnapshot): SimulationEngine {
   if (snap.version !== 1) throw new Error('Unsupported snapshot version ' + String((snap as { version: number }).version))
   const eng = new SimulationEngine(snap.config)
   eng.seed({
-    positions: Float32Array.from(snap.positions),
-    velocities: Float32Array.from(snap.velocities),
-    masses: Float32Array.from(snap.masses),
-    charges: Float32Array.from(snap.charges)
+    positions: toFloat32Array(snap.positions),
+    velocities: toFloat32Array(snap.velocities),
+    masses: toFloat32Array(snap.masses),
+    charges: toFloat32Array(snap.charges)
   })
   // Copy escaped flags directly (engine getState returns live reference)
   const st = eng.getState()

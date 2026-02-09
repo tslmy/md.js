@@ -1,4 +1,5 @@
 import { SimulationState, index3 } from './state.js'
+import { ensureFloat32Array } from '../../util/arrays.js'
 
 /**
  * Integrators advance the simulation state in time using current forces.
@@ -60,7 +61,7 @@ export const VelocityVerlet: Integrator = {
     const { N, positions, velocities, forces, masses } = state
     const dt2 = dt * dt
     const needed = N * 3
-    if (!vvScratch || vvScratch.length !== needed) vvScratch = new Float32Array(needed)
+    if (!vvScratch || vvScratch.length !== needed) vvScratch = ensureFloat32Array(needed)
     const a0 = vvScratch
     // 1. Use current forces to advance positions and half-step velocities
     for (let i = 0; i < N; i++) {

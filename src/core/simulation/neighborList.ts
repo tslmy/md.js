@@ -5,6 +5,7 @@ import type { SimulationState } from './state.js'
 import { setPairIterationImpl, PairIterationImpl } from '../forces/forceInterfaces.js'
 import { minimumImageDisplacement } from '../pbc.js'
 import { magnitudeSquared } from '../../util/vectorMath.js'
+import { int32Filled } from '../../util/arrays.js'
 
 export interface NeighborListStrategy {
   /** Human-readable identifier. */
@@ -104,7 +105,7 @@ function createCellList(state: SimulationState, cutoff: number): CellListData {
   const L = cutoff * 2
   const n = Math.max(1, Math.floor((2 * L) / cellSize))
   const total = n * n * n
-  return { cellSize, dims: [n, n, n], heads: new Int32Array(total).fill(-1), next: new Int32Array(state.N).fill(-1) }
+  return { cellSize, dims: [n, n, n], heads: int32Filled(total, -1), next: int32Filled(state.N, -1) }
 }
 
 /** Rebuild particle -> cell linked lists. */
@@ -244,14 +245,14 @@ export function createCellNeighborStrategy(opts: CellStrategyOptions = {}): Neig
         const nZ = Math.max(1, Math.floor(widthZ / cutoff))
         // Use uniform cell size = cutoff for now (non-uniform might complicate neighbor iteration logic).
         const total = nX * nY * nZ
-        data = { cellSize: cutoff, dims: [nX, nY, nZ], heads: new Int32Array(total).fill(-1), next: new Int32Array(state.N).fill(-1) }
+        data = { cellSize: cutoff, dims: [nX, nY, nZ], heads: int32Filled(total, -1), next: int32Filled(state.N, -1) }
       } else {
         data = createCellList(state, cutoff)
       }
       lastN = state.N; lastCutoff = cutoff; lastBoxKey = boxKey
     } else if (data.next.length !== state.N) {
       // Particle count grew/shrank – reallocate next pointer array (heads size unchanged)
-      data.next = new Int32Array(state.N).fill(-1)
+      data.next = int32Filled(state.N, -1)
       lastN = state.N
     }
     rebuildCellList(state, cutoff, data)

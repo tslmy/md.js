@@ -1,6 +1,7 @@
 import { SimulationState, zeroForces } from './state.js'
 import { Integrator } from './integrators.js'
 import { ForceField, ForceContext, PBCContext } from '../forces/forceInterfaces.js'
+import { ensureFloat32Array } from '../../util/arrays.js'
 
 /**
  * Configuration subset needed by the low-level Simulation core.
@@ -39,10 +40,10 @@ export class Simulation {
 
   private ensureBuffers(): void {
     if (!this.perForce || this.perForce.length !== this.forces.length) {
-      this.perForce = this.forces.map(() => new Float32Array(this.state.forces.length))
+      this.perForce = this.forces.map(() => ensureFloat32Array(this.state.forces.length))
     }
     if (!this.baseForces || this.baseForces.length !== this.state.forces.length) {
-      this.baseForces = new Float32Array(this.state.forces.length)
+      this.baseForces = ensureFloat32Array(this.state.forces.length)
     }
   }
 

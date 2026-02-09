@@ -44,6 +44,8 @@ export interface SimulationState {
   escaped: Uint8Array // 0|1 flags
 }
 
+import { ensureFloat32Array, ensureUint8Array } from '../../util/arrays.js'
+
 /**
  * Allocate a fresh {@link SimulationState} (or partially seed from an existing
  * snapshot). Provided `seedData` buffers must already be the correct length;
@@ -56,17 +58,15 @@ export interface SimulationState {
 export function createState(params: SimulationParams, seedData?: Partial<SimulationState>): SimulationState {
   const { particleCount } = params
   const N = particleCount
-  const f32 = (n: number, existing?: Float32Array) => existing && existing.length === n ? existing : new Float32Array(n)
-  const u8 = (n: number, existing?: Uint8Array) => existing && existing.length === n ? existing : new Uint8Array(n)
   return {
     N,
     time: seedData?.time ?? 0,
-    positions: f32(3 * N, seedData?.positions),
-    velocities: f32(3 * N, seedData?.velocities),
-    forces: f32(3 * N, seedData?.forces),
-    masses: f32(N, seedData?.masses),
-    charges: f32(N, seedData?.charges),
-    escaped: u8(N, seedData?.escaped)
+    positions: ensureFloat32Array(3 * N, seedData?.positions),
+    velocities: ensureFloat32Array(3 * N, seedData?.velocities),
+    forces: ensureFloat32Array(3 * N, seedData?.forces),
+    masses: ensureFloat32Array(N, seedData?.masses),
+    charges: ensureFloat32Array(N, seedData?.charges),
+    escaped: ensureUint8Array(N, seedData?.escaped)
   }
 }
 
