@@ -11,6 +11,7 @@ import { SimulationEngine } from './SimulationEngine.js'
 import { type EngineConfig } from './config.js'
 import { settings } from '../control/settings.js'
 import { getAutoEngineBindings, SettingsObject } from '../control/settingsSchema.js'
+import { assignPath } from '../util/objectPath.js'
 
 // Guard to avoid recursive push->engine->config event->pull->property set->push loops.
 let suppressAutoPush = false
@@ -33,19 +34,6 @@ function pick(cfg: EngineConfig, path: string): unknown {
     }
     return cur
 }
-// Utility: assign value creating intermediate objects
-function assignPath(root: Record<string, unknown>, path: string, value: unknown): void {
-    const parts = path.split('.')
-    let obj: Record<string, unknown> = root
-    for (let i = 0; i < parts.length - 1; i++) {
-        const p = parts[i]
-        let next = obj[p]
-        if (next == null || typeof next !== 'object') { next = {}; obj[p] = next }
-        obj = next as Record<string, unknown>
-    }
-    obj[parts[parts.length - 1]] = value
-}
-
 
 /**
  * Build a shallow EngineConfig patch from current settings object and apply via engine.updateConfig.

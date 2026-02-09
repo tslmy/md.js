@@ -126,26 +126,14 @@ export function validateEngineConfig(cfg: EngineConfig): void {
 // eliminating the bespoke mapping above. This reduces duplication and keeps the
 // engine config in lock‑step with schema evolutions (single source of truth).
 import { getAutoEngineBindings, type SettingsObject } from '../control/settingsSchema.js'
+import { assignPath } from '../util/objectPath.js'
 
-// Minimal path assignment helper (duplicated locally to avoid cross‑module churn)
 type MutableEngineConfig = {
   world: Partial<EngineWorldConfig & { box: Partial<EngineWorldConfig['box']> }>
   runtime: Partial<EngineRuntimeConfig>
   forces: Partial<EngineForcesConfig>
   constants: Partial<EnginePhysicalConstants>
   neighbor?: Partial<EngineNeighborConfig>
-}
-
-function assignPath(root: Record<string, unknown>, path: string, value: unknown): void {
-  const parts = path.split('.')
-  let obj: Record<string, unknown> = root
-  for (let i = 0; i < parts.length - 1; i++) {
-    const p = parts[i]
-    let next = obj[p]
-    if (next == null || typeof next !== 'object') { next = {}; obj[p] = next }
-    obj = next as Record<string, unknown>
-  }
-  obj[parts[parts.length - 1]] = value
 }
 
 /**
