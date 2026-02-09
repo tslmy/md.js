@@ -1,11 +1,11 @@
 import { Mesh, MeshBasicMaterial, RingGeometry, Scene, Vector3 } from 'three'
 import { settings } from '../control/settings.js'
 import { minimumImagePoint } from '../core/pbc.js'
+import type { WrapSurface, WrapCrossing, WrapRecord } from '../core/pbc/wrapping.js'
 
-// Types representing boundary wrap surfaces and crossing events.
-export type WrapSurface = { axis: 'x' | 'y' | 'z'; sign: 1 | -1 }
-export type WrapCrossing = { axis: 'x' | 'y' | 'z'; sign: 1 | -1; exit: { x: number; y: number; z: number }; entry: { x: number; y: number; z: number } }
-export type WrapEventRecord = { i: number; dx: number; dy: number; dz: number; surfaces: WrapSurface[]; rawX: number; rawY: number; rawZ: number; crossings: WrapCrossing[] }
+// Re-export for backward compatibility
+export type { WrapSurface, WrapCrossing }
+export type WrapEventRecord = WrapRecord
 export interface WrapMarker { mesh: Mesh; birth: number }
 
 const wrapMarkers: WrapMarker[] = []

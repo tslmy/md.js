@@ -7,6 +7,7 @@ import { Coulomb } from '../src/core/forces/coulomb'
 import { LennardJones } from '../src/core/forces/lennardJones'
 
 const params = { particleCount: 2, box: { x: 5, y: 5, z: 5 }, dt: 0.01, cutoff: 10 }
+const noPbc = { enabled: false, box: { x: 0, y: 0, z: 0 } }
 
 describe('forces', () => {
   it('gravity + coulomb symmetry & non-zero', () => {
@@ -16,7 +17,7 @@ describe('forces', () => {
     state.charges.set([+1, -1])
     const grav = new Gravity({ G: 1 })
     const coul = new Coulomb({ K: 1 })
-    const sim = new Simulation(state, EulerIntegrator, [grav, coul], { dt: params.dt, cutoff: params.cutoff })
+    const sim = new Simulation(state, EulerIntegrator, [grav, coul], { dt: params.dt, cutoff: params.cutoff, pbc: noPbc })
     sim.step()
     const fx0 = state.forces[0]
     const fx1 = state.forces[3]
@@ -28,7 +29,7 @@ describe('forces', () => {
     state.positions.set([0, 0, 0, 1.5, 0, 0])
     state.masses.set([1, 1])
     const lj = new LennardJones({ epsilon: 1, sigma: 1 })
-    const sim = new Simulation(state, EulerIntegrator, [lj], { dt: params.dt, cutoff: params.cutoff })
+    const sim = new Simulation(state, EulerIntegrator, [lj], { dt: params.dt, cutoff: params.cutoff, pbc: noPbc })
     sim.step()
     const fx0 = state.forces[0]; const fx1 = state.forces[3]
     expect(fx0).not.toBe(0)

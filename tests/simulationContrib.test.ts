@@ -6,6 +6,8 @@ import { LennardJones } from '../built/core/forces/lennardJones.js'
 import { Gravity } from '../built/core/forces/gravity.js'
 import { Coulomb } from '../built/core/forces/coulomb.js'
 
+const noPbc = { enabled: false, box: { x: 0, y: 0, z: 0 } }
+
 describe('Simulation per-force contributions', () => {
   it('provides decomposed force arrays summing to net force', () => {
     const state = createState({ particleCount: 3, box: { x: 5, y: 5, z: 5 }, dt: 0.01, cutoff: 10 })
@@ -21,7 +23,7 @@ describe('Simulation per-force contributions', () => {
       new Gravity({ G: 0.2 }),
       new Coulomb({ K: 0.3 })
     ]
-    const sim = new Simulation(state, VelocityVerlet, forces, { dt: 0.01, cutoff: 10 })
+    const sim = new Simulation(state, VelocityVerlet, forces, { dt: 0.01, cutoff: 10, pbc: noPbc })
     sim.step()
     const net = state.forces.slice()
     const contrib = sim.getPerForceContributions()
@@ -51,8 +53,8 @@ describe('Simulation per-force contributions', () => {
       return s
     }
     const lj = new LennardJones({ epsilon: 1, sigma: 1 })
-    const euler = new Simulation(cloneState(), EulerIntegrator, [lj], { dt: 0.01, cutoff: 4.5 })
-    const verlet = new Simulation(cloneState(), VelocityVerlet, [lj], { dt: 0.01, cutoff: 4.5 })
+    const euler = new Simulation(cloneState(), EulerIntegrator, [lj], { dt: 0.01, cutoff: 4.5, pbc: noPbc })
+    const verlet = new Simulation(cloneState(), VelocityVerlet, [lj], { dt: 0.01, cutoff: 4.5, pbc: noPbc })
 
     function kinetic(st: ReturnType<typeof createState>) {
       let ke = 0; for (let i = 0; i < N; i++) { const i3 = 3 * i; const vx = st.velocities[i3]; const vy = st.velocities[i3+1]; const vz = st.velocities[i3+2]; ke += 0.5 * st.masses[i]*(vx*vx+vy*vy+vz*vz) } return ke

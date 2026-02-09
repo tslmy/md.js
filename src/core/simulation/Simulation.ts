@@ -1,6 +1,6 @@
 import { SimulationState, zeroForces } from './state.js'
 import { Integrator } from './integrators.js'
-import { ForceField, ForceContext } from '../forces/forceInterfaces.js'
+import { ForceField, ForceContext, PBCContext } from '../forces/forceInterfaces.js'
 
 /**
  * Configuration subset needed by the low-level Simulation core.
@@ -12,6 +12,8 @@ export interface SimulationConfig {
   dt: number
   /** Pairwise force cutoff distance. */
   cutoff: number
+  /** Periodic boundary condition parameters. */
+  pbc: PBCContext
 }
 
 /**
@@ -50,12 +52,12 @@ export class Simulation {
    * but enables UI inspection / debugging of individual contributions.
    */
   private computeForcesDetailed(): void {
-    const { cutoff } = this.config
+    const { cutoff, pbc } = this.config
     this.ensureBuffers()
     zeroForces(this.state)
     // Clear per-force arrays
     for (const arr of this.perForce) arr.fill(0)
-    const ctx: ForceContext = { cutoff }
+    const ctx: ForceContext = { cutoff, pbc }
     const { forces } = this.state
     for (let k = 0; k < this.forces.length; k++) {
       // Snapshot current accumulated forces

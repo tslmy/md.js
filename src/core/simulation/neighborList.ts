@@ -3,7 +3,7 @@
  */
 import type { SimulationState } from './state.js'
 import { setPairIterationImpl, PairIterationImpl } from '../forces/forceInterfaces.js'
-import { currentPBC, minimumImageDisplacement } from '../pbc.js'
+import { minimumImageDisplacement } from '../pbc.js'
 import { magnitudeSquared } from '../../util/vectorMath.js'
 
 export interface NeighborListStrategy {
@@ -22,7 +22,8 @@ export function createNaiveNeighborStrategy(): NeighborListStrategy {
   return {
     name: 'naive',
     rebuild() {/* noop */ },
-    forEachPair: (state, cutoff, handler) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    forEachPair: (state, cutoff, handler, _pbc) => {
       // Use temporary override-free logic replicating previous naive implementation
       const { N, positions } = state
       const cutoff2 = cutoff * cutoff
@@ -145,12 +146,12 @@ function rebuildCellList(state: SimulationState, cutoff: number, data: CellListD
  * Because cell edge >= cutoff, either Cp == Cq or Cp and Cq share a face/edge/corner => Cq in Moore neighborhood of Cp.
  * Thus the (Cp neighborhood) scan will encounter q when processing Cp.
  */
-function cellForEachPair(state: SimulationState, cutoff: number, handler: (i: number, j: number, dx: number, dy: number, dz: number, r2: number) => void, data: CellListData): void {
+function cellForEachPair(state: SimulationState, cutoff: number, handler: (i: number, j: number, dx: number, dy: number, dz: number, r2: number) => void, pbc: import('../forces/forceInterfaces.js').PBCContext, data: CellListData): void {
   const cutoff2 = cutoff * cutoff
   const { positions } = state
   const { heads, next, dims } = data
   const [nx, ny, nz] = dims
-  const { enabled: pbcEnabled, box } = currentPBC()
+  const { enabled: pbcEnabled, box } = pbc
   const usePbc = pbcEnabled && box.x > 0 && box.y > 0 && box.z > 0
   const emitPairsForCells = (baseIdx: number, neighborIdx: number) => {
     for (let a = heads[baseIdx]; a !== -1; a = next[a]) {
@@ -258,7 +259,7 @@ export function createCellNeighborStrategy(opts: CellStrategyOptions = {}): Neig
   return {
     name: 'cell',
     rebuild(state, cutoff) { ensure(state, cutoff) },
-    forEachPair: (state, cutoff, handler) => { ensure(state, cutoff); if (data) cellForEachPair(state, cutoff, handler, data) },
+    forEachPair: (state, cutoff, handler, pbc) => { ensure(state, cutoff); if (data) cellForEachPair(state, cutoff, handler, pbc, data) },
     rebuildEveryStep: true
   }
 }

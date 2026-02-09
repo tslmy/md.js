@@ -36,7 +36,7 @@ export class Gravity implements ForceField {
     const coeffFn = makeSoftenedForceCoefficient(-G, softening)
     forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
       applyPairwiseForce(forces, i, j, dx, dy, dz, r2, coeffFn, masses[i] || 1, masses[j] || 1)
-    })
+    }, ctx.pbc)
   }
   potential(state: SimulationState, ctx: ForceContext): number {
     const { G, softening = 0 } = this.params
@@ -45,7 +45,7 @@ export class Gravity implements ForceField {
     let V = 0
     forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
       V += computePairwisePotential(r2, potentialFn, masses[i] || 1, masses[j] || 1)
-    })
+    }, ctx.pbc)
     return V
   }
 }

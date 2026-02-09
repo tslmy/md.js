@@ -1,5 +1,5 @@
 import { SimulationState, index3 } from '../simulation/state.js'
-import { currentPBC } from '../pbc.js'
+import type { HalfBox } from '../pbc.js'
 import { magnitudeSquared } from '../../util/vectorMath.js'
 
 /**
@@ -27,9 +27,20 @@ export interface ForceField {
   potential?(state: SimulationState, ctx: ForceContext): number
 }
 
+/**
+ * Periodic boundary condition context.
+ * Passed explicitly to avoid global mutable state.
+ */
+export interface PBCContext {
+  enabled: boolean
+  box: HalfBox
+}
+
 export interface ForceContext {
   /** Maximum interaction distance (optimization to skip weak far pairs). */
   cutoff: number
+  /** Periodic boundary condition parameters. */
+  pbc: PBCContext
   /** Optional feature flags to gate specialized logic (reserved for future extensions). */
   flags?: Record<string, boolean>
   /** Optional constants bag for experimental force tuning without changing signatures. */
@@ -42,12 +53,12 @@ export type PairHandler = (i: number, j: number, dx: number, dy: number, dz: num
  * Pair iteration implementation signature.
  * Replaces direct O(N^2) loops so we can later introduce spatial partition acceleration structures.
  */
-export type PairIterationImpl = (state: SimulationState, cutoff: number, handler: PairHandler) => void
+export type PairIterationImpl = (state: SimulationState, cutoff: number, handler: PairHandler, pbc: PBCContext) => void
 
-let pairImpl: PairIterationImpl = function naive(state, cutoff, handler) {
+let pairImpl: PairIterationImpl = function naive(state, cutoff, handler, pbc) {
   const { N, positions } = state
   const cutoff2 = cutoff * cutoff
-  const { enabled, box } = currentPBC()
+  const { enabled, box } = pbc
   const spanX = 2 * box.x, spanY = 2 * box.y, spanZ = 2 * box.z
   const wrap = (d: number, half: number, span: number) => {
     if (d > half) return d - span
@@ -77,4 +88,6 @@ let pairImpl: PairIterationImpl = function naive(state, cutoff, handler) {
 export function setPairIterationImpl(fn: PairIterationImpl): void { pairImpl = fn }
 
 /** Execute the current pair iteration implementation. */
-export function forEachPair(state: SimulationState, cutoff: number, handler: PairHandler): void { pairImpl(state, cutoff, handler) }
+export function forEachPair(state: SimulationState, cutoff: number, handler: PairHandler, pbc: PBCContext): void {
+  pairImpl(state, cutoff, handler, pbc)
+}

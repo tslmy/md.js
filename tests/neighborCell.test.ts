@@ -4,6 +4,8 @@ import { buildEngineConfig } from '../built/engine/config.js'
 import { settings } from '../built/control/settings.js'
 import { forEachPair, setPairIterationImpl } from '../built/core/forces/forceInterfaces.js'
 
+const noPbc = { enabled: false, box: { x: 0, y: 0, z: 0 } }
+
 describe('neighbor cell strategy', () => {
   it('cell vs naive pair counts and runtime switch', () => {
     const cfg = buildEngineConfig(settings)
@@ -22,7 +24,7 @@ describe('neighbor cell strategy', () => {
       idx++
     }
     let cellPairs = 0
-    forEachPair(st, cfg.runtime.cutoff, () => { cellPairs++ })
+    forEachPair(st, cfg.runtime.cutoff, () => { cellPairs++ }, noPbc)
     setPairIterationImpl((state, cutoff, handler) => {
       const { positions, N } = state
       const cutoff2 = cutoff * cutoff
@@ -40,7 +42,7 @@ describe('neighbor cell strategy', () => {
       }
     })
     let naivePairs = 0
-    forEachPair(st, cfg.runtime.cutoff, () => { naivePairs++ })
+    forEachPair(st, cfg.runtime.cutoff, () => { naivePairs++ }, noPbc)
     expect(cellPairs).toBe(naivePairs)
     engine.updateConfig({ neighbor: { strategy: 'naive' } })
     engine.step()

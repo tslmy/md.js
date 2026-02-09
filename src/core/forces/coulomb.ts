@@ -25,7 +25,7 @@ export class Coulomb implements ForceField {
     const coeffFn = makeSoftenedForceCoefficient(K, softening)
     forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
       applyPairwiseForce(forces, i, j, dx, dy, dz, r2, coeffFn, charges[i] || 0, charges[j] || 0)
-    })
+    }, ctx.pbc)
   }
   potential(state: SimulationState, ctx: ForceContext): number {
     const { K, softening = 0 } = this.params
@@ -34,7 +34,7 @@ export class Coulomb implements ForceField {
     let V = 0
     forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
       V += computePairwisePotential(r2, potentialFn, charges[i] || 0, charges[j] || 0)
-    })
+    }, ctx.pbc)
     return V
   }
 }

@@ -4,6 +4,8 @@ import { buildEngineConfig } from '../built/engine/config.js'
 import { settings } from '../built/control/settings.js'
 import { forEachPair } from '../built/core/forces/forceInterfaces.js'
 
+const noPbc = { enabled: false, box: { x: 0, y: 0, z: 0 } }
+
 describe('cell neighbor strategy box resize', () => {
   it('rebuilds grid when world box dimensions change', () => {
     const cfg = buildEngineConfig(settings)
@@ -24,12 +26,12 @@ describe('cell neighbor strategy box resize', () => {
     // Step once to build initial neighbor structure.
     engine.step()
     let initialPairs = 0
-    forEachPair(st, cfg.runtime.cutoff, () => { initialPairs++ })
+    forEachPair(st, cfg.runtime.cutoff, () => { initialPairs++ }, noPbc)
     // Enlarge box in X so particles cluster in a smaller relative region; pair count should stay same but rebuild path exercised.
     engine.updateConfig({ world: { ...cfg.world, box: { x: cfg.world.box.x * 2, y: cfg.world.box.y, z: cfg.world.box.z }, particleCount: cfg.world.particleCount } })
     engine.step()
     let afterPairs = 0
-    forEachPair(st, cfg.runtime.cutoff, () => { afterPairs++ })
+    forEachPair(st, cfg.runtime.cutoff, () => { afterPairs++ }, noPbc)
     expect(afterPairs).toBe(initialPairs)
   })
 })

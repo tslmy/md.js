@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { createState } from '../src/core/simulation/state'
 import { forEachPair } from '../src/core/forces/forceInterfaces'
 
+const noPbc = { enabled: false, box: { x: 0, y: 0, z: 0 } }
+
 function collectPairs(state: ReturnType<typeof createState>, cutoff: number) {
   const pairs: Array<{ i: number; j: number }> = []
-  forEachPair(state, cutoff, (i, j) => { pairs.push({ i, j }) })
+  forEachPair(state, cutoff, (i, j) => { pairs.push({ i, j }) }, noPbc)
   return pairs
 }
 
@@ -17,7 +19,7 @@ describe('pair enumeration', () => {
       state.positions[i3] = i
     }
     const allPairs: Array<{ i: number; j: number }> = []
-    forEachPair(state, 100, (i, j) => { allPairs.push({ i, j }) })
+    forEachPair(state, 100, (i, j) => { allPairs.push({ i, j }) }, noPbc)
     expect(allPairs.length).toBe(N * (N - 1) / 2)
     expect(allPairs.every(p => p.i < p.j)).toBe(true)
     const keys = new Set(allPairs.map(p => `${p.i}-${p.j}`))

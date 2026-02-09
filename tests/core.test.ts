@@ -6,6 +6,8 @@ import { LennardJones } from '../built/core/forces/lennardJones.js'
 
 function approx(a: number, b: number, eps = 1e-6) { return Math.abs(a - b) < eps }
 
+const noPbc = { enabled: false, box: { x: 0, y: 0, z: 0 } }
+
 describe('core scaffold', () => {
   it('applies LJ force and advances positions', () => {
     const params = { particleCount: 2, box: { x: 5, y: 5, z: 5 }, dt: 0.01, cutoff: 10 }
@@ -23,7 +25,7 @@ describe('core scaffold', () => {
     state.charges[1] = 0
 
     const lj = new LennardJones({ epsilon: 1, sigma })
-    const sim = new Simulation(state, EulerIntegrator, [lj], { dt: params.dt, cutoff: params.cutoff })
+    const sim = new Simulation(state, EulerIntegrator, [lj], { dt: params.dt, cutoff: params.cutoff, pbc: noPbc })
     sim.step()
     const fx0 = state.forces[0]
     const fx1 = state.forces[3]

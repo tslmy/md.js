@@ -11,6 +11,8 @@ function potentialLJ(epsilon: number, sigma: number, r2: number) {
   return 4 * epsilon * (sr12 - sr6)
 }
 
+const noPbc = { enabled: false, box: { x: 0, y: 0, z: 0 } }
+
 describe('energy drift', () => {
   it('keeps total energy within 5% over simulation', () => {
     const N = 8
@@ -30,7 +32,7 @@ describe('energy drift', () => {
       state.velocities[i3 + 2] = (rand() * 2 - 1) * 0.2
       state.masses[i] = 1
     }
-    const sim = new Simulation(state, VelocityVerlet, [new LennardJones({ epsilon, sigma })], { dt, cutoff: 4.5 })
+    const sim = new Simulation(state, VelocityVerlet, [new LennardJones({ epsilon, sigma })], { dt, cutoff: 4.5, pbc: noPbc })
 
     function kinetic() {
       let ke = 0

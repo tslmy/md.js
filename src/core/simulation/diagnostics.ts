@@ -1,5 +1,5 @@
 import { SimulationState } from './state.js'
-import { ForceField } from '../forces/forceInterfaces.js'
+import { ForceField, PBCContext } from '../forces/forceInterfaces.js'
 
 /**
  * Snapshot of high‑level physical metrics for a simulation state.
@@ -35,7 +35,7 @@ export interface Diagnostics {
 }
 
 /** Parameters needed for diagnostics derivations. */
-interface DiagnosticsParams { cutoff: number; kB: number }
+interface DiagnosticsParams { cutoff: number; kB: number; pbc: PBCContext }
 
 /**
  * Internal helper: single pass over all particles to accumulate kinetic energy
@@ -68,9 +68,9 @@ function computeKineticAndExtrema(state: SimulationState): { kinetic: number; ma
  * NOTE: This duplicates pair iteration per force and is intentionally simple
  * for an initial diagnostics step (can be optimized by sharing pair loops later).
  */
-function computePotential(state: SimulationState, forces: ForceField[], _cutoff: number): number {
+function computePotential(state: SimulationState, forces: ForceField[], params: DiagnosticsParams): number {
   let pot = 0
-  for (const f of forces) if (f.potential) pot += f.potential(state, { cutoff: _cutoff })
+  for (const f of forces) if (f.potential) pot += f.potential(state, { cutoff: params.cutoff, pbc: params.pbc })
   return pot
 }
 
@@ -80,7 +80,7 @@ function computePotential(state: SimulationState, forces: ForceField[], _cutoff:
  */
 export function computeDiagnostics(state: SimulationState, forces: ForceField[], params: DiagnosticsParams): Diagnostics {
   const { kinetic, maxSpeed, maxForceMag } = computeKineticAndExtrema(state)
-  const potential = computePotential(state, forces, params.cutoff)
+  const potential = computePotential(state, forces, params)
   const temperature = kinetic * 2 / params.kB / (3 * state.N - 3) // from KE = (3N-3)/2 kB T
   const total = kinetic + potential
   return { time: state.time, kinetic, potential, total, temperature, maxSpeed, maxForceMag }

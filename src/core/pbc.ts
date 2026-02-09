@@ -5,21 +5,6 @@
 
 export interface HalfBox { x: number; y: number; z: number }
 
-// Global periodic boundary configuration (single source of truth).
-let _pbcEnabled = false
-let _pbcBox: HalfBox = { x: 0, y: 0, z: 0 }
-
-/** Configure global periodic boundary settings (half box extents + enabled flag). */
-export function configurePBC(box: HalfBox, enabled: boolean): void {
-    _pbcEnabled = enabled
-    _pbcBox = { x: box.x, y: box.y, z: box.z }
-}
-
-/** Current periodic boundary configuration. */
-export function currentPBC(): { enabled: boolean; box: HalfBox } {
-    return { enabled: _pbcEnabled, box: _pbcBox }
-}
-
 /** Wrap a scalar coordinate into [-half, half] (handles large excursions with while loop). */
 export function wrapIntoBox(v: number, half: number): number {
     const span = 2 * half

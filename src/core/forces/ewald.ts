@@ -1,6 +1,5 @@
 import { SimulationState, index3 } from '../simulation/state.js'
 import { ForceContext, ForceField, forEachPair } from './forceInterfaces.js'
-import { currentPBC } from '../pbc.js'
 import {
   applyPairwiseForce,
   computePairwisePotential,
@@ -62,7 +61,7 @@ export abstract class BaseEwaldForce implements ForceField {
      * Otherwise falls back to simple pairwise 1/r^2 style handled by subclass-specific fallbackApply().
      */
     apply(state: SimulationState, ctx: ForceContext): void {
-        const pbc = currentPBC()
+        const pbc = ctx.pbc
         if (!pbc.enabled) return this.fallbackApply(state, ctx)
         const { positions, forces, N } = state
         const { alpha } = this.ewald
@@ -84,7 +83,7 @@ export abstract class BaseEwaldForce implements ForceField {
             const i3 = index3(i), j3 = index3(j)
             forces[i3] += fx; forces[i3 + 1] += fy; forces[i3 + 2] += fz
             forces[j3] -= fx; forces[j3 + 1] -= fy; forces[j3 + 2] -= fz
-        })
+        }, pbc)
         // Reciprocal space contribution
         const ks = makeKVectors(pbc.box, this.ewald.kMax)
         for (const { kx, ky, kz, k2 } of ks) {
@@ -114,7 +113,8 @@ export abstract class BaseEwaldForce implements ForceField {
         // Self-energy correction handled only in potential path.
     }
     potential(state: SimulationState, ctx: ForceContext): number {
-        const pbc = currentPBC(); if (!pbc.enabled) return this.fallbackPotential(state, ctx)
+        const pbc = ctx.pbc
+        if (!pbc.enabled) return this.fallbackPotential(state, ctx)
         const { positions, N } = state
         const { alpha } = this.ewald
         const { prefactor, chargesOrMasses } = this.getKernelParams(state)
@@ -125,7 +125,7 @@ export abstract class BaseEwaldForce implements ForceField {
             const r = Math.sqrt(r2)
             const qiqj = (chargesOrMasses[i] || 0) * (chargesOrMasses[j] || 0)
             V += prefactor * qiqj * erfc(alpha * r) / r
-        })
+        }, pbc)
         const ks = makeKVectors(pbc.box, this.ewald.kMax)
         const Lx = 2 * pbc.box.x, Ly = 2 * pbc.box.y, Lz = 2 * pbc.box.z
         const volume = Lx * Ly * Lz
@@ -166,7 +166,7 @@ export class EwaldCoulomb extends BaseEwaldForce {
     const coeffFn = makeUnsoftenedForceCoefficient(this.K)
     forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
       applyPairwiseForce(forces, i, j, dx, dy, dz, r2, coeffFn, charges[i] || 0, charges[j] || 0)
-    })
+    }, ctx.pbc)
   }
   fallbackPotential(state: SimulationState, ctx: ForceContext): number {
     const { charges } = state
@@ -174,7 +174,7 @@ export class EwaldCoulomb extends BaseEwaldForce {
     let V = 0
     forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
       V += computePairwisePotential(r2, potentialFn, charges[i] || 0, charges[j] || 0)
-    })
+    }, ctx.pbc)
     return V
   }
     protected getKernelParams(state: SimulationState): KernelParams { return { prefactor: this.K, chargesOrMasses: state.charges, attractive: false } }
@@ -187,7 +187,7 @@ export class EwaldGravity extends BaseEwaldForce {
     const coeffFn = makeUnsoftenedForceCoefficient(-this.G)
     forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
       applyPairwiseForce(forces, i, j, dx, dy, dz, r2, coeffFn, masses[i] || 1, masses[j] || 1)
-    })
+    }, ctx.pbc)
   }
   fallbackPotential(state: SimulationState, ctx: ForceContext): number {
     const { masses } = state
@@ -195,7 +195,7 @@ export class EwaldGravity extends BaseEwaldForce {
     let V = 0
     forEachPair(state, ctx.cutoff, (i, j, dx, dy, dz, r2) => {
       V += computePairwisePotential(r2, potentialFn, masses[i] || 1, masses[j] || 1)
-    })
+    }, ctx.pbc)
     return V
   }
     protected getKernelParams(state: SimulationState): KernelParams { return { prefactor: -this.G, chargesOrMasses: state.masses, attractive: true } }
