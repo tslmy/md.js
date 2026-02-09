@@ -463,6 +463,59 @@ docReady(() => {
   api.ready = true
   window.__pauseEngine = () => { engine?.pause() }
 
+  // Setup HUD interaction handlers
+  const hud = getHud()
+  if (hud && simState && camera && controls) {
+    const hudSimState = simState // Capture for closure
+    const hudControls = controls // Capture for closure
+
+    // Handle particle click for camera focus
+    hud.setParticleClickHandler((particleIndex: number) => {
+      const i3 = particleIndex * 3
+      const pos = displayPositions || hudSimState.positions
+      const targetX = pos[i3]
+      const targetY = pos[i3 + 1]
+      const targetZ = pos[i3 + 2]
+
+      // Smoothly move camera to focus on particle
+      const targetPos = new Vector3(targetX, targetY, targetZ)
+      const distance = 5 // Distance from particle
+      const direction = camera.position.clone().sub(targetPos).normalize()
+      const newCameraPos = targetPos.clone().add(direction.multiplyScalar(distance))
+
+      // Animate camera movement (simple linear interpolation)
+      const startPos = camera.position.clone()
+      const steps = 30
+      let step = 0
+
+      const animate = () => {
+        step++
+        const t = step / steps
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 // easeInOutQuad
+        camera.position.lerpVectors(startPos, newCameraPos, eased)
+
+        // Update orbit controls target if available
+        if ('target' in hudControls && hudControls.target instanceof Vector3) {
+          hudControls.target.copy(targetPos)
+        }
+
+        if (step < steps) {
+          requestAnimationFrame(animate)
+        }
+      }
+      animate()
+    })
+
+    // Handle row selection for highlighting (optional - can be extended later)
+    hud.setParticleSelectHandler((particleIndex: number | null) => {
+      // Could be used to highlight the selected particle in 3D view
+      // For now, just log it for debugging
+      if (particleIndex !== null) {
+        console.log(`Selected particle ${particleIndex}`)
+      }
+    })
+  }
+
   // Initialize configuration modal
   let configModal: ConfigModal | null = null
   try {

@@ -5,8 +5,6 @@
     <title>Molecular Dynamics</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
     <meta content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" name="viewport">
-    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css"
-        integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <script type="importmap">
@@ -61,7 +59,84 @@
             top: 5%;
             left: 5%;
             display: none;
-            pointer-events: none;
+            pointer-events: auto;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15),
+                        0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        /* Round the table corners to match HUD container */
+        #hud #tabularInfo {
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        #hud #tabularInfo thead th:first-child {
+            border-top-left-radius: 0.5rem;
+        }
+
+        #hud #tabularInfo thead th:last-child {
+            border-top-right-radius: 0.5rem;
+        }
+
+        /* Interactive table enhancements */
+        #hud #tabularInfo tbody tr {
+            transition: background-color 0.15s ease-in-out;
+        }
+
+        #hud #tabularInfo tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.1) !important;
+        }
+
+        #hud #tabularInfo tbody tr.table-active {
+            background-color: rgba(13, 110, 253, 0.2) !important;
+            border-left: 3px solid #0d6efd;
+        }
+
+        #hud #tabularInfo thead th {
+            transition: background-color 0.15s ease-in-out;
+        }
+
+        #hud #tabularInfo thead th:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Particle badge hover effect */
+        .particle-focus-btn {
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        .particle-focus-btn:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* Table footer styling */
+        #hud #tabularInfo tfoot {
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+            background: #f8f9fa;
+            border-top: 2px solid #dee2e6;
+        }
+
+        #hud #tabularInfo tfoot td {
+            padding: 8px 12px;
+            font-size: 0.875rem;
+        }
+
+        #hud #tabularInfo tfoot span {
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        /* Responsive: stack controls vertically on smaller screens */
+        @media (max-width: 992px) {
+            #hud #tabularInfo tfoot span {
+                display: block;
+                margin: 4px 0 !important;
+            }
         }
 
         /* Configuration modal trigger button */
@@ -212,23 +287,38 @@
     <div class="mapscale" id="force">Force</div>
 
     <div id="hud">
-        <table id="tabularInfo" class="pure-table">
-            <thead>
-                <tr>
-                    <th>Particle</th>
-                    <th>Mass</th>
-                    <th>Charge</th>
-                    <th>Speed</th>
-                    <th>Kinetic Energy</th>
-                    <th>LJ Force</th>
-                    <th>Gravitation Force</th>
-                    <th>Coulomb Force</th>
-                    <th>Total Force</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+        <div class="table-responsive" style="max-height: 100%; overflow-y: auto;">
+            <table id="tabularInfo" class="table table-sm table-hover table-bordered table-striped">
+                <thead class="table-dark sticky-top">
+                    <tr>
+                        <th class="text-center">Particle</th>
+                        <th class="text-center">Mass</th>
+                        <th class="text-center">Charge</th>
+                        <th class="text-center">Speed</th>
+                        <th class="text-center">Kinetic Energy</th>
+                        <th class="text-center">LJ Force</th>
+                        <th class="text-center">Gravitation Force</th>
+                        <th class="text-center">Coulomb Force</th>
+                        <th class="text-center">Total Force</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="9" class="text-center py-2">
+                            <small class="text-muted">
+                                <strong>Controls:</strong>
+                                <span class="mx-2">🖱️ Click headers to sort</span>
+                                <span class="mx-2">🖱️ Click rows to select</span>
+                                <span class="mx-2">🖱️ Hover cells for details</span>
+                                <span class="mx-2">🎯 Click ⬤ to focus camera</span>
+                            </small>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
     </div>
 
     <!-- Configuration Modal Trigger Button -->
