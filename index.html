@@ -89,6 +89,36 @@
             --bs-backdrop-opacity: 0.8;
         }
 
+        /* Force field visualization cards */
+        .force-field-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #f8f9fa;
+            padding: 16px;
+            max-width: 400px;
+        }
+
+        .force-field-gif {
+            max-width: 100%;
+            max-height: 250px;
+            height: auto;
+            border-radius: 4px;
+            display: block;
+            margin: 0 auto;
+            object-fit: contain;
+        }
+
+        /* Responsive: adjust padding on mobile */
+        @media (max-width: 768px) {
+            .force-field-card {
+                padding: 12px;
+                max-width: 100%;
+            }
+            .force-field-gif {
+                max-height: 200px;
+            }
+        }
+
         /* removed empty .particle rule */
     </style>
 </head>

@@ -50,11 +50,11 @@ export const SETTINGS_SCHEMA: SettingDescriptor[] = [
     { key: 'if_useFog', default: false as const, group: 'visual' },
     { key: 'if_limitArrowsMaxLength', default: true as const, group: 'arrows', control: { type: 'boolean', label: 'Limit length' } },
     { key: 'if_constant_temperature', default: false as const, group: 'runtime', control: { type: 'boolean', label: 'Constant T' } },
-    { key: 'EPSILON', default: 1 as const, group: 'constants', enginePath: 'constants.epsilon', auto: true },
-    { key: 'DELTA', default: 0.02 as const, group: 'constants', enginePath: 'constants.sigma', auto: true },
-    { key: 'G', default: 0.08 as const, group: 'constants', enginePath: 'constants.G', auto: true },
-    { key: 'K', default: 0.1 as const, group: 'constants', enginePath: 'constants.K', auto: true },
-    { key: 'kB', default: 6.02 as const, group: 'constants', enginePath: 'constants.kB', auto: true },
+    { key: 'EPSILON', default: 1 as const, group: 'constants', enginePath: 'constants.epsilon', auto: true, control: { type: 'number' } },
+    { key: 'DELTA', default: 0.02 as const, group: 'constants', enginePath: 'constants.sigma', auto: true, control: { type: 'number' } },
+    { key: 'G', default: 0.08 as const, group: 'constants', enginePath: 'constants.G', auto: true, control: { type: 'number' } },
+    { key: 'K', default: 0.1 as const, group: 'constants', enginePath: 'constants.K', auto: true, control: { type: 'number' } },
+    { key: 'kB', default: 6.02 as const, group: 'constants', enginePath: 'constants.kB', auto: true, control: { type: 'number' } },
     { key: 'ewaldAlpha', default: undefined, group: 'ewald', enginePath: 'runtime.ewaldAlpha', auto: true },
     { key: 'ewaldKMax', default: undefined, group: 'ewald', enginePath: 'runtime.ewaldKMax', auto: true }
 ]

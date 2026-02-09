@@ -104,16 +104,39 @@ function buildWorldTab(settings: SettingsObject): string {
 function buildForcesTab(settings: SettingsObject): string {
   const forcesSettings = SETTINGS_SCHEMA.filter(d => d.group === 'forces' || d.group === 'constants')
 
+  // Map force keys to their visualization images
+  // Images from Wikimedia Commons - see assets/forces/CREDITS.md for full attribution
+  // Licensed under CC BY-SA 3.0 / GFDL
+  const forceVisualizations: Record<string, string> = {
+    if_apply_LJpotential: 'assets/forces/lennard-jones.png', // Graph from Wikimedia Commons
+    if_apply_gravitation: 'assets/forces/gravity.gif', // Animation by User:Lookang, CC BY-SA 3.0
+    if_apply_coulombForce: 'assets/forces/coulomb.svg' // Field plot by User:Geek3, CC BY-SA 3.0
+  }
+
   return `
     <div class="tab-pane fade" id="forces" role="tabpanel">
       <div class="container-fluid mt-3">
         <p class="text-muted">Enable or disable force contributions and adjust physical constants.</p>
         <form id="forcesForm">
           <h6 class="mt-3 mb-2">Force Fields</h6>
-          ${forcesSettings.filter(d => d.group === 'forces').map(d => buildFormGroup(d, settings)).join('')}
+          ${forcesSettings.filter(d => d.group === 'forces').map(d => {
+            const imageSrc = forceVisualizations[d.key]
+            if (imageSrc) {
+              return buildForceFieldWithImage(d, settings, imageSrc)
+            }
+            return buildFormGroup(d, settings)
+          }).join('')}
 
           <h6 class="mt-4 mb-2">Physical Constants</h6>
           ${forcesSettings.filter(d => d.group === 'constants').map(d => buildFormGroup(d, settings)).join('')}
+
+          <div class="mt-4 pt-3 border-top">
+            <p class="text-muted small mb-0">
+              Force field visualizations from <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>,
+              licensed under <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>.
+              Credits: User:Lookang, User:Geek3. See <code>assets/forces/CREDITS.md</code> for details.
+            </p>
+          </div>
         </form>
       </div>
     </div>
@@ -193,6 +216,33 @@ function buildAdvancedTab(settings: SettingsObject): string {
   `
 }
 
+function buildForceFieldWithImage(descriptor: SettingDescriptor, settings: SettingsObject, imageSrc: string): string {
+  const value = settings[descriptor.key as keyof SettingsObject]
+  const label = descriptor.control?.label ?? descriptor.key
+  const checked = value as boolean
+
+  // Force field descriptions
+  const descriptions: Record<string, string> = {
+    if_apply_LJpotential: 'Molecular attraction and repulsion between neutral atoms',
+    if_apply_gravitation: 'Universal attraction between masses (F ∝ m₁m₂/r²)',
+    if_apply_coulombForce: 'Electrostatic force between charged particles (F ∝ q₁q₂/r²)'
+  }
+  const description = descriptions[descriptor.key] || ''
+
+  return `
+    <div class="mb-4">
+      <div class="force-field-card">
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" id="${descriptor.key}" name="${descriptor.key}" ${checked ? 'checked' : ''}>
+          <label class="form-check-label fw-semibold" for="${descriptor.key}">${label}</label>
+        </div>
+        ${description ? `<p class="text-muted small mb-2">${description}</p>` : ''}
+        <img src="${imageSrc}" alt="${label} visualization" class="force-field-gif img-fluid" />
+      </div>
+    </div>
+  `
+}
+
 function buildFormGroup(descriptor: SettingDescriptor, settings: SettingsObject): string {
   const value = settings[descriptor.key as keyof SettingsObject]
   const label = descriptor.control?.label || descriptor.key
@@ -239,9 +289,20 @@ function buildNumberInput(key: string, label: string, value: number, control: Se
   const max = control?.max !== undefined ? `max="${control.max}"` : ''
   const step = control?.step !== undefined ? `step="${control.step}"` : 'step="any"'
 
+  // Physical constant descriptions
+  const constantDescriptions: Record<string, string> = {
+    EPSILON: 'ε - Depth of Lennard-Jones potential well (energy scale)',
+    DELTA: 'σ - Distance at which LJ potential is zero (length scale)',
+    G: 'Gravitational constant (strength of gravity)',
+    K: 'Coulomb constant (strength of electrostatic force)',
+    kB: 'Boltzmann constant (thermal energy scale)'
+  }
+  const description = constantDescriptions[key]
+
   return `
     <div class="mb-3">
       <label for="${key}" class="form-label">${label}</label>
+      ${description ? `<div class="form-text text-muted small mb-1">${description}</div>` : ''}
       <input type="number" class="form-control" id="${key}" name="${key}"
              value="${value}" ${min} ${max} ${step}>
     </div>
