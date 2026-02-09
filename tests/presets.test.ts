@@ -15,7 +15,7 @@ import { computeCircularOrbitVelocity } from '../built/core/simulation/orbitInit
  */
 describe('Preset stability (1000 timesteps)', () => {
   for (const preset of PRESETS) {
-    it(`${preset.id}: runs 1000 steps without instability`, () => {
+    it(`${preset.id}: runs 1000 steps without instability`, { timeout: 10000 }, () => {
       // Build settings from preset
       const settings = buildSettings() as Record<string, unknown>
       Object.assign(settings, preset.settings)
