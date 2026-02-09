@@ -15,7 +15,7 @@ interface BootstrapModal {
 export class ConfigModal {
   private modalElement: HTMLElement | null = null
   private bsModal: BootstrapModal | null = null
-  private selectedPresetId: string | null = null
+  private selectedPresetId: string | null = 'solar-system'
 
   constructor(private settings: SettingsObject) {}
 
@@ -51,6 +51,11 @@ export class ConfigModal {
 
       // Attach event listeners
       this.attachEventListeners()
+
+      // Auto-select default preset (solar-system)
+      if (this.selectedPresetId) {
+        this.selectPreset(this.selectedPresetId)
+      }
 
       // Check first visit and show modal after short delay
       if (this.checkFirstVisit()) {
